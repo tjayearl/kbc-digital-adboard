@@ -1,0 +1,17 @@
+# Backend
+backend/.venv
+backend/serviceAccountKey.json
+backend/.env
+backend/__pycache__
+backend/get-pip.py
+**/*.pyc
+
+# Frontend
+node_modules
+dist
+.env
+.env.local
+
+# System
+.DS_Store
+Thumbs.db
