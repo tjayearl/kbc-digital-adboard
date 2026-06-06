@@ -1,0 +1,13 @@
+# Secrets
+serviceAccountKey.json
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Misc
+get-pip.py
+firebase-debug.log

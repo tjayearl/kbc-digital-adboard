@@ -1,14 +1,15 @@
 # Backend
-backend/.venv
+backend/.venv/
 backend/serviceAccountKey.json
 backend/.env
-backend/__pycache__
+backend/__pycache__/
 backend/get-pip.py
+backend/firebase-debug.log
 **/*.pyc
 
 # Frontend
-node_modules
-dist
+node_modules/
+dist/
 .env
 .env.local
 

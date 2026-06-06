@@ -1,0 +1,277 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─────────────────────────────────────────
+    // HELPER FUNCTIONS
+    // ─────────────────────────────────────────
+
+    // Check if the user is authenticated
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Get the user's role from custom claims
+    function role() {
+      return request.auth.token.role;
+    }
+
+    // Role checks
+    function isSales() {
+      return isAuth() && role() == 'sales';
+    }
+
+    function isAdManager() {
+      return isAuth() && role() == 'adManager';
+    }
+
+    function isDigitalOps() {
+      return isAuth() && role() == 'digitalOps';
+    }
+
+    function isFinance() {
+      return isAuth() && role() == 'finance';
+    }
+
+    function isAdmin() {
+      return isAuth() && role() == 'admin';
+    }
+
+    function isAdManagerOrAdmin() {
+      return isAdManager() || isAdmin();
+    }
+
+    function isFinanceOrAdmin() {
+      return isFinance() || isAdmin();
+    }
+
+    // Check if the campaign belongs to the requesting sales user
+    function ownsCampaign(campaignData) {
+      return campaignData.createdBy == request.auth.uid;
+    }
+
+    // Check campaign status is at or beyond briefUnlocked
+    function isBriefUnlocked(campaignData) {
+      return campaignData.status in [
+        'briefUnlocked',
+        'inExecution',
+        'delivered',
+        'reported',
+        'closed'
+      ];
+    }
+
+    // ─────────────────────────────────────────
+    // USERS COLLECTION
+    // ─────────────────────────────────────────
+    match /users/{userId} {
+      // Any authenticated user can read their own profile
+      allow read: if isAuth() && request.auth.uid == userId;
+
+      // Admin can read all user profiles
+      allow read: if isAdmin();
+
+      // Only admin can create or update users
+      allow create, update: if isAdmin();
+
+      // Nobody can delete users
+      allow delete: if false;
+    }
+
+    // ─────────────────────────────────────────
+    // RATE CARD COLLECTION
+    // ─────────────────────────────────────────
+    match /rateCard/{itemId} {
+      // Any authenticated user can read the rate card
+      allow read: if isAuth();
+
+      // Only admin can write to the rate card
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────
+    // CAMPAIGNS COLLECTION
+    // ─────────────────────────────────────────
+    match /campaigns/{campaignId} {
+
+      // SALES: can only read their own campaigns
+      allow read: if isSales() && ownsCampaign(resource.data);
+
+      // AD MANAGER: can read all campaigns
+      allow read: if isAdManagerOrAdmin();
+
+      // DIGITAL OPS: can only read unlocked campaigns
+      allow read: if isDigitalOps() && isBriefUnlocked(resource.data);
+
+      // FINANCE: can read campaigns at adManagerCountersigned and beyond
+      allow read: if isFinanceOrAdmin() && resource.data.status in [
+        'adManagerCountersigned',
+        'paymentConfirmed',
+        'briefUnlocked',
+        'inExecution',
+        'delivered',
+        'reported',
+        'closed'
+      ];
+
+      // SALES: can create campaigns
+      // Line item prices cannot be set by the client —
+      // unitPrice must not be included in the write
+      // (prices are validated server-side in FastAPI)
+      allow create: if isSales() &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.status == 'draft';
+
+      // SALES: can update only their own draft campaigns
+      allow update: if isSales() &&
+        ownsCampaign(resource.data) &&
+        resource.data.status == 'draft' &&
+        request.resource.data.status == 'draft';
+
+      // AD MANAGER: can only write to discount and signature fields
+      allow update: if isAdManagerOrAdmin() && (
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'status',
+            'discount',
+            'signatures',
+            'updatedAt'
+          ])
+      );
+
+      // FINANCE: can only write to payment fields
+      allow update: if isFinanceOrAdmin() && (
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'status',
+            'payment',
+            'updatedAt'
+          ])
+      );
+
+      // DIGITAL OPS: can only update execution fields
+      allow update: if isDigitalOps() && isBriefUnlocked(resource.data) && (
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'status',
+            'podUrl',
+            'podUploadedAt',
+            'podUploadedBy',
+            'report',
+            'updatedAt'
+          ])
+      );
+
+      // Only admin can delete campaigns
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────
+    // CHANGE ORDERS COLLECTION
+    // ─────────────────────────────────────────
+    match /changeOrders/{coId} {
+      // Sales can read their own change orders
+      allow read: if isSales() &&
+        resource.data.createdBy == request.auth.uid;
+
+      // Ad Manager, Finance, Admin can read all
+      allow read: if isAdManagerOrAdmin() || isFinanceOrAdmin();
+
+      // Sales can create change orders
+      allow create: if isSales() &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.status == 'draft';
+
+      // Ad Manager can update status and signatures only
+      allow update: if isAdManagerOrAdmin() && (
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'signatures', 'discount', 'updatedAt'])
+      );
+
+      // Finance can update payment only
+      allow update: if isFinanceOrAdmin() && (
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'payment', 'updatedAt'])
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────
+    // MATERIALS COLLECTION
+    // ─────────────────────────────────────────
+    match /materials/{materialId} {
+      // Sales and Digital Ops can read materials
+      allow read: if isAuth();
+
+      // Sales can upload materials
+      allow create: if isSales() || isAdmin();
+
+      // Digital Ops can update spec status (validate materials)
+      allow update: if isDigitalOps() && (
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['specStatus', 'validatedAt', 'validatedBy'])
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────
+    // EXECUTION TASKS COLLECTION
+    // ─────────────────────────────────────────
+    match /executionTasks/{taskId} {
+      // Digital Ops and Admin can read tasks
+      allow read: if isDigitalOps() || isAdmin();
+
+      // Admin can create tasks
+      allow create: if isAdmin();
+
+      // Digital Ops can update task status and go-live timestamp
+      allow update: if isDigitalOps() && (
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'goLiveTimestamp', 'loggedBy', 'note'])
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────
+    // AUDIT LOG COLLECTION
+    // ─────────────────────────────────────────
+    match /auditLog/{logId} {
+      // Admin and Ad Manager can read audit logs
+      allow read: if isAdManagerOrAdmin();
+
+      // Any authenticated user can create a log entry
+      allow create: if isAuth();
+
+      // NOBODY can update or delete audit logs — ever
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ─────────────────────────────────────────
+    // AIRTIME ORDERS COLLECTION
+    // ─────────────────────────────────────────
+    match /airtimeOrders/{serialId} {
+      // Finance, Admin, and Sales can read (Sales needs to enter serial)
+      allow read: if isAuth();
+
+      // Only Finance and Admin can create/update serials
+      allow create, update: if isFinanceOrAdmin();
+
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────────────────
+    // COUNTERS COLLECTION (DAB reference sequences)
+    // ─────────────────────────────────────────
+    match /counters/{counterId} {
+      // Only backend service account touches this
+      // No client reads or writes permitted
+      allow read, write: if false;
+    }
+
+  }
+}
