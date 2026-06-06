@@ -40,8 +40,20 @@ async def get_pipeline(user=Depends(require_roles(["admin", "adManager"]))):
         c.get("totals", {}).get("discountValue", 0) for c in pipeline
         if c.get("discount", {}).get("status") == "approved"
     )
-    return {"campaigns": pipeline, "totalBooked": total_booked,
-            "totalDiscounts": total_discounts, "count": len(pipeline)}
+    now = datetime.now(timezone.utc).isoformat()
+    overdue = [
+        c for c in pipeline
+        if c.get("status") in ["briefUnlocked", "inExecution"]
+        and c.get("campaign", {}).get("endDate", "9999") < now[:10]
+    ]
+    return {
+        "campaigns": pipeline,
+        "totalBooked": total_booked,
+        "totalDiscounts": total_discounts,
+        "overdueCount": len(overdue),
+        "overdue": overdue,
+        "count": len(pipeline)
+    }
 
 @router.get("/discounts")
 async def get_discount_report(user=Depends(require_roles(["admin", "adManager"]))):
@@ -61,3 +73,15 @@ async def get_discount_report(user=Depends(require_roles(["admin", "adManager"])
                 "approvedAt": discount.get("approvedAt", ""),
             })
     return {"discounts": discounts, "total": sum(d["value"] for d in discounts)}
+
+@router.get("/revenue-by-rep")
+async def revenue_by_rep(user=Depends(require_roles(["admin", "adManager"]))):
+    campaigns = db.collection("campaigns").stream()
+    rep_revenue = {}
+    for c in campaigns:
+        data = c.to_dict()
+        if data.get("status") not in ["draft", "discountPending"]:
+            rep = data.get("createdBy", "unknown")
+            total = data.get("totals", {}).get("grandTotal", 0)
+            rep_revenue[rep] = rep_revenue.get(rep, 0) + total
+    return {"revenueByRep": rep_revenue}
