@@ -1,0 +1,570 @@
+
+<style>
+*{box-sizing:border-box}
+.sec{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem}
+.sec-title{font-size:13px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.06em;margin:0 0 1rem;display:flex;align-items:center;gap:8px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.field-row.t3{grid-template-columns:1fr 1fr 1fr}
+.field-row.full{grid-template-columns:1fr}
+.fg{display:flex;flex-direction:column;gap:4px}
+label{font-size:13px;color:var(--color-text-secondary)}
+.req{color:var(--color-text-danger)}
+input,select,textarea{width:100%}
+textarea{resize:vertical;min-height:64px}
+.hint{font-size:11px;color:var(--color-text-tertiary);margin-top:3px}
+.warn{font-size:11px;color:var(--color-text-warning);margin-top:3px}
+
+.cat-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);cursor:pointer;margin-bottom:8px;background:var(--color-background-secondary);transition:background .15s}
+.cat-header:hover{background:var(--color-background-tertiary)}
+.cat-header.open{border-color:var(--color-border-info);background:var(--color-background-info)}
+.cat-left{display:flex;align-items:center;gap:10px}
+.cat-icon{font-size:20px;color:var(--color-text-secondary)}
+.cat-header.open .cat-icon{color:var(--color-text-info)}
+.cat-name{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+.cat-header.open .cat-name{color:var(--color-text-info)}
+.cat-sub{font-size:12px;color:var(--color-text-secondary)}
+.cat-right{display:flex;align-items:center;gap:8px}
+.cat-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;background:var(--color-background-success);color:var(--color-text-success)}
+.chevron{font-size:16px;color:var(--color-text-tertiary);transition:transform .2s}
+.cat-header.open .chevron{transform:rotate(180deg)}
+
+.prod-panel{display:none;border:0.5px solid var(--color-border-info);border-radius:var(--border-radius-md);padding:1.25rem;margin-bottom:8px;background:var(--color-background-primary)}
+.prod-panel.visible{display:block}
+
+.platform-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.plat-btn{display:flex;align-items:center;gap:6px;padding:8px 10px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);cursor:pointer;font-size:13px;color:var(--color-text-secondary);background:var(--color-background-secondary);transition:all .15s}
+.plat-btn:hover{border-color:var(--color-border-secondary)}
+.plat-btn.sel{border-color:var(--color-border-info);background:var(--color-background-info);color:var(--color-text-info);font-weight:500}
+.plat-btn input{display:none}
+
+.schedule-row{display:grid;grid-template-columns:1fr 1fr 1fr 80px;gap:8px;align-items:end;margin-bottom:8px;padding:10px 12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)}
+.add-btn{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;color:var(--color-text-info);padding:4px 0;background:none;border:none}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--color-text-tertiary);font-size:16px;padding:4px;border-radius:var(--border-radius-md)}
+.del-btn:hover{color:var(--color-text-danger)}
+
+.ls-day{display:flex;flex-direction:column;gap:8px}
+.ls-day-row{display:grid;grid-template-columns:1fr 100px 100px 32px;gap:8px;align-items:end;padding:10px 12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)}
+
+.subtotal-pill{display:inline-block;font-size:12px;padding:2px 10px;border-radius:20px;background:var(--color-background-success);color:var(--color-text-success);font-weight:500;margin-left:8px}
+
+.quote-box{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:1rem 1.25rem;margin-top:1rem}
+.q-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary)}
+.q-row:last-of-type{border:none}
+.q-total{display:flex;justify-content:space-between;font-size:15px;font-weight:500;padding-top:8px;margin-top:4px;border-top:0.5px solid var(--color-border-secondary)}
+.q-vat{display:flex;justify-content:space-between;font-size:13px;color:var(--color-text-secondary);padding-top:4px}
+.empty-quote{font-size:13px;color:var(--color-text-tertiary);text-align:center;padding:1.5rem}
+</style>
+
+<h2 class="sr-only">KBC Digital Media — Product configuration and booking details for each product category</h2>
+
+<div style="padding:1rem 0">
+<p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 1.25rem">Click a product category to expand it and configure your booking. Fill in all required fields before proceeding.</p>
+
+<div id="cats"></div>
+
+<div class="sec" style="margin-top:1.5rem">
+  <p class="sec-title"><i class="ti ti-receipt" aria-hidden="true"></i> Campaign cost estimate</p>
+  <div id="quoteBody"><div class="empty-quote">No products configured yet — expand a category above to begin</div></div>
+</div>
+
+<div style="display:flex;justify-content:flex-end;margin-top:1rem">
+  <button onclick="sendPrompt('Show me the material specifications and creative requirements for the products I just configured in the KBC Digital booking form')">Continue to material specs &nbsp;↗</button>
+</div>
+</div>
+
+<script>
+var state = {
+  social: { open:false, platforms:[], schedule:[] },
+  display: { open:false, type:'', startDate:'', endDate:'', hours:0 },
+  richMedia: { open:false, type:'', startDate:'', endDate:'', hours:0 },
+  livestream: { open:false, days:[] },
+  content: { open:false, items:[] },
+  app: { open:false, type:'', months:1 },
+  push: { open:false, sends:1, message:'' },
+  sms: { open:false, audience:50000 },
+  production: { open:false, items:[] }
+};
+
+var cats = [
+  { id:'social', icon:'ti-brand-instagram', name:'Social media sponsored content',
+    sub:'Facebook · X (Twitter) · Instagram · TikTok · YouTube',
+    render: renderSocial },
+  { id:'livestream', icon:'ti-live-view', name:'Livestream',
+    sub:'Website / YouTube / Facebook — scheduled events',
+    render: renderLivestream },
+  { id:'display', icon:'ti-layout', name:'Display banner advertising',
+    sub:'Above / below the fold — CPM or tenancy model',
+    render: renderDisplay },
+  { id:'richMedia', icon:'ti-rectangle', name:'Rich media advertising',
+    sub:'Roadblock · skin branding · overlay · expandable · sidekick',
+    render: renderRichMedia },
+  { id:'content', icon:'ti-article', name:'Content & sponsored articles',
+    sub:'Sponsored articles · video reviews · online documentary',
+    render: renderContent },
+  { id:'app', icon:'ti-device-mobile', name:'Mobile app advertising',
+    sub:'In-app ads · full app sponsorship · app video adverts',
+    render: renderApp },
+  { id:'push', icon:'ti-bell-ringing', name:'Push notifications & SMS',
+    sub:'App push notifications · bulk SMS alerts',
+    render: renderPush },
+  { id:'production', icon:'ti-video', name:'Production services',
+    sub:'Animated video · landing pages · banners · infographics · email',
+    render: renderProduction }
+];
+
+function toggleCat(id) {
+  var s = state[id];
+  s.open = !s.open;
+  renderAll();
+}
+
+function renderAll() {
+  var html = '';
+  cats.forEach(function(c) {
+    var s = state[c.id];
+    var sub = getCatSubtotal(c.id);
+    html += '<div>';
+    html += '<div class="cat-header'+(s.open?' open':'')+'" onclick="toggleCat(\''+c.id+'\')">';
+    html += '<div class="cat-left">';
+    html += '<i class="ti '+c.icon+' cat-icon" aria-hidden="true"></i>';
+    html += '<div><div class="cat-name">'+c.name+'</div><div class="cat-sub">'+c.sub+'</div></div>';
+    html += '</div>';
+    html += '<div class="cat-right">';
+    if(sub>0) html += '<span class="cat-badge">Ksh '+sub.toLocaleString()+'</span>';
+    html += '<i class="ti ti-chevron-down chevron" aria-hidden="true"></i>';
+    html += '</div></div>';
+    if(s.open) {
+      html += '<div class="prod-panel visible" id="panel-'+c.id+'">';
+      html += c.render();
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  document.getElementById('cats').innerHTML = html;
+  renderQuote();
+  rebindEvents();
+}
+
+function rebindEvents() {
+  document.querySelectorAll('.plat-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var p = this.dataset.plat;
+      var idx = state.social.platforms.indexOf(p);
+      if(idx>-1) state.social.platforms.splice(idx,1);
+      else state.social.platforms.push(p);
+      renderAll();
+    });
+  });
+  document.querySelectorAll('[data-bind]').forEach(function(el){
+    el.addEventListener('change', function(){
+      var parts = this.dataset.bind.split('.');
+      if(parts.length===2) state[parts[0]][parts[1]] = this.value;
+      if(parts.length===3) {
+        var idx=parseInt(parts[2]);
+        if(parts[0]==='social') { if(!state.social.schedule[idx]) state.social.schedule[idx]={}; state.social.schedule[idx][parts[1]]=this.value; }
+        if(parts[0]==='livestream') { if(!state.livestream.days[idx]) state.livestream.days[idx]={}; state.livestream.days[idx][parts[1]]=this.value; }
+        if(parts[0]==='content') { if(!state.content.items[idx]) state.content.items[idx]={}; state.content.items[idx][parts[1]]=this.value; }
+        if(parts[0]==='production') { if(!state.production.items[idx]) state.production.items[idx]={}; state.production.items[idx][parts[1]]=this.value; }
+      }
+      renderQuote();
+      updateBadge(this.dataset.bind.split('.')[0]);
+    });
+  });
+}
+
+function updateBadge(id){
+  var sub = getCatSubtotal(id);
+  var badges = document.querySelectorAll('.cat-badge');
+  var headers = document.querySelectorAll('.cat-header');
+  cats.forEach(function(c,i){
+    if(c.id===id && headers[i]){
+      var existing = headers[i].querySelector('.cat-badge');
+      if(sub>0){
+        if(existing) existing.textContent='Ksh '+sub.toLocaleString();
+      }
+    }
+  });
+}
+
+function renderSocial(){
+  var plats = ['Facebook','X (Twitter)','Instagram','TikTok','YouTube'];
+  var icons = {'Facebook':'ti-brand-facebook','X (Twitter)':'ti-brand-x','Instagram':'ti-brand-instagram','TikTok':'ti-brand-tiktok','YouTube':'ti-brand-youtube'};
+  var html='';
+  html+='<div class="fg" style="margin-bottom:14px"><label>Select platforms <span class="req">*</span></label>';
+  html+='<div class="platform-grid">';
+  plats.forEach(function(p){
+    var sel=state.social.platforms.indexOf(p)>-1;
+    html+='<div class="plat-btn'+(sel?' sel':'')+'" data-plat="'+p+'"><i class="ti '+icons[p]+'" aria-hidden="true"></i>'+p+'</div>';
+  });
+  html+='</div><span class="hint">Ksh 23,000 per post per platform · select all that apply</span></div>';
+
+  html+='<div style="margin-bottom:8px"><label style="font-size:13px;color:var(--color-text-secondary);display:block;margin-bottom:8px">Post schedule <span class="req">*</span> &nbsp;<span class="hint" style="display:inline">— add a row for each posting date or frequency block</span></label>';
+  html+='<div id="socialSchedule">';
+  if(state.social.schedule.length===0) state.social.schedule=[{}];
+  state.social.schedule.forEach(function(row,i){
+    html+='<div class="schedule-row">';
+    html+='<div class="fg"><label>Start date</label><input type="date" data-bind="social.startDate.'+i+'" value="'+(row.startDate||'')+'"></div>';
+    html+='<div class="fg"><label>End date</label><input type="date" data-bind="social.endDate.'+i+'" value="'+(row.endDate||'')+'"></div>';
+    html+='<div class="fg"><label>Posts per day</label><input type="number" min="1" max="10" value="'+(row.postsPerDay||1)+'" data-bind="social.postsPerDay.'+i+'"></div>';
+    html+='<div class="fg"><label>&nbsp;</label><button class="del-btn" onclick="removeSocialRow('+i+')"><i class="ti ti-trash" aria-hidden="true"></i></button></div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  html+='<button class="add-btn" onclick="addSocialRow()"><i class="ti ti-plus" aria-hidden="true"></i> Add date block</button></div>';
+
+  html+='<div class="field-row" style="margin-top:12px">';
+  html+='<div class="fg"><label>Post copy provided by <span class="req">*</span></label>';
+  html+='<select data-bind="social.copyBy"><option value="">— select —</option><option'+(state.social.copyBy==='Client'?' selected':'')+'>Client</option><option'+(state.social.copyBy==='KBC'?' selected':'')+'>KBC to write</option></select></div>';
+  html+='<div class="fg"><label>Content language <span class="req">*</span></label>';
+  html+='<select data-bind="social.language"><option value="">— select —</option><option>English</option><option>Kiswahili</option><option>English &amp; Kiswahili</option></select></div>';
+  html+='</div>';
+  html+='<div class="field-row full"><div class="fg"><label>Key message / caption brief</label>';
+  html+='<textarea data-bind="social.brief" placeholder="Describe the message, tone, hashtags, call to action, or any mentions to include">'+( state.social.brief||'')+'</textarea></div></div>';
+  html+='<div class="field-row"><div class="fg"><label>Boosting / paid amplification</label>';
+  html+='<select data-bind="social.boost"><option value="">— select —</option><option>Organic only (KBC page reach)</option><option>Boosted — KBC manages spend</option><option>Boosted — client manages own ad account</option></select></div>';
+  html+='<div class="fg"><label>Competitor exclusivity required?</label>';
+  html+='<select data-bind="social.exclusivity"><option>No</option><option>Yes — specify below</option></select></div></div>';
+  return html;
+}
+
+function addSocialRow(){ state.social.schedule.push({}); renderAll(); }
+function removeSocialRow(i){ state.social.schedule.splice(i,1); if(state.social.schedule.length===0) state.social.schedule=[{}]; renderAll(); }
+
+function renderLivestream(){
+  var html='';
+  html+='<div style="margin-bottom:12px"><label style="font-size:13px;color:var(--color-text-secondary);display:block;margin-bottom:8px">Streaming destinations <span class="req">*</span></label>';
+  var dests=['KBC Website','YouTube','Facebook','All three'];
+  html+='<div class="platform-grid">';
+  dests.forEach(function(d){
+    var sel=(state.livestream.dest||'')=== d;
+    html+='<div class="plat-btn'+(sel?' sel':'')+'" onclick="state.livestream.dest=\''+d+'\';renderAll()">'+d+'</div>';
+  });
+  html+='</div>';
+  html+='<span class="hint">Website only = Ksh 200,000/hr &nbsp;|&nbsp; All three + article = Ksh 200,000/hr &nbsp;|&nbsp; All three + 8 SM posts = Ksh 300,000/hr &nbsp;|&nbsp; All three + 8 posts + article = Ksh 350,000/hr</span></div>';
+
+  html+='<div class="field-row full"><div class="fg"><label>Package <span class="req">*</span></label>';
+  html+='<select data-bind="livestream.package">';
+  html+='<option value="">— select —</option>';
+  html+='<option value="200000">Stream + 1 article — Ksh 200,000/hr</option>';
+  html+='<option value="300000">Stream + 8 SM posts — Ksh 300,000/hr</option>';
+  html+='<option value="350000">Stream + 8 SM posts + 1 article — Ksh 350,000/hr</option>';
+  html+='</select></div></div>';
+
+  html+='<div style="margin-bottom:12px"><label style="font-size:13px;color:var(--color-text-secondary);display:block;margin-bottom:8px">Stream day(s) &amp; times <span class="req">*</span></label>';
+  if(state.livestream.days.length===0) state.livestream.days=[{}];
+  html+='<div>';
+  state.livestream.days.forEach(function(d,i){
+    html+='<div class="ls-day-row">';
+    html+='<div class="fg"><label>Date</label><input type="date" data-bind="livestream.date.'+i+'" value="'+(d.date||'')+'"></div>';
+    html+='<div class="fg"><label>Start time</label><input type="time" data-bind="livestream.start.'+i+'" value="'+(d.start||'')+'"></div>';
+    html+='<div class="fg"><label>End time</label><input type="time" data-bind="livestream.end.'+i+'" value="'+(d.end||'')+'"></div>';
+    html+='<div class="fg"><label>&nbsp;</label><button class="del-btn" onclick="removeLSDay('+i+')"><i class="ti ti-trash" aria-hidden="true"></i></button></div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  html+='<button class="add-btn" onclick="addLSDay()"><i class="ti ti-plus" aria-hidden="true"></i> Add stream day</button></div>';
+
+  html+='<div class="field-row">';
+  html+='<div class="fg"><label>Event name <span class="req">*</span></label><input type="text" data-bind="livestream.eventName" value="'+(state.livestream.eventName||'')+'" placeholder="e.g. Safaricom Annual Gala 2025"></div>';
+  html+='<div class="fg"><label>Stream location / source</label><input type="text" data-bind="livestream.location" value="'+(state.livestream.location||'')+'" placeholder="e.g. KICC Nairobi / remote feed"></div>';
+  html+='</div>';
+  html+='<div class="field-row">';
+  html+='<div class="fg"><label>Feed provided by</label><select data-bind="livestream.feed"><option>Client provides encoder/feed</option><option>KBC production crew required</option><option>To be discussed</option></select></div>';
+  html+='<div class="fg"><label>Branded overlays / lower thirds?</label><select data-bind="livestream.overlays"><option>No</option><option>Yes — client provides graphics</option><option>Yes — KBC to design</option></select></div>';
+  html+='</div>';
+  return html;
+}
+function addLSDay(){ state.livestream.days.push({}); renderAll(); }
+function removeLSDay(i){ state.livestream.days.splice(i,1); if(state.livestream.days.length===0) state.livestream.days=[{}]; renderAll(); }
+
+function renderDisplay(){
+  var html='';
+  html+='<div class="field-row">';
+  html+='<div class="fg"><label>Placement <span class="req">*</span></label>';
+  html+='<select data-bind="display.type">';
+  html+='<option value="">— select —</option>';
+  html+='<option value="5200">Above the fold — Ksh 5,200/day</option>';
+  html+='<option value="4550">Below the fold — Ksh 4,550/day</option>';
+  html+='<option value="117">CPM model — Ksh 117 per 1,000 impressions</option>';
+  html+='</select></div>';
+  html+='<div class="fg"><label>Banner format</label>';
+  html+='<select data-bind="display.format">';
+  html+='<option value="">— select —</option>';
+  html+='<option>Leaderboard 728×90</option>';
+  html+='<option>Square banner 300×250</option>';
+  html+='<option>Both formats</option>';
+  html+='</select></div>';
+  html+='</div>';
+  html+='<div class="field-row">';
+  html+='<div class="fg"><label>Campaign start date <span class="req">*</span></label><input type="date" data-bind="display.startDate" value="'+(state.display.startDate||'')+'"></div>';
+  html+='<div class="fg"><label>Campaign end date <span class="req">*</span></label><input type="date" data-bind="display.endDate" value="'+(state.display.endDate||'')+'"></div>';
+  html+='</div>';
+  html+='<div class="field-row">';
+  html+='<div class="fg"><label>Target pages / section</label>';
+  html+='<select data-bind="display.section"><option value="">— run of site —</option><option>Homepage only</option><option>News section</option><option>Sport section</option><option>Business section</option><option>Entertainment</option><option>Specific article (specify)</option></select></div>';
+  html+='<div class="fg"><label>Click-through URL <span class="req">*</span></label><input type="url" data-bind="display.url" value="'+(state.display.url||'')+'" placeholder="https://"></div>';
+  html+='</div>';
+  html+='<div class="fg"><label>Creative assets</label><select data-bind="display.creative"><option>Client will supply (per spec sheet)</option><option>KBC to design — Ksh 15,600 per banner</option></select></div>';
+  return html;
+}
+
+function renderRichMedia(){
+  var types=['Roadblock','Skin branding','Overlay','Expandable ad','Skin peel ad','Sidekick','Video banner'];
+  var html='';
+  html+='<div class="fg" style="margin-bottom:12px"><label>Format <span class="req">*</span> &nbsp;<span class="hint" style="display:inline">Ksh 100,000/hour each</span></label>';
+  html+='<div class="platform-grid">';
+  var sel=state.richMedia.types||[];
+  types.forEach(function(t){
+    var on=sel.indexOf(t)>-1;
+    html+='<div class="plat-btn'+(on?' sel':'')+'" onclick="toggleRMType(\''+t+'\')">'+t+'</div>';
+  });
+  html+='</div></div>';
+  html+='<div class="field-row t3">';
+  html+='<div class="fg"><label>Start date <span class="req">*</span></label><input type="date" data-bind="richMedia.startDate" value="'+(state.richMedia.startDate||'')+'"></div>';
+  html+='<div class="fg"><label>End date <span class="req">*</span></label><input type="date" data-bind="richMedia.endDate" value="'+(state.richMedia.endDate||'')+'"></div>';
+  html+='<div class="fg"><label>No. of hours booked <span class="req">*</span></label><input type="number" min="1" data-bind="richMedia.hours" value="'+(state.richMedia.hours||'')+'" placeholder="e.g. 4"></div>';
+  html+='</div>';
+  html+='<div class="field-row">';
+  html+='<div class="fg"><label>Preferred time slots</label><input type="text" data-bind="richMedia.timeSlots" value="'+(state.richMedia.timeSlots||'')+'" placeholder="e.g. 08:00–10:00 and 18:00–20:00"></div>';
+  html+='<div class="fg"><label>Click-through URL</label><input type="url" data-bind="richMedia.url" value="'+(state.richMedia.url||'')+'" placeholder="https://"></div>';
+  html+='</div>';
+  return html;
+}
+function toggleRMType(t){
+  if(!state.richMedia.types) state.richMedia.types=[];
+  var i=state.richMedia.types.indexOf(t);
+  if(i>-1) state.richMedia.types.splice(i,1); else state.richMedia.types.push(t);
+  renderAll();
+}
+
+function renderContent(){
+  var itemTypes=[
+    {label:'Sponsored article — client copy',price:74100},
+    {label:'Sponsored article — KBC writes',price:104000},
+    {label:'Video product/service review',price:104000},
+    {label:'Online documentary (10–15 min)',price:500000},
+    {label:'e-Paper supplement (per page)',price:65000},
+    {label:'Clickable advert on e-Paper',price:169000},
+    {label:'Online e-Paper hosting (weekly)',price:110500},
+    {label:'Video advert on e-Paper',price:357500}
+  ];
+  var html='';
+  html+='<div class="fg" style="margin-bottom:12px"><label>Select content products <span class="req">*</span></label>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  var sel=state.content.types||[];
+  itemTypes.forEach(function(it){
+    var on=sel.indexOf(it.label)>-1;
+    html+='<div class="plat-btn'+(on?' sel':'')+'" onclick="toggleContentType(\''+it.label+'\')"><div><div style="font-size:13px">'+it.label+'</div><div style="font-size:11px;color:var(--color-text-tertiary)">Ksh '+it.price.toLocaleString()+'</div></div></div>';
+  });
+  html+='</div></div>';
+  if((state.content.types||[]).length>0){
+    html+='<div class="field-row">';
+    html+='<div class="fg"><label>Quantity <span class="req">*</span></label><input type="number" min="1" value="'+(state.content.qty||1)+'" data-bind="content.qty" placeholder="Number of units"></div>';
+    html+='<div class="fg"><label>Publication frequency</label>';
+    html+='<select data-bind="content.freq"><option value="">— select —</option><option>One-off</option><option>Weekly</option><option>Twice a week</option><option>Daily</option><option>Monthly</option></select></div>';
+    html+='</div>';
+    html+='<div class="field-row">';
+    html+='<div class="fg"><label>Start date <span class="req">*</span></label><input type="date" data-bind="content.startDate" value="'+(state.content.startDate||'')+'"></div>';
+    html+='<div class="fg"><label>End date</label><input type="date" data-bind="content.endDate" value="'+(state.content.endDate||'')+'"></div>';
+    html+='</div>';
+    html+='<div class="field-row full"><div class="fg"><label>Content brief / topic</label>';
+    html+='<textarea data-bind="content.brief" placeholder="Topic, key message, approved claims, brand guidelines, any regulatory restrictions">'+( state.content.brief||'')+'</textarea></div></div>';
+  }
+  return html;
+}
+function toggleContentType(t){
+  if(!state.content.types) state.content.types=[];
+  var i=state.content.types.indexOf(t);
+  if(i>-1) state.content.types.splice(i,1); else state.content.types.push(t);
+  renderAll();
+}
+
+function renderApp(){
+  var html='';
+  html+='<div class="fg" style="margin-bottom:12px"><label>App product <span class="req">*</span></label>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  var opts=[
+    {label:'Custom in-app ad',sub:'Ksh 325,000/month',val:'325000'},
+    {label:'Full app sponsorship',sub:'Ksh 487,500/month',val:'487500'},
+    {label:'15-sec video advert',sub:'Ksh 357,500/month',val:'357500'},
+    {label:'30-sec video advert',sub:'Ksh 643,500/month',val:'643500'}
+  ];
+  opts.forEach(function(o){
+    var on=(state.app.type||'')=== o.val;
+    html+='<div class="plat-btn'+(on?' sel':'')+'" onclick="state.app.type=\''+o.val+'\';renderAll()"><div><div>'+o.label+'</div><div style="font-size:11px;color:var(--color-text-tertiary)">'+o.sub+'</div></div></div>';
+  });
+  html+='</div></div>';
+  html+='<div class="field-row">';
+  html+='<div class="fg"><label>Number of months <span class="req">*</span></label><input type="number" min="1" max="12" value="'+(state.app.months||1)+'" data-bind="app.months"></div>';
+  html+='<div class="fg"><label>Preferred placement</label><select data-bind="app.placement"><option value="">— select —</option><option>Home screen</option><option>News feed</option><option>Video player pre-roll</option><option>Any (run of app)</option></select></div>';
+  html+='</div>';
+  html+='<div class="field-row">';
+  html+='<div class="fg"><label>Start date <span class="req">*</span></label><input type="date" data-bind="app.startDate" value="'+(state.app.startDate||'')+'"></div>';
+  html+='<div class="fg"><label>Click-through URL</label><input type="url" data-bind="app.url" value="'+(state.app.url||'')+'" placeholder="https://"></div>';
+  html+='</div>';
+  return html;
+}
+
+function renderPush(){
+  var html='';
+  html+='<div class="fg" style="margin-bottom:12px"><label>Channel <span class="req">*</span></label>';
+  html+='<div class="platform-grid">';
+  ['App push notification','Bulk SMS'].forEach(function(c){
+    var on=(state.push.channel||'')=== c;
+    html+='<div class="plat-btn'+(on?' sel':'')+'" onclick="state.push.channel=\''+c+'\';renderAll()">'+c+'</div>';
+  });
+  html+='</div>';
+  if(state.push.channel==='App push notification') html+='<span class="hint">Ksh 0.30 per push notification sent</span>';
+  if(state.push.channel==='Bulk SMS') html+='<span class="hint">Ksh 5.00 per SMS · up to 50,000 users per batch</span>';
+  html+='</div>';
+  html+='<div class="field-row">';
+  html+='<div class="fg"><label>Number of sends <span class="req">*</span></label><input type="number" min="1" value="'+(state.push.sends||1)+'" data-bind="push.sends"></div>';
+  html+='<div class="fg"><label>Estimated reach per send <span class="req">*</span></label><input type="number" min="1000" step="1000" value="'+(state.push.reach||10000)+'" data-bind="push.reach" placeholder="e.g. 25000"></div>';
+  html+='</div>';
+  html+='<div class="field-row">';
+  html+='<div class="fg"><label>Scheduled date <span class="req">*</span></label><input type="date" data-bind="push.date" value="'+(state.push.date||'')+'"></div>';
+  html+='<div class="fg"><label>Scheduled time</label><input type="time" data-bind="push.time" value="'+(state.push.time||'')+'"></div>';
+  html+='</div>';
+  html+='<div class="field-row full"><div class="fg"><label>Message / notification copy <span class="req">*</span></label>';
+  html+='<textarea data-bind="push.message" placeholder="Push: headline (max 50 chars) + body (max 150 chars)&#10;SMS: message text (max 160 chars per SMS)">'+( state.push.message||'')+'</textarea>';
+  html+='<span class="hint">Push notifications and SMS are subject to editorial review before dispatch</span></div></div>';
+  return html;
+}
+
+function renderProduction(){
+  var prods=[
+    {label:'Animated video 2–5 sec',price:127400},
+    {label:'Animated video 6–15 sec',price:153400},
+    {label:'Animated video 16–30 sec',price:169000},
+    {label:'Still graphic video 2–5 sec',price:104000},
+    {label:'Still graphic video 6–15 sec',price:143000},
+    {label:'Still graphic video 16–30 sec',price:182000},
+    {label:'Video interview (1–3 min hosted)',price:52000},
+    {label:'Landing page design',price:117000},
+    {label:'Banner design (per campaign)',price:15600},
+    {label:'Infographic design',price:97500},
+    {label:'Email newsletter',price:84500}
+  ];
+  var html='';
+  html+='<div class="fg" style="margin-bottom:12px"><label>Production items needed <span class="req">*</span></label>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  var sel=state.production.types||[];
+  prods.forEach(function(p){
+    var on=sel.indexOf(p.label)>-1;
+    html+='<div class="plat-btn'+(on?' sel':'')+'" onclick="toggleProdType(\''+p.label+'\')"><div><div style="font-size:13px">'+p.label+'</div><div style="font-size:11px;color:var(--color-text-tertiary)">Ksh '+p.price.toLocaleString()+'</div></div></div>';
+  });
+  html+='</div></div>';
+  if((state.production.types||[]).length>0){
+    html+='<div class="field-row full"><div class="fg"><label>Creative brief</label>';
+    html+='<textarea data-bind="production.brief" placeholder="Describe the product/service, tone, target audience, key message, language, branding notes, and any reference material">'+( state.production.brief||'')+'</textarea></div></div>';
+    html+='<div class="field-row">';
+    html+='<div class="fg"><label>Required by date</label><input type="date" data-bind="production.dueDate" value="'+(state.production.dueDate||'')+'"></div>';
+    html+='<div class="fg"><label>Voiceover language (if applicable)</label><select data-bind="production.voLang"><option value="">— N/A —</option><option>English</option><option>Kiswahili</option><option>Both</option></select></div>';
+    html+='</div>';
+  }
+  return html;
+}
+function toggleProdType(t){
+  if(!state.production.types) state.production.types=[];
+  var i=state.production.types.indexOf(t);
+  if(i>-1) state.production.types.splice(i,1); else state.production.types.push(t);
+  renderAll();
+}
+
+var PRICES = {
+  social:23000, livestream_200000:200000, livestream_300000:300000, livestream_350000:350000,
+  display_5200:5200, display_4550:4550, richMedia:100000,
+  content:{
+    'Sponsored article — client copy':74100,'Sponsored article — KBC writes':104000,
+    'Video product/service review':104000,'Online documentary (10–15 min)':500000,
+    'e-Paper supplement (per page)':65000,'Clickable advert on e-Paper':169000,
+    'Online e-Paper hosting (weekly)':110500,'Video advert on e-Paper':357500
+  },
+  app:{325000:325000,487500:487500,357500:357500,643500:643500},
+  production:{
+    'Animated video 2–5 sec':127400,'Animated video 6–15 sec':153400,'Animated video 16–30 sec':169000,
+    'Still graphic video 2–5 sec':104000,'Still graphic video 6–15 sec':143000,'Still graphic video 16–30 sec':182000,
+    'Video interview (1–3 min hosted)':52000,'Landing page design':117000,
+    'Banner design (per campaign)':15600,'Infographic design':97500,'Email newsletter':84500
+  }
+};
+
+function getCatSubtotal(id){
+  var s=state[id];
+  if(id==='social'){
+    var plats=s.platforms.length||0;
+    var totalPosts=0;
+    (s.schedule||[]).forEach(function(r){
+      if(r.startDate&&r.endDate){
+        var days=Math.max(1,Math.round((new Date(r.endDate)-new Date(r.startDate))/(86400000))+1);
+        totalPosts+=days*(parseInt(r.postsPerDay)||1);
+      }else{ totalPosts+=parseInt(r.postsPerDay)||1; }
+    });
+    return plats*Math.max(1,totalPosts)*23000;
+  }
+  if(id==='livestream'){
+    var pkg=parseInt(s.package)||0;
+    var totalHrs=0;
+    (s.days||[]).forEach(function(d){
+      if(d.start&&d.end){
+        var sh=parseInt(d.start.split(':')[0])||0, sm=parseInt(d.start.split(':')[1])||0;
+        var eh=parseInt(d.end.split(':')[0])||0, em=parseInt(d.end.split(':')[1])||0;
+        var hrs=Math.max(1,Math.round(((eh*60+em)-(sh*60+sm))/60));
+        totalHrs+=hrs;
+      }else totalHrs+=1;
+    });
+    return pkg*Math.max(1,totalHrs);
+  }
+  if(id==='display'){
+    var rate=parseInt(s.type)||0;
+    if(!rate||!s.startDate||!s.endDate) return 0;
+    if(s.type==='117') return 0;
+    var days=Math.max(1,Math.round((new Date(s.endDate)-new Date(s.startDate))/(86400000))+1);
+    return rate*days;
+  }
+  if(id==='richMedia'){
+    var types=(s.types||[]).length;
+    return types*(parseInt(s.hours)||1)*100000;
+  }
+  if(id==='content'){
+    var sub=0;
+    (s.types||[]).forEach(function(t){ sub+=PRICES.content[t]||0; });
+    return sub*(parseInt(s.qty)||1);
+  }
+  if(id==='app'){
+    return (parseInt(s.type)||0)*(parseInt(s.months)||1);
+  }
+  if(id==='push'){
+    if(!s.channel) return 0;
+    var rate2=s.channel==='Bulk SMS'?5:0.30;
+    return Math.round(rate2*(parseInt(s.reach)||0)*(parseInt(s.sends)||1));
+  }
+  if(id==='production'){
+    var sub2=0;
+    (s.types||[]).forEach(function(t){ sub2+=PRICES.production[t]||0; });
+    return sub2;
+  }
+  return 0;
+}
+
+function renderQuote(){
+  var lines=[];
+  cats.forEach(function(c){
+    var sub=getCatSubtotal(c.id);
+    if(sub>0) lines.push({name:c.name,amount:sub});
+  });
+  var el=document.getElementById('quoteBody');
+  if(!el) return;
+  if(lines.length===0){el.innerHTML='<div class="empty-quote">No products configured yet</div>';return;}
+  var total=0;
+  var html='';
+  lines.forEach(function(l){total+=l.amount;html+='<div class="q-row"><span>'+l.name+'</span><span>Ksh '+l.amount.toLocaleString()+'</span></div>';});
+  var vat=Math.round(total*0.16);
+  html+='<div class="q-vat"><span>VAT 16%</span><span>Ksh '+vat.toLocaleString()+'</span></div>';
+  html+='<div class="q-total"><span>Total incl. VAT</span><span>Ksh '+(total+vat).toLocaleString()+'</span></div>';
+  html+='<p style="font-size:11px;color:var(--color-text-tertiary);margin:8px 0 0">Indicative estimate only. Confirmed on signed Insertion Order.</p>';
+  el.innerHTML=html;
+}
+
+renderAll();
+</script>

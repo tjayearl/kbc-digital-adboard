@@ -10,9 +10,12 @@ backend/firebase-debug.log
 # Frontend
 node_modules/
 dist/
+*.tsbuildinfo
 .env
 .env.local
 
 # System
 .DS_Store
 Thumbs.db
+
+.docs

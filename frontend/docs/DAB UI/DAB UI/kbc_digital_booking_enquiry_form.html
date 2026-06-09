@@ -1,0 +1,492 @@
+
+<style>
+.section-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem}
+.section-title{font-size:13px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.06em;margin:0 0 1rem}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.field-row.full{grid-template-columns:1fr}
+.field-group{display:flex;flex-direction:column;gap:4px}
+label{font-size:13px;color:var(--color-text-secondary)}
+.req{color:var(--color-text-danger)}
+input,select,textarea{width:100%;box-sizing:border-box}
+textarea{resize:vertical;min-height:72px}
+.product-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.prod-item{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);cursor:pointer;transition:border-color .15s,background .15s}
+.prod-item:hover{border-color:var(--color-border-secondary);background:var(--color-background-secondary)}
+.prod-item.selected{border-color:var(--color-border-info);background:var(--color-background-info)}
+.prod-item input[type=checkbox]{margin-top:2px;flex-shrink:0}
+.prod-label{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+.prod-price{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+.prod-item.selected .prod-label{color:var(--color-text-info)}
+.prod-item.selected .prod-price{color:var(--color-text-info)}
+.hint{font-size:12px;color:var(--color-text-tertiary);margin-top:3px}
+.quote-box{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:1rem 1.25rem;margin-top:1rem}
+.quote-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:var(--color-text-secondary)}
+.quote-total{display:flex;justify-content:space-between;font-size:15px;font-weight:500;padding-top:8px;margin-top:6px;border-top:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary)}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:var(--border-radius-md);font-weight:500}
+.badge-required{background:var(--color-background-danger);color:var(--color-text-danger)}
+.badge-optional{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.radio-group{display:flex;gap:16px;flex-wrap:wrap}
+.radio-item{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--color-text-primary);cursor:pointer}
+.step-bar{display:flex;gap:0;margin-bottom:1.5rem}
+.step{flex:1;text-align:center;padding:8px 4px;font-size:12px;color:var(--color-text-tertiary);border-bottom:2px solid var(--color-border-tertiary)}
+.step.active{color:var(--color-text-info);border-bottom-color:var(--color-border-info);font-weight:500}
+.step.done{color:var(--color-text-success);border-bottom-color:var(--color-border-success)}
+.nav-row{display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem}
+.success-card{background:var(--color-background-success);border:0.5px solid var(--color-border-success);border-radius:var(--border-radius-lg);padding:2rem;text-align:center}
+</style>
+
+<h2 class="sr-only">KBC Digital Media — client booking enquiry form, 4 steps: client details, campaign brief, product selection, and review</h2>
+
+<div style="padding:1rem 0">
+
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem">
+  <div style="width:36px;height:36px;border-radius:50%;background:var(--color-background-info);display:flex;align-items:center;justify-content:center">
+    <i class="ti ti-device-tv" style="font-size:18px;color:var(--color-text-info)" aria-hidden="true"></i>
+  </div>
+  <div>
+    <p style="font-size:15px;font-weight:500;margin:0;color:var(--color-text-primary)">KBC Digital Media — booking enquiry</p>
+    <p style="font-size:12px;color:var(--color-text-secondary);margin:0">digitalmedia@kbc.co.ke &nbsp;|&nbsp; www.kbc.co.ke</p>
+  </div>
+</div>
+
+<div class="step-bar" id="stepBar">
+  <div class="step active" id="s1">Client details</div>
+  <div class="step" id="s2">Campaign brief</div>
+  <div class="step" id="s3">Products</div>
+  <div class="step" id="s4">Review</div>
+</div>
+
+<div id="page1">
+  <div class="section-card">
+    <p class="section-title"><i class="ti ti-building" aria-hidden="true"></i> &nbsp;Organisation</p>
+    <div class="field-row">
+      <div class="field-group">
+        <label>Company / organisation name <span class="req">*</span></label>
+        <input type="text" id="orgName" placeholder="e.g. Safaricom PLC">
+      </div>
+      <div class="field-group">
+        <label>KRA PIN / registration no. <span class="req">*</span></label>
+        <input type="text" id="kraPin" placeholder="e.g. P051234567M">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field-group">
+        <label>Industry / sector <span class="req">*</span></label>
+        <select id="industry">
+          <option value="">— select —</option>
+          <option>Telecommunications</option>
+          <option>Banking &amp; finance</option>
+          <option>Insurance</option>
+          <option>Fast-moving consumer goods (FMCG)</option>
+          <option>Healthcare &amp; pharmaceuticals</option>
+          <option>Agribusiness</option>
+          <option>Real estate</option>
+          <option>Education</option>
+          <option>Government / public sector</option>
+          <option>NGO / development organisation</option>
+          <option>Hospitality &amp; tourism</option>
+          <option>Retail</option>
+          <option>Technology</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Booking type <span class="req">*</span></label>
+        <select id="bookingType">
+          <option value="">— select —</option>
+          <option>Direct client</option>
+          <option>Through advertising agency</option>
+          <option>Through media buying agency</option>
+          <option>Government / LPO basis</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row full" id="agencyRow" style="display:none">
+      <div class="field-group">
+        <label>Agency name &amp; contact person</label>
+        <input type="text" id="agencyName" placeholder="Agency name — Contact name — Email">
+        <span class="hint">Agency mandate letter will be required with the signed IO</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <p class="section-title"><i class="ti ti-user" aria-hidden="true"></i> &nbsp;Primary contact</p>
+    <div class="field-row">
+      <div class="field-group">
+        <label>Full name <span class="req">*</span></label>
+        <input type="text" id="contactName" placeholder="First and last name">
+      </div>
+      <div class="field-group">
+        <label>Job title <span class="req">*</span></label>
+        <input type="text" id="contactTitle" placeholder="e.g. Marketing Manager">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field-group">
+        <label>Email address <span class="req">*</span></label>
+        <input type="email" id="contactEmail" placeholder="name@company.com">
+      </div>
+      <div class="field-group">
+        <label>Phone / WhatsApp <span class="req">*</span></label>
+        <input type="tel" id="contactPhone" placeholder="+254 7xx xxx xxx">
+      </div>
+    </div>
+    <div class="field-row full">
+      <div class="field-group">
+        <label>Billing address / P.O. Box <span class="req">*</span></label>
+        <input type="text" id="billingAddr" placeholder="e.g. P.O. Box 1234-00100, Nairobi">
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <span></span>
+    <button onclick="goTo(2)">Next: campaign brief &nbsp;<i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+  </div>
+</div>
+
+<div id="page2" style="display:none">
+  <div class="section-card">
+    <p class="section-title"><i class="ti ti-target" aria-hidden="true"></i> &nbsp;Campaign objective</p>
+    <div class="field-row full">
+      <div class="field-group">
+        <label>Primary campaign goal <span class="req">*</span></label>
+        <select id="campaignGoal">
+          <option value="">— select —</option>
+          <option>Brand awareness / reach</option>
+          <option>Product or service launch</option>
+          <option>Lead generation</option>
+          <option>Event promotion</option>
+          <option>Sales / conversion</option>
+          <option>Corporate reputation / PR</option>
+          <option>Public awareness / social cause</option>
+          <option>Political campaign</option>
+        </select>
+        <span class="hint" id="politicalHint" style="display:none;color:var(--color-text-warning)"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Political content requires an indemnity form — this will be attached to your IO</span>
+      </div>
+    </div>
+    <div class="field-row full">
+      <div class="field-group">
+        <label>Campaign description <span class="req">*</span></label>
+        <textarea id="campaignDesc" placeholder="Briefly describe what you are promoting and the key message you want audiences to receive (2–4 sentences)"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <p class="section-title"><i class="ti ti-users" aria-hidden="true"></i> &nbsp;Target audience</p>
+    <div class="field-row">
+      <div class="field-group">
+        <label>Primary audience <span class="req">*</span></label>
+        <select id="audienceType">
+          <option value="">— select —</option>
+          <option>General public (all adults)</option>
+          <option>Youth (18–34)</option>
+          <option>Adults 35–54</option>
+          <option>Senior adults (55+)</option>
+          <option>Business decision-makers</option>
+          <option>Farmers / agribusiness</option>
+          <option>Healthcare professionals</option>
+          <option>Parents / families</option>
+          <option>Women</option>
+          <option>Other (specify below)</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Geographic focus <span class="req">*</span></label>
+        <select id="geoFocus">
+          <option value="">— select —</option>
+          <option>National (all Kenya)</option>
+          <option>Nairobi &amp; Central</option>
+          <option>Coast region</option>
+          <option>Western Kenya</option>
+          <option>Rift Valley</option>
+          <option>Eastern region</option>
+          <option>Northern Kenya</option>
+          <option>Multiple regions (specify below)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row full">
+      <div class="field-group">
+        <label>Additional audience notes</label>
+        <input type="text" id="audienceNotes" placeholder="Any specific targeting requirements or demographics">
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <p class="section-title"><i class="ti ti-calendar" aria-hidden="true"></i> &nbsp;Timeline &amp; budget</p>
+    <div class="field-row">
+      <div class="field-group">
+        <label>Preferred start date <span class="req">*</span></label>
+        <input type="date" id="startDate">
+      </div>
+      <div class="field-group">
+        <label>Preferred end date <span class="req">*</span></label>
+        <input type="date" id="endDate">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field-group">
+        <label>Estimated total budget (Ksh, excl. VAT) <span class="req">*</span></label>
+        <select id="budget">
+          <option value="">— select range —</option>
+          <option>Under Ksh 50,000</option>
+          <option>Ksh 50,000 – 150,000</option>
+          <option>Ksh 150,000 – 500,000</option>
+          <option>Ksh 500,000 – 1,000,000</option>
+          <option>Over Ksh 1,000,000</option>
+          <option>Flexible / open to recommendation</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Do you have existing creative assets?</label>
+        <select id="hasCreative">
+          <option value="">— select —</option>
+          <option>Yes — ready to submit</option>
+          <option>Yes — needs minor adaptation</option>
+          <option>No — KBC production required</option>
+          <option>Partial — some elements ready</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <button onclick="goTo(1)"><i class="ti ti-arrow-left" aria-hidden="true"></i> &nbsp;Back</button>
+    <button onclick="goTo(3)">Next: select products &nbsp;<i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+  </div>
+</div>
+
+<div id="page3" style="display:none">
+  <div class="section-card">
+    <p class="section-title"><i class="ti ti-layout-grid" aria-hidden="true"></i> &nbsp;Select digital products &nbsp;<span class="badge badge-required">select at least one</span></p>
+    <div class="product-grid" id="productGrid">
+      <div class="prod-item" data-price="23000" data-label="Social media sponsored post (per platform)" onclick="toggleProd(this)">
+        <input type="checkbox" tabindex="-1">
+        <div><div class="prod-label">Social media sponsored post</div><div class="prod-price">Ksh 23,000 / post / platform</div></div>
+      </div>
+      <div class="prod-item" data-price="200000" data-label="Livestream — Website/YT/FB + article" onclick="toggleProd(this)">
+        <input type="checkbox" tabindex="-1">
+        <div><div class="prod-label">Livestream (Website/YT/FB + article)</div><div class="prod-price">Ksh 200,000 / hour</div></div>
+      </div>
+      <div class="prod-item" data-price="300000" data-label="Livestream — + 8 SM posts" onclick="toggleProd(this)">
+        <input type="checkbox" tabindex="-1">
+        <div><div class="prod-label">Livestream + 8 SM posts</div><div class="prod-price">Ksh 300,000 / hour</div></div>
+      </div>
+      <div class="prod-item" data-price="100000" data-label="Rich media / roadblock / skin (per hour)" onclick="toggleProd(this)">
+        <input type="checkbox" tabindex="-1">
+        <div><div class="prod-label">Rich media / roadblock / skin</div><div class="prod-price">Ksh 100,000 / hour</div></div>
+      </div>
+      <div class="prod-item" data-price="5200" data-label="Display banner — above the fold (per day)" onclick="toggleProd(this)">
+        <input type="checkbox" tabindex="-1">
+        <div><div class="prod-label">Display banner — above the fold</div><div class="prod-price">Ksh 5,200 / day</div></div>
+      </div>
+      <div class="prod-item" data-price="4550" data-label="Display banner — below the fold (per day)" onclick="toggleProd(this)">
+        <input type="checkbox" tabindex="-1">
+        <div><div class="prod-label">Display banner — below the fold</div><div class="prod-price">Ksh 4,550 / day</div></div>
+      </div>
+      <div class="prod-item" data-price="325000" data-label="Mobile app advertising (per month)" onclick="toggleProd(this)">
+        <input type="checkbox" tabindex="-1">
+        <div><div class="prod-label">Mobile app advertising</div><div class="prod-price">Ksh 325,000 / month</div></div>
+      </div>
+      <div class="prod-item" data-price="487500" data-label="Full app sponsorship (per month)" onclick="toggleProd(this)">
+        <input type="checkbox" tabindex="-1">
+        <div><div class="prod-label">Full app sponsorship</div><div class="prod-price">Ksh 487,500 / month</div></div>
+      </div>
+      <div class="prod-item" data-price="74100" data-label="Sponsored article — client-written" onclick="toggleProd(this)">
+        <input type="checkbox" tabindex="-1">
+        <div><div class="prod-label">Sponsored article (client copy)</div><div class="prod-price">Ksh 74,100 / article</div></div>
+      </div>
+      <div class="prod-item" data-price="104000" data-label="Sponsored article — KBC-written" onclick="toggleProd(this)">
+        <input type="checkbox" tabindex="-1">
+        <div><div class="prod-label">Sponsored article (KBC-written)</div><div class="prod-price">Ksh 104,000 / article</div></div>
+      </div>
+      <div class="prod-item" data-price="455000" data-label="Social media influencer (3/week)" onclick="toggleProd(this)">
+        <input type="checkbox" tabindex="-1">
+        <div><div class="prod-label">Social media influencer</div><div class="prod-price">Ksh 455,000 / 3 posts per week</div></div>
+      </div>
+      <div class="prod-item" data-price="117000" data-label="Landing page design" onclick="toggleProd(this)">
+        <input type="checkbox" tabindex="-1">
+        <div><div class="prod-label">Landing page (lead gen)</div><div class="prod-price">Ksh 117,000 / page</div></div>
+      </div>
+      <div class="prod-item" data-price="260000" data-label="Content sponsorship (desktop category)" onclick="toggleProd(this)">
+        <input type="checkbox" tabindex="-1">
+        <div><div class="prod-label">Content category sponsorship</div><div class="prod-price">Ksh 260,000 / category</div></div>
+      </div>
+      <div class="prod-item" data-price="455000" data-label="Google/Meta Ads management (per month)" onclick="toggleProd(this)">
+        <input type="checkbox" tabindex="-1">
+        <div><div class="prod-label">Google / Meta Ads management</div><div class="prod-price">Ksh 455,000 / month</div></div>
+      </div>
+    </div>
+
+    <div class="quote-box" id="quoteBox" style="display:none">
+      <p style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px">Indicative quote (excl. VAT)</p>
+      <div id="quoteLines"></div>
+      <div class="quote-total"><span>Subtotal (excl. VAT)</span><span id="quoteSubtotal">Ksh 0</span></div>
+      <div class="quote-total" style="font-size:13px;font-weight:400;color:var(--color-text-secondary)"><span>VAT 16%</span><span id="quoteVat">Ksh 0</span></div>
+      <div class="quote-total"><span>Total incl. VAT</span><span id="quoteGross">Ksh 0</span></div>
+      <p style="font-size:11px;color:var(--color-text-tertiary);margin:8px 0 0">Quantities and exact totals confirmed at proposal stage. All rates per KBC Digital Rate Card 2024/2025.</p>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <p class="section-title"><i class="ti ti-notes" aria-hidden="true"></i> &nbsp;Additional requirements</p>
+    <div class="field-row full">
+      <div class="field-group">
+        <label>Special instructions or requests</label>
+        <textarea id="specialNotes" placeholder="e.g. preferred posting times, language requirements (Kiswahili/English), competitor exclusivity request, regulatory notes, event-specific details for livestream..."></textarea>
+      </div>
+    </div>
+    <div class="field-row full">
+      <div class="field-group">
+        <label>How did you hear about KBC Digital?</label>
+        <select id="referral">
+          <option value="">— select —</option>
+          <option>KBC sales representative</option>
+          <option>Colleague / referral</option>
+          <option>KBC website</option>
+          <option>Social media</option>
+          <option>Previous campaign with KBC</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <button onclick="goTo(2)"><i class="ti ti-arrow-left" aria-hidden="true"></i> &nbsp;Back</button>
+    <button onclick="goTo(4)">Review enquiry &nbsp;<i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+  </div>
+</div>
+
+<div id="page4" style="display:none">
+  <div class="section-card">
+    <p class="section-title"><i class="ti ti-clipboard-check" aria-hidden="true"></i> &nbsp;Enquiry summary</p>
+    <div id="summaryContent" style="font-size:13px;color:var(--color-text-primary);line-height:1.9"></div>
+  </div>
+
+  <div class="section-card">
+    <p class="section-title"><i class="ti ti-shield-check" aria-hidden="true"></i> &nbsp;Declaration</p>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <label class="radio-item"><input type="checkbox" id="decl1"> &nbsp;I confirm the information provided is accurate and I am authorised to make this enquiry on behalf of the organisation named above.</label>
+      <label class="radio-item"><input type="checkbox" id="decl2"> &nbsp;I understand this is an enquiry form only. A formal proposal, rate confirmation, and signed Insertion Order will follow before any campaign commences.</label>
+      <label class="radio-item"><input type="checkbox" id="decl3"> &nbsp;I have read and accept that all rates are subject to 16% VAT, and that political content requires an indemnity agreement.</label>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <button onclick="goTo(3)"><i class="ti ti-arrow-left" aria-hidden="true"></i> &nbsp;Back</button>
+    <button id="submitBtn" onclick="submitForm()" style="background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)">Submit enquiry &nbsp;<i class="ti ti-send" aria-hidden="true"></i></button>
+  </div>
+
+  <div id="successMsg" style="display:none;margin-top:1rem">
+    <div class="success-card">
+      <i class="ti ti-circle-check" style="font-size:32px;color:var(--color-text-success)" aria-hidden="true"></i>
+      <p style="font-size:16px;font-weight:500;margin:.75rem 0 .25rem;color:var(--color-text-primary)">Enquiry received</p>
+      <p style="font-size:13px;color:var(--color-text-secondary);margin:0">A KBC Digital Media officer will contact you within 1 business day with a formal proposal.<br>Reference: <strong id="refNum"></strong></p>
+    </div>
+    <div style="text-align:center;margin-top:1rem">
+      <button onclick="sendPrompt('Now show me the KBC Digital material specifications sheet for the products I selected')">View material specs for selected products &nbsp;↗</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+var selectedProducts = [];
+var currentPage = 1;
+
+function goTo(n) {
+  document.getElementById('page'+currentPage).style.display='none';
+  document.getElementById('page'+n).style.display='block';
+  var steps=['s1','s2','s3','s4'];
+  steps.forEach(function(s,i){
+    var el=document.getElementById(s);
+    el.className='step';
+    if(i+1<n) el.classList.add('done');
+    else if(i+1===n) el.classList.add('active');
+  });
+  if(n===4) buildSummary();
+  currentPage=n;
+}
+
+document.getElementById('bookingType').addEventListener('change',function(){
+  var show=this.value.indexOf('agency')>-1||this.value.indexOf('Agency')>-1;
+  document.getElementById('agencyRow').style.display=show?'grid':'none';
+});
+
+document.getElementById('campaignGoal').addEventListener('change',function(){
+  document.getElementById('politicalHint').style.display=this.value==='Political campaign'?'block':'none';
+});
+
+function toggleProd(el){
+  el.classList.toggle('selected');
+  var cb=el.querySelector('input[type=checkbox]');
+  cb.checked=!cb.checked;
+  updateQuote();
+}
+
+function updateQuote(){
+  var items=document.querySelectorAll('.prod-item.selected');
+  var box=document.getElementById('quoteBox');
+  if(items.length===0){box.style.display='none';return;}
+  box.style.display='block';
+  var lines='';
+  var sub=0;
+  items.forEach(function(item){
+    var p=parseInt(item.dataset.price);
+    var l=item.dataset.label;
+    sub+=p;
+    lines+='<div class="quote-row"><span>'+l+'</span><span>Ksh '+p.toLocaleString()+'</span></div>';
+  });
+  var vat=Math.round(sub*0.16);
+  var gross=sub+vat;
+  document.getElementById('quoteLines').innerHTML=lines;
+  document.getElementById('quoteSubtotal').textContent='Ksh '+sub.toLocaleString();
+  document.getElementById('quoteVat').textContent='Ksh '+vat.toLocaleString();
+  document.getElementById('quoteGross').textContent='Ksh '+gross.toLocaleString();
+}
+
+function buildSummary(){
+  var rows=[
+    ['Organisation',document.getElementById('orgName').value||'—'],
+    ['KRA PIN',document.getElementById('kraPin').value||'—'],
+    ['Industry',document.getElementById('industry').value||'—'],
+    ['Booking type',document.getElementById('bookingType').value||'—'],
+    ['Contact',document.getElementById('contactName').value||'—'],
+    ['Email',document.getElementById('contactEmail').value||'—'],
+    ['Phone',document.getElementById('contactPhone').value||'—'],
+    ['Campaign goal',document.getElementById('campaignGoal').value||'—'],
+    ['Target audience',document.getElementById('audienceType').value||'—'],
+    ['Geography',document.getElementById('geoFocus').value||'—'],
+    ['Start date',document.getElementById('startDate').value||'—'],
+    ['End date',document.getElementById('endDate').value||'—'],
+    ['Budget range',document.getElementById('budget').value||'—'],
+    ['Creative assets',document.getElementById('hasCreative').value||'—'],
+  ];
+  var prods=[];
+  document.querySelectorAll('.prod-item.selected').forEach(function(i){prods.push(i.dataset.label);});
+  rows.push(['Selected products',prods.length?prods.join('; '):'None selected']);
+  var html='<table style="width:100%;border-collapse:collapse">';
+  rows.forEach(function(r){
+    html+='<tr><td style="padding:5px 0;color:var(--color-text-secondary);width:42%;vertical-align:top">'+r[0]+'</td><td style="padding:5px 0;font-weight:500">'+r[1]+'</td></tr>';
+  });
+  html+='</table>';
+  document.getElementById('summaryContent').innerHTML=html;
+}
+
+function submitForm(){
+  var d1=document.getElementById('decl1').checked;
+  var d2=document.getElementById('decl2').checked;
+  var d3=document.getElementById('decl3').checked;
+  if(!d1||!d2||!d3){alert('Please check all three declaration boxes to proceed.');return;}
+  var ref='KBC-DIG-'+new Date().getFullYear()+'-'+Math.floor(Math.random()*90000+10000);
+  document.getElementById('refNum').textContent=ref;
+  document.getElementById('submitBtn').style.display='none';
+  document.getElementById('successMsg').style.display='block';
+}
+</script>

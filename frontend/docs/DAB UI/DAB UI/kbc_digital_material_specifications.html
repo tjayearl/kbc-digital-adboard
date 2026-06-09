@@ -1,0 +1,345 @@
+
+<style>
+*{box-sizing:border-box}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem}
+.cat-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);cursor:pointer;margin-bottom:6px;background:var(--color-background-secondary);transition:background .15s}
+.cat-bar:hover{background:var(--color-background-tertiary)}
+.cat-bar.open{border-color:var(--color-border-info);background:var(--color-background-info)}
+.cat-bar .ci{font-size:20px;color:var(--color-text-secondary)}
+.cat-bar.open .ci{color:var(--color-text-info)}
+.cat-bar .cn{font-size:14px;font-weight:500;color:var(--color-text-primary)}
+.cat-bar.open .cn{color:var(--color-text-info)}
+.cat-bar .cv{font-size:12px;color:var(--color-text-secondary)}
+.cat-bar .chev{margin-left:auto;font-size:16px;color:var(--color-text-tertiary);transition:transform .2s}
+.cat-bar.open .chev{transform:rotate(180deg)}
+.spec-panel{display:none;border:0.5px solid var(--color-border-info);border-radius:var(--border-radius-md);margin-bottom:6px;overflow:hidden}
+.spec-panel.vis{display:block}
+.spec-header{display:grid;grid-template-columns:2fr 1fr 1fr;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary)}
+.spec-header span{font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em;padding:8px 12px}
+.spec-row{display:grid;grid-template-columns:2fr 1fr 1fr;border-bottom:0.5px solid var(--color-border-tertiary);align-items:start}
+.spec-row:last-child{border-bottom:none}
+.spec-row.warn{background:var(--color-background-warning)}
+.spec-row.crit{background:var(--color-background-danger)}
+.spec-cell{font-size:13px;padding:10px 12px;color:var(--color-text-primary);line-height:1.5}
+.spec-cell.muted{color:var(--color-text-secondary)}
+.spec-cell.label{font-weight:500}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:20px;font-weight:500;margin:2px 2px 0 0;white-space:nowrap}
+.tag-req{background:var(--color-background-danger);color:var(--color-text-danger)}
+.tag-opt{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.tag-warn{background:var(--color-background-warning);color:var(--color-text-warning)}
+.tag-ok{background:var(--color-background-success);color:var(--color-text-success)}
+.note-box{background:var(--color-background-warning);border-left:3px solid var(--color-border-warning);border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;padding:10px 14px;margin:8px 0;font-size:13px;color:var(--color-text-primary)}
+.info-box{background:var(--color-background-info);border-left:3px solid var(--color-border-info);border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;padding:10px 14px;margin:8px 0;font-size:13px;color:var(--color-text-primary)}
+.spec-inner{padding:1rem 1rem 0}
+.deadline-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);margin-bottom:6px;font-size:13px}
+.deadline-row .dl-label{color:var(--color-text-primary);font-weight:500}
+.deadline-row .dl-days{color:var(--color-text-secondary)}
+.deadline-row .dl-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
+.dl-urgent{background:var(--color-background-danger);color:var(--color-text-danger)}
+.dl-warn{background:var(--color-background-warning);color:var(--color-text-warning)}
+.dl-ok{background:var(--color-background-success);color:var(--color-text-success)}
+.submit-box{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 16px;margin-top:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.submit-email{font-size:13px;font-weight:500;color:var(--color-text-info)}
+</style>
+
+<h2 class="sr-only">KBC Digital Media — material specifications and creative requirements for all digital advertising products</h2>
+
+<div style="padding:1rem 0">
+
+<div class="card" style="display:flex;align-items:flex-start;gap:14px">
+  <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:var(--color-background-info);display:flex;align-items:center;justify-content:center">
+    <i class="ti ti-file-description" style="font-size:20px;color:var(--color-text-info)" aria-hidden="true"></i>
+  </div>
+  <div style="flex:1">
+    <p style="font-size:15px;font-weight:500;margin:0 0 4px;color:var(--color-text-primary)">Material specifications &amp; creative requirements</p>
+    <p style="font-size:13px;color:var(--color-text-secondary);margin:0">All creative assets must be submitted to <span style="color:var(--color-text-info);font-weight:500">digitalmedia@kbc.co.ke</span> by the deadlines below. Reference your IO number in the subject line. Materials that do not meet spec will be returned — KBC cannot guarantee campaign launch if assets arrive late or non-compliant.</p>
+  </div>
+</div>
+
+<div style="margin-bottom:1.5rem">
+  <div class="cat-bar" id="bar-social" onclick="tog('social')">
+    <i class="ti ti-brand-instagram ci" aria-hidden="true"></i>
+    <div><div class="cn">Social media sponsored content</div><div class="cv">Facebook · X (Twitter) · Instagram · TikTok · YouTube</div></div>
+    <i class="ti ti-chevron-down chev" aria-hidden="true"></i>
+  </div>
+  <div class="spec-panel" id="panel-social">
+    <div class="spec-inner">
+      <div class="info-box"><i class="ti ti-info-circle" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Materials due <strong>5 business days</strong> before first scheduled post. Submit one folder per platform clearly labelled.</div>
+      <p style="font-size:13px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em;font-size:11px">Image posts</p>
+    </div>
+    <div class="spec-header"><span>Specification</span><span>Requirement</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">Image dimensions</div><div class="spec-cell">1080 × 1080 px (square)<br><span style="font-size:12px;color:var(--color-text-secondary)">1080×1920 for Stories/Reels</span></div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">File format</div><div class="spec-cell">JPG or PNG</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">File size</div><div class="spec-cell">Max 8 MB per image</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Colour profile</div><div class="spec-cell">RGB (not CMYK)</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Text overlay on image</div><div class="spec-cell">Max 20% of image area (Meta policy)</div><div class="spec-cell"><span class="tag tag-warn">Enforced by platform</span></div></div>
+    <div class="spec-inner" style="padding-top:12px">
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">Video posts</p>
+    </div>
+    <div class="spec-header"><span>Specification</span><span>Requirement</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">Format</div><div class="spec-cell">MP4 (H.264 codec, AAC audio)</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Resolution</div><div class="spec-cell">1080×1080 or 1080×1920 (vertical)</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Duration — Instagram/TikTok</div><div class="spec-cell">Max 60 seconds (15–30 sec optimal)</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Duration — Facebook/YouTube</div><div class="spec-cell">Max 3 minutes</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">File size</div><div class="spec-cell">Max 1 GB</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Captions / subtitles</div><div class="spec-cell">SRT file or burned-in subtitles strongly recommended (85% of social video watched muted)</div><div class="spec-cell"><span class="tag tag-warn">Strongly recommended</span></div></div>
+    <div class="spec-inner" style="padding-top:12px">
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">Copy &amp; text — per platform limits</p>
+    </div>
+    <div class="spec-header"><span>Platform</span><span>Caption limit</span><span>Notes</span></div>
+    <div class="spec-row"><div class="spec-cell label">Facebook</div><div class="spec-cell">63,206 characters</div><div class="spec-cell muted">First 125 chars shown before "see more"</div></div>
+    <div class="spec-row"><div class="spec-cell label">Instagram</div><div class="spec-cell">2,200 characters</div><div class="spec-cell muted">Max 30 hashtags</div></div>
+    <div class="spec-row"><div class="spec-cell label">X (Twitter)</div><div class="spec-cell">280 characters</div><div class="spec-cell muted">URLs count as 23 chars</div></div>
+    <div class="spec-row"><div class="spec-cell label">TikTok</div><div class="spec-cell">2,200 characters</div><div class="spec-cell muted">Max 30 hashtags</div></div>
+    <div class="spec-row"><div class="spec-cell label">YouTube</div><div class="spec-cell">5,000 characters (description)</div><div class="spec-cell muted">Title max 100 chars</div></div>
+    <div class="spec-inner" style="padding-top:12px">
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">Brand assets to include</p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        <span class="tag tag-req">Logo in PNG (transparent bg)</span>
+        <span class="tag tag-req">Caption / copy text</span>
+        <span class="tag tag-req">Call-to-action text</span>
+        <span class="tag tag-req">Destination URL</span>
+        <span class="tag tag-opt">Hashtags list</span>
+        <span class="tag tag-opt">Mention accounts (@handles)</span>
+        <span class="tag tag-opt">Brand colour hex codes</span>
+      </div>
+      <div class="note-box"><i class="ti ti-alert-triangle" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Alcohol, pharmaceuticals, financial products, and political content require a compliance clearance letter before KBC will publish. Gambling content is not accepted.</div>
+    </div>
+  </div>
+
+  <div class="cat-bar" id="bar-livestream" onclick="tog('livestream')">
+    <i class="ti ti-live-view ci" aria-hidden="true"></i>
+    <div><div class="cn">Livestream</div><div class="cv">Website · YouTube · Facebook — event streaming</div></div>
+    <i class="ti ti-chevron-down chev" aria-hidden="true"></i>
+  </div>
+  <div class="spec-panel" id="panel-livestream">
+    <div class="spec-inner">
+      <div class="note-box"><i class="ti ti-clock" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Full technical brief and all branding assets due <strong>7 business days</strong> before stream date. A pre-stream test is mandatory — scheduled 48 hrs before event.</div>
+    </div>
+    <div class="spec-header"><span>Specification</span><span>Requirement</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">Video feed standard</div><div class="spec-cell">Min 1080p / 30fps<br><span style="font-size:12px;color:var(--color-text-secondary)">1080p / 60fps preferred for sports/events</span></div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Encoding protocol</div><div class="spec-cell">RTMP (client provides encoder) or SRT</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Video bitrate</div><div class="spec-cell">4,500–9,000 kbps for 1080p</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Audio</div><div class="spec-cell">AAC, 44.1 kHz stereo, 128–320 kbps</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Internet connection at venue</div><div class="spec-cell">Min 10 Mbps upload (dedicated line, not shared WiFi)</div><div class="spec-cell"><span class="tag tag-warn">Client responsibility</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Backup connection</div><div class="spec-cell">4G/LTE bonded encoder recommended</div><div class="spec-cell"><span class="tag tag-warn">Strongly recommended</span></div></div>
+    <div class="spec-inner" style="padding-top:12px">
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">Branding &amp; overlay assets</p>
+    </div>
+    <div class="spec-header"><span>Asset</span><span>Format / Size</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">Lower-third graphic template</div><div class="spec-cell">1920×1080 PNG, transparent bg</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Stream title card / thumbnail</div><div class="spec-cell">1280×720 px JPG/PNG, max 2 MB</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Sponsor bug / logo for overlay</div><div class="spec-cell">PNG transparent, min 500px wide</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Pre-roll / intro bumper</div><div class="spec-cell">MP4, 1920×1080, max 15 sec</div><div class="spec-cell"><span class="tag tag-opt">Optional</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Interstitial / ad break slate</div><div class="spec-cell">MP4 or JPG, 1920×1080</div><div class="spec-cell"><span class="tag tag-opt">Optional</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Runsheet / programme schedule</div><div class="spec-cell">PDF or Word — full event agenda with timings</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-inner" style="padding-bottom:12px;padding-top:12px">
+      <div class="info-box"><i class="ti ti-info-circle" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>KBC reserves the right to cut the stream if content violates broadcast standards. A signed content indemnity form is required for all livestreams.</div>
+    </div>
+  </div>
+
+  <div class="cat-bar" id="bar-display" onclick="tog('display')">
+    <i class="ti ti-layout ci" aria-hidden="true"></i>
+    <div><div class="cn">Display &amp; rich media advertising</div><div class="cv">Banners · roadblock · skin branding · overlay · sidekick</div></div>
+    <i class="ti ti-chevron-down chev" aria-hidden="true"></i>
+  </div>
+  <div class="spec-panel" id="panel-display">
+    <div class="spec-inner">
+      <div class="info-box"><i class="ti ti-clock" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>All ad tags and creative assets due <strong>3 business days</strong> before campaign start date.</div>
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">Standard display banners</p>
+    </div>
+    <div class="spec-header"><span>Format</span><span>Dimensions</span><span>Max file size</span></div>
+    <div class="spec-row"><div class="spec-cell label">Leaderboard</div><div class="spec-cell">728 × 90 px</div><div class="spec-cell">150 KB</div></div>
+    <div class="spec-row"><div class="spec-cell label">Square / MPU</div><div class="spec-cell">300 × 250 px</div><div class="spec-cell">150 KB</div></div>
+    <div class="spec-row"><div class="spec-cell label">Half page</div><div class="spec-cell">300 × 600 px</div><div class="spec-cell">150 KB</div></div>
+    <div class="spec-row"><div class="spec-cell label">Mobile banner</div><div class="spec-cell">320 × 50 px</div><div class="spec-cell">100 KB</div></div>
+    <div class="spec-inner" style="padding-top:12px">
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">All display ads — technical requirements</p>
+    </div>
+    <div class="spec-header"><span>Specification</span><span>Requirement</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">Accepted formats</div><div class="spec-cell">JPG, PNG, GIF, HTML5 (no Flash)</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Animation</div><div class="spec-cell">GIF max 30 sec loop, max 3 loops then static</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">HTML5 ads</div><div class="spec-cell">Hosted on client CDN — provide ad tag (iframe or JS)</div><div class="spec-cell"><span class="tag tag-req">If HTML5</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Click-through URL</div><div class="spec-cell">Full URL with UTM parameters</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Click border</div><div class="spec-cell">1px solid border required on white/light ads</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-inner" style="padding-top:12px">
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">Rich media — additional specs</p>
+    </div>
+    <div class="spec-header"><span>Format</span><span>Dimensions / notes</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">Roadblock (full page)</div><div class="spec-cell">All standard banner zones simultaneously — supply all sizes</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Skin / wallpaper</div><div class="spec-cell">Left: 160×600, Right: 160×600, Top: 970×90 — PNG/JPG</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Overlay / interstitial</div><div class="spec-cell">640×480 px, close button at top-right, max 15 sec auto-close</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Expandable ad</div><div class="spec-cell">Collapsed: 300×250 · Expanded: 600×500 — user-initiated only</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Sidekick</div><div class="spec-cell">Collapsed: 300×250 · Expanded: 970×550 — user-initiated</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-inner" style="padding-bottom:12px;padding-top:4px">
+      <div class="note-box"><i class="ti ti-alert-triangle" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Ads with auto-play audio, deceptive close buttons, or content that mimics site editorial will be rejected without refund.</div>
+    </div>
+  </div>
+
+  <div class="cat-bar" id="bar-content" onclick="tog('content')">
+    <i class="ti ti-article ci" aria-hidden="true"></i>
+    <div><div class="cn">Sponsored content &amp; articles</div><div class="cv">Sponsored articles · video reviews · documentary · e-Paper</div></div>
+    <i class="ti ti-chevron-down chev" aria-hidden="true"></i>
+  </div>
+  <div class="spec-panel" id="panel-content">
+    <div class="spec-inner">
+      <div class="info-box"><i class="ti ti-clock" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Client-written articles due <strong>5 business days</strong> before publish date. KBC-written articles require brief submission <strong>7 business days</strong> before publish date.</div>
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">Sponsored articles — client-supplied copy</p>
+    </div>
+    <div class="spec-header"><span>Specification</span><span>Requirement</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">Word count</div><div class="spec-cell">400–1,200 words (sub-1,000 optimal for web)</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">File format</div><div class="spec-cell">Microsoft Word (.docx) or Google Doc link</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Hero image</div><div class="spec-cell">Min 1200×675 px (16:9), JPG/PNG, max 5 MB, licensed/rights-cleared</div><div class="spec-cell"><span class="tag tag-req">Required — 1 minimum</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Additional images</div><div class="spec-cell">Same spec — include captions for each</div><div class="spec-cell"><span class="tag tag-opt">Optional — max 5</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Author name &amp; bio</div><div class="spec-cell">Name, title, company, and a 50-word bio</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Article headline</div><div class="spec-cell">Max 70 characters (SEO-optimised)</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Meta description</div><div class="spec-cell">130–160 characters summarising the article</div><div class="spec-cell"><span class="tag tag-opt">Recommended</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">"Sponsored content" label</div><div class="spec-cell">KBC will append this label — do not include in copy</div><div class="spec-cell"><span class="tag tag-warn">KBC applies automatically</span></div></div>
+    <div class="spec-inner" style="padding-top:12px">
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">Sponsored articles — KBC-written (brief requirements)</p>
+    </div>
+    <div class="spec-header"><span>Brief element</span><span>Detail required</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">Topic / title suggestion</div><div class="spec-cell">Working headline or topic description</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Key messages</div><div class="spec-cell">3–5 bullet points of approved claims or facts</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Approved claims / disclaimers</div><div class="spec-cell">Any regulated language (pharma, finance, alcohol) pre-approved</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Brand assets</div><div class="spec-cell">Logo EPS/SVG, hex colour codes, fonts if custom</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Review &amp; approval turnaround</div><div class="spec-cell">Client must return edits within 48 hrs of draft delivery</div><div class="spec-cell"><span class="tag tag-warn">SLA — delays shift publish date</span></div></div>
+    <div class="spec-inner" style="padding-top:12px">
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">Video reviews &amp; documentaries</p>
+    </div>
+    <div class="spec-header"><span>Specification</span><span>Requirement</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">Script / storyboard</div><div class="spec-cell">Full approved script before any shoot commences</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Product/service access</div><div class="spec-cell">Client arranges access for KBC journalist/presenter</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Factual claims sign-off</div><div class="spec-cell">Written approval of all claims made in video</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-inner" style="padding-bottom:12px;padding-top:4px">
+      <div class="note-box"><i class="ti ti-alert-triangle" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>KBC editorial team has final say on all published content. Misleading claims, unverified statistics, or content that conflicts with KBC editorial standards will require revision regardless of client approval.</div>
+    </div>
+  </div>
+
+  <div class="cat-bar" id="bar-app" onclick="tog('app')">
+    <i class="ti ti-device-mobile ci" aria-hidden="true"></i>
+    <div><div class="cn">Mobile app advertising &amp; push notifications</div><div class="cv">In-app ads · video adverts · push notifications · bulk SMS</div></div>
+    <i class="ti ti-chevron-down chev" aria-hidden="true"></i>
+  </div>
+  <div class="spec-panel" id="panel-app">
+    <div class="spec-inner">
+      <div class="info-box"><i class="ti ti-clock" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>App ad assets due <strong>5 business days</strong> before campaign start. Push notification copy due <strong>48 hours</strong> before scheduled send time.</div>
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">In-app display ads</p>
+    </div>
+    <div class="spec-header"><span>Specification</span><span>Requirement</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">Banner size</div><div class="spec-cell">320×50 px (standard) or 300×250 px (medium)</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Interstitial (full-screen)</div><div class="spec-cell">1080×1920 px, JPG/PNG, max 1 MB</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">File format</div><div class="spec-cell">JPG or PNG (static); MP4 for video</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Click-through URL or deep link</div><div class="spec-cell">Full URL — deep link to app store accepted</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-inner" style="padding-top:12px">
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">App video adverts</p>
+    </div>
+    <div class="spec-header"><span>Specification</span><span>Requirement</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">Format</div><div class="spec-cell">MP4, H.264, AAC audio</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Resolution</div><div class="spec-cell">1080×1920 (vertical) or 1080×1080 (square)</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Duration</div><div class="spec-cell">15 sec or 30 sec exactly (per booking)</div><div class="spec-cell"><span class="tag tag-req">Required — exact duration</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Audio loudness</div><div class="spec-cell">-14 LUFS integrated (EBU R128)</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">File size</div><div class="spec-cell">Max 200 MB</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-inner" style="padding-top:12px">
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">Push notifications</p>
+    </div>
+    <div class="spec-header"><span>Element</span><span>Character limit</span><span>Notes</span></div>
+    <div class="spec-row"><div class="spec-cell label">Notification title</div><div class="spec-cell">Max 50 characters</div><div class="spec-cell muted">Truncated on most devices beyond 50</div></div>
+    <div class="spec-row"><div class="spec-cell label">Notification body</div><div class="spec-cell">Max 150 characters</div><div class="spec-cell muted">Gets cut off on lock screen beyond 150</div></div>
+    <div class="spec-row"><div class="spec-cell label">Destination URL</div><div class="spec-cell">Full URL (shortlinks accepted)</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Notification image</div><div class="spec-cell">512×512 px PNG, max 500 KB</div><div class="spec-cell"><span class="tag tag-opt">Optional but increases open rate</span></div></div>
+    <div class="spec-inner" style="padding-top:12px">
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">Bulk SMS</p>
+    </div>
+    <div class="spec-header"><span>Element</span><span>Requirement</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">SMS message copy</div><div class="spec-cell">Max 160 characters (1 SMS unit)<br><span style="font-size:12px;color:var(--color-text-secondary)">161–306 chars = 2 units, billed double</span></div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Sender ID</div><div class="spec-cell">Approved alphanumeric ID (max 11 chars) — client provides, KBC registers</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Opt-out clause</div><div class="spec-cell">"Reply STOP to unsubscribe" — KBC appends automatically</div><div class="spec-cell"><span class="tag tag-warn">Regulatory — auto-appended</span></div></div>
+    <div class="spec-inner" style="padding-bottom:12px;padding-top:4px">
+      <div class="note-box"><i class="ti ti-alert-triangle" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>All push notification and SMS copy is subject to KBC editorial review. Promotional claims must be factually accurate. Unsolicited commercial messaging to non-opted-in users is not permitted under the Kenya Data Protection Act 2019.</div>
+    </div>
+  </div>
+
+  <div class="cat-bar" id="bar-production" onclick="tog('production')">
+    <i class="ti ti-video ci" aria-hidden="true"></i>
+    <div><div class="cn">Production services</div><div class="cv">Animated video · landing pages · banners · infographics · email</div></div>
+    <i class="ti ti-chevron-down chev" aria-hidden="true"></i>
+  </div>
+  <div class="spec-panel" id="panel-production">
+    <div class="spec-inner">
+      <div class="info-box"><i class="ti ti-clock" style="font-size:15px;vertical-align:-2px;margin-right:6px" aria-hidden="true"></i>Creative brief and all brand assets due at IO signing. Production cannot commence without a complete brief and written script/copy sign-off.</div>
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">Brand assets — required for all production work</p>
+    </div>
+    <div class="spec-header"><span>Asset</span><span>Format required</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">Logo</div><div class="spec-cell">EPS or SVG (vector) — no low-res PNG logos</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Brand colours</div><div class="spec-cell">Hex codes, RGB values, and Pantone if applicable</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Brand font files</div><div class="spec-cell">OTF or TTF — include licence</div><div class="spec-cell"><span class="tag tag-opt">If custom font</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Brand guidelines document</div><div class="spec-cell">PDF — if available</div><div class="spec-cell"><span class="tag tag-opt">Strongly recommended</span></div></div>
+    <div class="spec-inner" style="padding-top:12px">
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">Animated &amp; still graphic video</p>
+    </div>
+    <div class="spec-header"><span>Element</span><span>Requirement</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">Script / storyboard</div><div class="spec-cell">Approved before animation begins — changes after approval attract revision fee</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Voiceover script</div><div class="spec-cell">Supplied by client or approved by client before recording</div><div class="spec-cell"><span class="tag tag-req">If VO required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Product images / photography</div><div class="spec-cell">Min 2000px on shortest side, RGB JPG/PNG, rights-cleared</div><div class="spec-cell"><span class="tag tag-req">If product shown</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Revision rounds included</div><div class="spec-cell">2 rounds of amends — additional rounds billed at Ksh 15,000/round</div><div class="spec-cell"><span class="tag tag-warn">Note revision policy</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Final delivery format</div><div class="spec-cell">MP4 (H.264) + master file (MOV/AE project) supplied</div><div class="spec-cell"><span class="tag tag-ok">Delivered by KBC</span></div></div>
+    <div class="spec-inner" style="padding-top:12px">
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">Landing pages</p>
+    </div>
+    <div class="spec-header"><span>Element</span><span>Requirement</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">Page copy</div><div class="spec-cell">All text supplied in Word doc — max 500 words</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Hero image</div><div class="spec-cell">Min 1920×1080 px, JPG, rights-cleared</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Form fields (if lead gen)</div><div class="spec-cell">List all fields required — KBC builds the form</div><div class="spec-cell"><span class="tag tag-req">If lead gen</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Lead destination</div><div class="spec-cell">Email address or webhook URL for form submissions</div><div class="spec-cell"><span class="tag tag-req">If lead gen</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Privacy policy URL</div><div class="spec-cell">Client's own privacy policy — required by KDPA 2019</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-inner" style="padding-top:12px">
+      <p style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin:0 0 8px;text-transform:uppercase;letter-spacing:.05em">Email newsletter</p>
+    </div>
+    <div class="spec-header"><span>Element</span><span>Requirement</span><span>Status</span></div>
+    <div class="spec-row"><div class="spec-cell label">Subject line</div><div class="spec-cell">Max 60 characters</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Preview text</div><div class="spec-cell">Max 140 characters</div><div class="spec-cell"><span class="tag tag-opt">Recommended</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Body copy</div><div class="spec-cell">Word doc — headlines, body text, CTA text, destination URLs</div><div class="spec-cell"><span class="tag tag-req">Required</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Images</div><div class="spec-cell">JPG, max 600px wide, max 200 KB each</div><div class="spec-cell"><span class="tag tag-req">If images used</span></div></div>
+    <div class="spec-row"><div class="spec-cell label">Unsubscribe / sender details</div><div class="spec-cell">KBC appends unsubscribe link automatically — KDPA compliant</div><div class="spec-cell"><span class="tag tag-warn">Auto-appended</span></div></div>
+    <div class="spec-inner" style="padding-bottom:12px"></div>
+  </div>
+</div>
+
+<div class="card">
+  <p style="font-size:13px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em;margin:0 0 1rem;font-size:11px"><i class="ti ti-clock" aria-hidden="true" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i> Material submission deadlines — summary</p>
+  <div class="deadline-row"><div><span class="dl-label">Livestream assets &amp; tech brief</span></div><div style="display:flex;align-items:center;gap:10px"><span class="dl-days">7 business days before event</span><span class="dl-badge dl-urgent">Earliest deadline</span></div></div>
+  <div class="deadline-row"><div><span class="dl-label">Social media posts</span></div><div style="display:flex;align-items:center;gap:10px"><span class="dl-days">5 business days before first post</span><span class="dl-badge dl-warn">5 days</span></div></div>
+  <div class="deadline-row"><div><span class="dl-label">KBC-written article brief</span></div><div style="display:flex;align-items:center;gap:10px"><span class="dl-days">7 business days before publish</span><span class="dl-badge dl-urgent">7 days</span></div></div>
+  <div class="deadline-row"><div><span class="dl-label">Client-written article</span></div><div style="display:flex;align-items:center;gap:10px"><span class="dl-days">5 business days before publish</span><span class="dl-badge dl-warn">5 days</span></div></div>
+  <div class="deadline-row"><div><span class="dl-label">App advertising creative</span></div><div style="display:flex;align-items:center;gap:10px"><span class="dl-days">5 business days before campaign start</span><span class="dl-badge dl-warn">5 days</span></div></div>
+  <div class="deadline-row"><div><span class="dl-label">Display &amp; rich media ad tags</span></div><div style="display:flex;align-items:center;gap:10px"><span class="dl-days">3 business days before campaign start</span><span class="dl-badge dl-ok">3 days</span></div></div>
+  <div class="deadline-row"><div><span class="dl-label">Push notification copy</span></div><div style="display:flex;align-items:center;gap:10px"><span class="dl-days">48 hours before scheduled send</span><span class="dl-badge dl-ok">48 hours</span></div></div>
+  <div class="deadline-row"><div><span class="dl-label">Production brief (video/landing page)</span></div><div style="display:flex;align-items:center;gap:10px"><span class="dl-days">At IO signing — no exceptions</span><span class="dl-badge dl-urgent">At signing</span></div></div>
+</div>
+
+<div class="card">
+  <div class="submit-box">
+    <div>
+      <p style="font-size:14px;font-weight:500;margin:0 0 4px;color:var(--color-text-primary)">Submit all creative assets to</p>
+      <p style="font-size:13px;color:var(--color-text-secondary);margin:0">Email subject: <em>[IO Reference] — [Company Name] — [Product Type] — Material Submission</em></p>
+    </div>
+    <span class="submit-email">digitalmedia@kbc.co.ke</span>
+  </div>
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+    <button onclick="sendPrompt('Build me the KBC Digital post-campaign report template')">Next: post-campaign report template &nbsp;↗</button>
+    <button onclick="sendPrompt('Build the KBC Digital Insertion Order template')">Build the IO template &nbsp;↗</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+function tog(id){
+  var bar=document.getElementById('bar-'+id);
+  var panel=document.getElementById('panel-'+id);
+  var isOpen=bar.classList.contains('open');
+  bar.classList.toggle('open',!isOpen);
+  panel.classList.toggle('vis',!isOpen);
+}
+</script>
