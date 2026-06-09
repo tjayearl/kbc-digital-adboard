@@ -1,6 +1,7 @@
-
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { auth } from './firebase';
 import { AppShell } from './components/layout/AppShell';
 import { type Role } from './data/mockData';
 import { ApprovalsPage } from './pages/approvals/ApprovalsPage';
@@ -17,6 +18,16 @@ import Login from "./pages/auth/Login";
 
 export default function App() {
   const [role, setRole] = useState<Role>('Sales');
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
 
   const router = createBrowserRouter([
     {
@@ -37,6 +48,18 @@ export default function App() {
       ],
     },
   ]);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-canvas">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
 
   return <RouterProvider router={router} />;
 }

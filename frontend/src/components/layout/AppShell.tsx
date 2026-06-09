@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../firebase';
 import { roles, type Role } from '../../data/mockData';
 
 type AppShellProps = {
@@ -107,6 +109,16 @@ export function AppShell({ role, onRoleChange }: AppShellProps) {
                 ))}
               </select>
             </label>
+            <button
+              onClick={() => {
+                if (window.confirm("Are you sure you want to sign out?")) {
+                  signOut(auth);
+                }
+              }}
+              className="flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-red-600 transition"
+            >
+              Sign out
+            </button>
             <UserCircle className="text-slate-500" size={30} aria-hidden="true" />
           </div>
         </header>
