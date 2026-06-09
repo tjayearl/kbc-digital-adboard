@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AppShell } from './components/layout/AppShell';
@@ -12,6 +13,7 @@ import { OperationsPage } from './pages/operations/OperationsPage';
 import { OrdersPage } from './pages/orders/OrdersPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
+import Login from "./pages/auth/Login";
 
 export default function App() {
   const [role, setRole] = useState<Role>('Sales');
@@ -31,9 +33,11 @@ export default function App() {
         { path: 'reports', element: <ReportsPage /> },
         { path: 'management', element: <ManagementPage /> },
         { path: 'settings', element: <SettingsPage role={role} /> },
+        { path: 'login', element: <Login /> }
       ],
     },
   ]);
 
   return <RouterProvider router={router} />;
 }
+
