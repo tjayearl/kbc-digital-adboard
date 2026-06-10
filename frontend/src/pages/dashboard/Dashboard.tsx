@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { ArrowRight, BadgeDollarSign, CheckCircle2, FilePlus2, FileText, Lock, Megaphone, PlusCircle, Signature } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
@@ -11,10 +12,12 @@ type DashboardProps = {
 };
 
 export function Dashboard({ role }: DashboardProps) {
-  const activeCampaigns = campaigns.filter((campaign) => campaign.status !== 'Brief Unlocked').length;
+  const allCampaigns = campaigns;
+
+  const activeCampaigns = allCampaigns.filter((campaign) => campaign.status !== 'Brief Unlocked').length;
   const pendingApprovals = approvals.filter((approval) => approval.status === 'Pending').length;
-  const revenue = campaigns.reduce((sum, campaign) => sum + campaignTotals(campaign).grandTotal, 0);
-  const awaitingSignatures = campaigns.filter((campaign) => ['Order Generated', 'Client Signed'].includes(campaign.status)).length;
+  const revenue = allCampaigns.reduce((sum, campaign) => sum + campaignTotals(campaign).grandTotal, 0);
+  const awaitingSignatures = allCampaigns.filter((campaign) => ['Order Generated', 'Client Signed'].includes(campaign.status)).length;
 
   return (
     <div className="space-y-6">
@@ -56,34 +59,6 @@ export function Dashboard({ role }: DashboardProps) {
       <section className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-bold text-ink">Campaign pipeline</h3>
-                <p className="mt-1 text-sm text-slate-500">Priority orders and next actions.</p>
-              </div>
-              <Link to="/campaigns" className="text-sm font-bold text-navy">
-                View all
-              </Link>
-            </div>
-          </CardHeader>
-          <CardBody className="space-y-3">
-            {campaigns.map((campaign) => (
-              <Link key={campaign.id} to={`/campaigns/${campaign.id}`} className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4 transition hover:border-gold/70 hover:bg-gold/5 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-bold text-ink">{campaign.name}</p>
-                  <p className="mt-1 text-sm text-slate-500">{campaign.clientCompany}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Badge tone={campaign.status.includes('Pending') ? 'gold' : campaign.status.includes('Payment') ? 'teal' : 'navy'}>{campaign.status}</Badge>
-                  <ArrowRight size={18} className="text-slate-400" />
-                </div>
-              </Link>
-            ))}
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <h3 className="text-lg font-bold text-ink">Order Sheet gate</h3>
             <p className="mt-1 text-sm text-slate-500">Digital Ops unlocks only after all three checks are complete.</p>
           </CardHeader>
@@ -98,24 +73,7 @@ export function Dashboard({ role }: DashboardProps) {
                 </div>
               ))}
             </div>
-            <Link to="/campaigns/new">
-              <Button className="w-full justify-start">
-                <FilePlus2 size={18} />
-                Create campaign
-              </Button>
-            </Link>
-            <Link to="/orders">
-              <Button variant="secondary" className="w-full justify-start">
-                <FileText size={18} />
-                Generate order sheet
-              </Button>
-            </Link>
-            <Link to="/approvals">
-              <Button variant="secondary" className="w-full justify-start">
-                <CheckCircle2 size={18} />
-                Review approvals
-              </Button>
-            </Link>
+            
           </CardBody>
         </Card>
       </section>

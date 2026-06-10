@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { CheckCircle2, CreditCard, FileSignature, XCircle } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -7,6 +8,7 @@ import { approvals, campaigns, campaignTotals, money } from '../../data/mockData
 const tabs = ['Pending Discounts', 'Awaiting Countersign', 'Payment Verification'];
 
 export function ApprovalsPage() {
+  const allCampaigns = campaigns;
   return (
     <div className="space-y-6">
       <div>
@@ -24,7 +26,7 @@ export function ApprovalsPage() {
 
       <section className="grid gap-4 xl:grid-cols-3">
         {approvals.map((approval) => {
-          const campaign = campaigns.find((item) => item.id === approval.campaignId);
+          const campaign = allCampaigns.find((item) => item.id === approval.campaignId);
           const totals = campaign ? campaignTotals(campaign) : null;
           const Icon = approval.type === 'Discount' ? CheckCircle2 : approval.type === 'Countersign' ? FileSignature : CreditCard;
           return (

@@ -49,8 +49,8 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         )}
       >
         <div className="flex min-h-20 items-center justify-between border-b border-white/10 px-5">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold">KBC</p>
+          <div className="flex flex-col justify-center">
+            <img src="/logo.png" alt="KBC Logo" className="h-8 w-auto self-start mb-1" />
             <p className="text-lg font-bold">Digital AdBoard</p>
           </div>
           <button className="rounded-lg p-2 hover:bg-white/10 lg:hidden" onClick={onClose} aria-label="Close navigation">

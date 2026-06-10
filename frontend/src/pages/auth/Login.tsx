@@ -52,7 +52,7 @@ export default function Login() {
     <div style={styles.page}>
 
       {/* LOGO + HEADER */}
-      <img src="/logo.svg" style={styles.logo} />
+      <img src="/logo.png" style={styles.logo} />
 
       <h1 style={styles.title}>Digital AdBoard</h1>
       <p style={styles.subtitle}>

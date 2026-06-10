@@ -3,10 +3,11 @@ import clsx from 'clsx';
 type CardProps = {
   children: React.ReactNode;
   className?: string;
+  id?: string;
 };
 
-export function Card({ children, className }: CardProps) {
-  return <section className={clsx('rounded-lg border border-slate-200 bg-white shadow-soft', className)}>{children}</section>;
+export function Card({ children, className, id }: CardProps) {
+  return <section id={id} className={clsx('rounded-lg border border-slate-200 bg-white shadow-soft', className)}>{children}</section>;
 }
 
 export function CardHeader({ children, className }: CardProps) {
