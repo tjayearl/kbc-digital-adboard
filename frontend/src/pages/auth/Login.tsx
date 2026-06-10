@@ -10,12 +10,14 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // LOGIN
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setMessage("");
+    setLoading(true);
 
     try {
       const userCredential = await signInWithEmailAndPassword(
@@ -25,8 +27,14 @@ export default function Login() {
       );
 
       setMessage(`Welcome back, ${userCredential.user.email}`);
+      // Small delay to show success message before redirect
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
     } catch (err) {
       setError("Invalid email or password");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -73,6 +81,7 @@ export default function Login() {
             placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
           />
         </div>
 
@@ -85,6 +94,7 @@ export default function Login() {
             placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           />
         </div>
 
@@ -93,8 +103,8 @@ export default function Login() {
         {message && <p style={styles.success}>{message}</p>}
 
         {/* LOGIN BUTTON */}
-        <button type="submit" style={styles.button}>
-          Login
+        <button type="submit" style={styles.button} disabled={loading}>
+          {loading ? "Logging in..." : "Login"}
         </button>
 
         {/* FORGOT PASSWORD */}
