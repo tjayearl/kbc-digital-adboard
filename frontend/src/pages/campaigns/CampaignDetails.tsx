@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { auditEvents, approvals, campaignTotals, campaigns, lineTotal, money, productCatalog, rateCard, type Role } from '../../data/mockData';
 import { OrderSheetContent } from '../../components/campaigns/OrderSheetContent';
+import { FileText, Download, Upload, Trash2 } from 'lucide-react';
 
 const tabs = ['Overview', 'Pricing', 'Order Sheet', 'Gate Checks', 'Audit Log'];
 
@@ -183,7 +184,76 @@ export function CampaignDetails() {
               </Card>
             </div>
 
-            
+            {/* Right column */}
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <h3 className="text-lg font-bold text-ink">Campaign report</h3>
+                  <p className="text-sm text-slate-500 mt-1">Upload and manage post-campaign execution reports.</p>
+                </CardHeader>
+                <CardBody className="space-y-4">
+                  {campaign.reportFile ? (
+                    <div className="rounded-lg border border-teal/20 bg-teal/10 p-3 space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Report</p>
+                      <p className="text-sm font-bold text-teal flex items-center gap-1.5 animate-in fade-in duration-200">
+                        <FileText size={16} /> {campaign.reportFile}
+                      </p>
+                      <div className="flex gap-2 pt-2">
+                        <Button 
+                          variant="secondary" 
+                          className="h-9 text-xs px-2.5" 
+                          onClick={() => {
+                            alert(`Downloading report: ${campaign.reportFile}`);
+                          }}
+                        >
+                          <Download size={14} /> Download
+                        </Button>
+                        {(role === 'digitalOps' || role === 'admin' || role === 'sales') && (
+                          <Button 
+                            variant="danger" 
+                            className="h-9 text-xs px-2.5"
+                            onClick={() => {
+                              campaign.reportFile = undefined;
+                              setUpdateCount(prev => prev + 1);
+                              alert('Report file removed.');
+                            }}
+                          >
+                            <Trash2 size={14} /> Remove
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center">
+                      <p className="text-sm text-slate-500 italic">No custom report file uploaded.</p>
+                      {(role === 'digitalOps' || role === 'admin' || role === 'sales') && (
+                        <div className="mt-3 flex justify-center">
+                          <input
+                            type="file"
+                            id="detail-report-upload"
+                            className="hidden"
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                campaign.reportFile = file.name;
+                                setUpdateCount(prev => prev + 1);
+                                alert(`Report "${file.name}" uploaded successfully!`);
+                              }
+                            }}
+                          />
+                          <label htmlFor="detail-report-upload">
+                            <Button variant="secondary" className="h-10 text-xs px-3 cursor-pointer" onClick={() => document.getElementById('detail-report-upload')?.click()}>
+                              <Upload size={14} className="mr-1" /> Upload Report
+                            </Button>
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardBody>
+              </Card>
+            </div>
           </div>
         );
 

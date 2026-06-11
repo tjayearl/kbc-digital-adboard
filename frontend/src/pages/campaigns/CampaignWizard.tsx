@@ -1345,7 +1345,7 @@ export function CampaignWizard() {
             <InputField
               label="End date"
               type="date"
-a              value={contentEndDate}
+              value={contentEndDate}
               onChange={(e) => setContentEndDate(e.target.value)}
             />
           </div>
