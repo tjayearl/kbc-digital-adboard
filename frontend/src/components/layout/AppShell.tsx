@@ -8,40 +8,40 @@ import {
   FileText,
   LayoutDashboard,
   Menu,
-  Settings,
   ShieldCheck,
   ShieldAlert,
   UserCircle,
   Users,
   X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase';
-import { roles, usersList, type Role, type UserItem } from '../../data/mockData';
+import { type Role, type UserItem } from '../../data/mockData';
 
 type AppShellProps = {
   role: Role;
   currentUserId: string;
-  onUserChange: (userId: string) => void;
   users: UserItem[];
   setUsers: React.Dispatch<React.SetStateAction<UserItem[]>>;
 };
 
-const navItems = [
-  { label: 'Dashboard', to: '/', icon: LayoutDashboard, roles: ['Sales', 'Advertising Manager', 'Digital Operations', 'Admin'] },
-  { label: 'Campaigns', to: '/campaigns', icon: BriefcaseBusiness, roles: ['Sales', 'Advertising Manager', 'Digital Operations', 'Admin'] },
-  { label: 'Order Sheets', to: '/orders', icon: FileText, roles: ['Sales', 'Advertising Manager', 'Admin'] },
-  { label: 'Approvals', to: '/approvals', icon: CheckCircle2, roles: ['Advertising Manager', 'Admin'] },
-  { label: 'Digital Ops', to: '/operations', icon: ClipboardList, roles: ['Digital Operations', 'Admin'] },
-  { label: 'Reports', to: '/reports', icon: BarChart3, roles: ['Sales', 'Advertising Manager', 'Digital Operations', 'Admin'] },
-  { label: 'Management', to: '/management', icon: Users, roles: ['Admin'] },
-  { label: 'Settings', to: '/settings', icon: Settings, roles: ['Sales', 'Advertising Manager', 'Digital Operations', 'Admin'] },
+// Define all possible nav items with their allowed roles
+const allNavItems = [
+  { label: 'Dashboard', to: '/', icon: LayoutDashboard, allowedRoles: ['sales', 'adManager', 'digitalOps', 'admin'] },
+  { label: 'Campaigns', to: '/campaigns', icon: BriefcaseBusiness, allowedRoles: ['sales', 'digitalOps', 'admin'] },
+  { label: 'Order Sheets', to: '/orders', icon: FileText, allowedRoles: ['sales', 'adManager', 'admin'] },
+  { label: 'Approvals', to: '/approvals', icon: CheckCircle2, allowedRoles: ['adManager', 'admin'] },
+  { label: 'Digital Ops', to: '/operations', icon: ClipboardList, allowedRoles: ['digitalOps', 'admin'] },
+  { label: 'Reports', to: '/reports', icon: BarChart3, allowedRoles: ['sales', 'adManager', 'digitalOps', 'admin'] },
+  { label: 'Management', to: '/management', icon: Users, allowedRoles: ['admin'] },
 ];
 
-function Sidebar({ open, onClose, role }: { open: boolean; onClose: () => void; role: Role }) {
-  const filteredNavItems = navItems.filter((item) => item.roles.includes(role));
+// Get mobile items (first 5) - will also be filtered by role
+const getMobileItems = (navItems: typeof allNavItems) => navItems.slice(0, 5);
+
+function Sidebar({ open, onClose, navItems }: { open: boolean; onClose: () => void; navItems: typeof allNavItems }) {
   return (
     <>
       <div className={clsx('fixed inset-0 z-30 bg-slate-950/30 lg:hidden', open ? 'block' : 'hidden')} onClick={onClose} />
@@ -61,7 +61,7 @@ function Sidebar({ open, onClose, role }: { open: boolean; onClose: () => void; 
           </button>
         </div>
         <nav className="flex-1 space-y-1 px-3 py-5">
-          {filteredNavItems.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -84,16 +84,21 @@ function Sidebar({ open, onClose, role }: { open: boolean; onClose: () => void; 
   );
 }
 
-export function AppShell({ role, currentUserId, onUserChange, users, setUsers }: AppShellProps) {
+export function AppShell({ role, currentUserId, users, setUsers }: AppShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const filteredNavItems = navItems.filter((item) => item.roles.includes(role));
-  const mobileItems = filteredNavItems.slice(0, 5);
+
+  // Filter nav items based on current role
+  const filteredNavItems = useMemo(() => {
+    return allNavItems.filter(item => item.allowedRoles.includes(role));
+  }, [role]);
+
+  const mobileItems = useMemo(() => getMobileItems(filteredNavItems), [filteredNavItems]);
 
   const currentUser = users.find((u) => u.id === currentUserId) || users[0];
 
   return (
     <div className="min-h-screen bg-canvas lg:flex">
-      <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} role={role} />
+      <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} navItems={filteredNavItems} />
       <div className="min-w-0 flex-1 pb-20 lg:pb-0">
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
           <div className="flex min-h-20 items-center gap-3 px-4 sm:px-6 lg:px-8">
@@ -107,21 +112,7 @@ export function AppShell({ role, currentUserId, onUserChange, users, setUsers }:
             <button className="hidden h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 sm:flex" aria-label="Notifications">
               <Bell size={20} />
             </button>
-            <label className="hidden items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 sm:flex">
-              <ShieldCheck size={18} className="text-navy" aria-hidden="true" />
-              <span className="sr-only">Mock user</span>
-              <select
-                className="bg-transparent text-sm font-semibold text-slate-700 outline-none max-w-[200px]"
-                value={currentUserId}
-                onChange={(event) => onUserChange(event.target.value)}
-              >
-                {users.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name} ({item.role}){item.status === 'Suspended' ? ' [Suspended]' : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
+
             <button
               onClick={() => {
                 if (window.confirm("Are you sure you want to sign out?")) {

@@ -1,4 +1,4 @@
-export type Role = 'Sales' | 'Advertising Manager' | 'Digital Operations' | 'Admin';
+export type Role = 'sales' | 'adManager' | 'digitalOps' | 'admin';
 
 export type CampaignStatus =
   | 'Draft'
@@ -111,7 +111,7 @@ export type AuditEvent = {
   timestamp: string;
 };
 
-export const roles: Role[] = ['Sales', 'Advertising Manager', 'Digital Operations', 'Admin'];
+export const roles: Role[] = ['sales', 'adManager', 'digitalOps', 'admin'];
 
 export const workflowStages: WorkflowStage[] = [
   { id: 'enquiry', name: 'Client enquiry & brief', description: 'Campaign objective, platform, budget, and timeline captured.', sla: 'Same day' },
@@ -321,90 +321,11 @@ export const rateCard: RateCardItem[] = [
   })),
 ];
 
-export const campaigns: Campaign[] = [
-  {
-    id: 'cmp-1',
-    dabRef: 'DAB-2026-00001',
-    clientCompany: 'Kenya Tourism Board',
-    clientName: 'Amina Wekesa',
-    clientEmail: 'amina@ktb.example',
-    clientPhone: '+254 711 204 500',
-    industry: 'Tourism',
-    name: 'Magical Kenya June Push',
-    objective: 'Increase domestic tourism bookings through social and website placements.',
-    startDate: '2026-06-15',
-    endDate: '2026-07-15',
-    owner: 'Grace Mwangi',
-    status: 'Discount Pending',
-    discountPercent: 8,
-    discountReason: 'Bundled national campaign with repeat client commitment.',
-    paidDeposit: false,
-    products: [
-      { id: 'p-1', category: 'Social Media', name: 'Social media sponsored post', unit: 'post / platform', quantity: 18, unitPrice: 23000, platform: 'Facebook, Instagram' },
-      { id: 'p-2', category: 'Display', name: 'Display banner - above the fold', unit: 'day', quantity: 14, unitPrice: 5200 },
-      { id: 'p-3', category: 'Push & SMS', name: 'App push notification', unit: 'send', quantity: 80000, unitPrice: 0.3, platform: 'KBC App' },
-    ],
-  },
-  {
-    id: 'cmp-2',
-    dabRef: 'DAB-2026-00002',
-    clientCompany: 'Equity Bank',
-    clientName: 'Peter Otieno',
-    clientEmail: 'peter@equity.example',
-    clientPhone: '+254 722 816 019',
-    industry: 'Financial Services',
-    name: 'SME Account Launch',
-    objective: 'Generate awareness for SME digital banking products.',
-    startDate: '2026-06-20',
-    endDate: '2026-08-05',
-    owner: 'Daniel Kariuki',
-    status: 'Order Generated',
-    discountPercent: 0,
-    paidDeposit: true,
-    products: [
-      { id: 'p-4', category: 'Production', name: 'Animated video 16-30 sec', unit: 'video', quantity: 2, unitPrice: 169000 },
-      { id: 'p-5', category: 'Social Media', name: 'Social media sponsored post', unit: 'post / platform', quantity: 24, unitPrice: 23000, platform: 'Facebook, X, Instagram' },
-      { id: 'p-6', category: 'Livestream Coverage', name: 'Livestream + posts + article', unit: 'hour', quantity: 4, unitPrice: 350000 },
-    ],
-  },
-  {
-    id: 'cmp-3',
-    dabRef: 'DAB-2026-00003',
-    clientCompany: 'Naivas Supermarket',
-    clientName: 'Jane Muthoni',
-    clientEmail: 'jane@naivas.example',
-    clientPhone: '+254 733 412 118',
-    industry: 'Retail',
-    name: 'Back to School Offers',
-    objective: 'Drive regional offer visibility with digital activation and social proof.',
-    startDate: '2026-07-01',
-    endDate: '2026-07-31',
-    owner: 'Grace Mwangi',
-    status: 'Payment Confirmed',
-    discountPercent: 5,
-    discountReason: 'Approved volume discount.',
-    paidDeposit: true,
-    products: [
-      { id: 'p-7', category: 'Mobile App', name: 'Custom in-app ad', unit: 'month', quantity: 1, unitPrice: 325000 },
-      { id: 'p-8', category: 'Content', name: 'Sponsored article - KBC writes', unit: 'article', quantity: 3, unitPrice: 104000 },
-      { id: 'p-9', category: 'Social Media', name: 'Social media sponsored post', unit: 'post / platform', quantity: 16, unitPrice: 23000, platform: 'Facebook, Instagram' },
-    ],
-  },
-];
+export const campaigns: Campaign[] = [];
 
-export const approvals: Approval[] = [
-  { id: 'ap-1', campaignId: 'cmp-1', type: 'Discount', requestedBy: 'Grace Mwangi', value: 8, status: 'Pending', note: 'Repeat client bundle request.' },
-  { id: 'ap-2', campaignId: 'cmp-2', type: 'Countersign', requestedBy: 'Daniel Kariuki', value: 819000, status: 'Pending', note: 'Client order sheet signed.' },
-  { id: 'ap-3', campaignId: 'cmp-3', type: 'Payment', requestedBy: 'Grace Mwangi', value: 732450, status: 'Approved', note: 'Deposit verified by finance.' },
-];
+export const approvals: Approval[] = [];
 
-export const auditEvents: AuditEvent[] = [
-  { id: 'ev-1', campaignId: 'cmp-1', action: 'Campaign Created', user: 'Grace Mwangi', role: 'Sales', timestamp: '2026-06-02 09:14' },
-  { id: 'ev-2', campaignId: 'cmp-1', action: 'Discount Requested', user: 'Grace Mwangi', role: 'Sales', timestamp: '2026-06-02 10:06' },
-  { id: 'ev-3', campaignId: 'cmp-2', action: 'PDF Generated', user: 'Daniel Kariuki', role: 'Sales', timestamp: '2026-06-03 15:45' },
-  { id: 'ev-4', campaignId: 'cmp-2', action: 'Client Signed', user: 'Peter Otieno', role: 'Sales', timestamp: '2026-06-04 11:20' },
-  { id: 'ev-5', campaignId: 'cmp-3', action: 'Payment Confirmed', user: 'Mary Njeri', role: 'Advertising Manager', timestamp: '2026-06-05 14:01' },
-];
+export const auditEvents: AuditEvent[] = [];
 
 export function lineTotal(line: ProductLine) {
   return line.quantity * line.unitPrice;
@@ -438,9 +359,9 @@ export type UserItem = {
 };
 
 export const usersList: UserItem[] = [
-  { id: 'usr-1', name: 'Grace Mwangi', email: 'grace@kbc.example', role: 'Sales', status: 'Active' },
-  { id: 'usr-2', name: 'Daniel Kariuki', email: 'daniel@kbc.example', role: 'Sales', status: 'Active' },
-  { id: 'usr-3', name: 'Mary Njeri', email: 'mary@kbc.example', role: 'Advertising Manager', status: 'Active' },
-  { id: 'usr-4', name: 'James Ochieng', email: 'james@kbc.example', role: 'Digital Operations', status: 'Active' },
-  { id: 'usr-5', name: 'System Admin', email: 'admin@kbc.example', role: 'Admin', status: 'Active' },
+  { id: 'usr-1', name: 'Grace Mwangi', email: 'grace@kbc.example', role: 'sales', status: 'Active' },
+  { id: 'usr-2', name: 'Daniel Kariuki', email: 'daniel@kbc.example', role: 'sales', status: 'Active' },
+  { id: 'usr-3', name: 'Mary Njeri', email: 'mary@kbc.example', role: 'adManager', status: 'Active' },
+  { id: 'usr-4', name: 'James Ochieng', email: 'james@kbc.example', role: 'digitalOps', status: 'Active' },
+  { id: 'usr-5', name: 'System Admin', email: 'admin@kbc.example', role: 'admin', status: 'Active' },
 ];

@@ -22,7 +22,7 @@ export function ApprovalsPage() {
   const [activeTab, setActiveTab] = useState('Pending Discounts');
   const [approvals, setApprovals] = useState(mockApprovals);
 
-  if (role !== 'Advertising Manager' && role !== 'Admin') {
+  if (role !== 'adManager' && role !== 'admin') {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center text-center p-6 bg-white rounded-lg border border-slate-200 shadow-soft">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-danger/10 text-danger mb-4">
@@ -75,7 +75,7 @@ export function ApprovalsPage() {
         campaignId: campaign.id,
         action: 'Discount Approved by Advertising Manager',
         user: 'Mary Njeri',
-        role: 'Advertising Manager',
+        role: 'adManager',
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       });
 
@@ -84,7 +84,7 @@ export function ApprovalsPage() {
         campaignId: campaign.id,
         action: 'Order Sheet Generated & Shared',
         user: currentUser?.name || 'Grace Mwangi',
-        role: 'Sales',
+        role: 'sales',
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       });
 
@@ -93,7 +93,7 @@ export function ApprovalsPage() {
         campaignId: campaign.id,
         action: 'Client Signed Order Sheet',
         user: 'Peter Otieno',
-        role: 'Sales',
+        role: 'sales',
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       });
 
@@ -125,7 +125,7 @@ export function ApprovalsPage() {
         campaignId: campaign.id,
         action: 'Order Countersigned by Advertising Manager',
         user: 'Mary Njeri',
-        role: 'Advertising Manager',
+        role: 'adManager',
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       });
 
@@ -134,7 +134,7 @@ export function ApprovalsPage() {
         campaignId: campaign.id,
         action: 'Deposit Invoice Issued',
         user: 'Mary Njeri',
-        role: 'Advertising Manager',
+        role: 'adManager',
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       });
 
@@ -143,7 +143,7 @@ export function ApprovalsPage() {
         campaignId: campaign.id,
         action: 'Client Paid Deposit (Verification Pending)',
         user: 'Peter Otieno',
-        role: 'Sales',
+        role: 'sales',
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       });
 
@@ -173,7 +173,7 @@ export function ApprovalsPage() {
         campaignId: campaign.id,
         action: 'Payment Receipt Verified by Finance',
         user: 'Mary Njeri',
-        role: 'Advertising Manager',
+        role: 'adManager',
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       });
 
@@ -182,7 +182,7 @@ export function ApprovalsPage() {
         campaignId: campaign.id,
         action: 'Campaign Brief Unlocked',
         user: 'Mary Njeri',
-        role: 'Advertising Manager',
+        role: 'adManager',
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       });
 
@@ -221,7 +221,7 @@ export function ApprovalsPage() {
         campaignId: campaign.id,
         action: 'Discount Rejected by Advertising Manager',
         user: 'Mary Njeri',
-        role: 'Advertising Manager',
+        role: 'adManager',
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       });
       alert('Discount request rejected.');
@@ -231,7 +231,7 @@ export function ApprovalsPage() {
         campaignId: campaign.id,
         action: `${approval.type} Rejected by Advertising Manager`,
         user: 'Mary Njeri',
-        role: 'Advertising Manager',
+        role: 'adManager',
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       });
       alert(`${approval.type} request rejected.`);

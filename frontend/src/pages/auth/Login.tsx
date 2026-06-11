@@ -4,6 +4,7 @@ import {
   sendPasswordResetEmail
 } from "firebase/auth";
 import { auth } from "../../firebase";
+import { usersList } from "../../data/mockData";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -26,12 +27,56 @@ export default function Login() {
         password
       );
 
-      setMessage(`Welcome back, ${userCredential.user.email}`);
-      // Small delay to show success message before redirect
+      const user = userCredential.user;
+
+      // Get token + role claims
+      const tokenResult = await user.getIdTokenResult(true);
+      let role = tokenResult.claims.role as string | undefined;
+
+      console.log("USER EMAIL:", user.email);
+      console.log("USER UID:", user.uid);
+      console.log("USER CLAIMS:", tokenResult.claims);
+      console.log("ROLE:", role);
+
+      // Fallback to mock user list role if no custom claim exists
+      if (!role && user.email) {
+        const mockUser = usersList.find(u => u.email.toLowerCase() === user.email?.toLowerCase());
+        if (mockUser) {
+          role = mockUser.role;
+        }
+      }
+
+      // Save role to localStorage for dashboard to use
+      if (role) {
+        localStorage.setItem("role", role);
+        setMessage(`Welcome back, ${user.email}. Role: ${role}`);
+      } else {
+        localStorage.removeItem("role");
+        setMessage(`Welcome back, ${user.email}. No role assigned. Contact admin.`);
+      }
+
+      // Role-based redirect - CORRECT PATHS MATCHING APP.TSX
+      let redirectUrl = "/";
+
+      if (role === "adManager") {
+        redirectUrl = "/approvals";
+      } else if (role === "digitalOps") {
+        redirectUrl = "/operations";
+      } else if (role === "sales") {
+        redirectUrl = "/";
+      } else if (role === "admin") {
+        redirectUrl = "/";
+      } else {
+        redirectUrl = "/";
+      }
+
+      // Redirect after short delay
       setTimeout(() => {
-        window.location.href = "/";
+        window.location.href = redirectUrl;
       }, 500);
+
     } catch (err) {
+      console.error(err);
       setError("Invalid email or password");
     } finally {
       setLoading(false);
@@ -59,7 +104,6 @@ export default function Login() {
   return (
     <div style={styles.page}>
 
-      {/* LOGO + HEADER */}
       <img src="/logo.png" style={styles.logo} />
 
       <h1 style={styles.title}>Digital AdBoard</h1>
@@ -67,7 +111,6 @@ export default function Login() {
         Advertising Booking & Order Management
       </p>
 
-      {/* LOGIN CARD */}
       <form style={styles.card} onSubmit={handleLogin}>
 
         <h2 style={styles.welcome}>Welcome Back</h2>
@@ -98,16 +141,13 @@ export default function Login() {
           />
         </div>
 
-        {/* ERROR / SUCCESS */}
         {error && <p style={styles.error}>{error}</p>}
         {message && <p style={styles.success}>{message}</p>}
 
-        {/* LOGIN BUTTON */}
         <button type="submit" style={styles.button} disabled={loading}>
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        {/* FORGOT PASSWORD */}
         <p style={styles.forgot} onClick={handleResetPassword}>
           Forgot password?
         </p>
@@ -119,7 +159,6 @@ export default function Login() {
 
 /* ================= STYLES ================= */
 const styles: any = {
-
   page: {
     height: "100vh",
     display: "flex",
@@ -172,8 +211,7 @@ const styles: any = {
   label: {
     color: "#fff",
     fontSize: "15px",
-    marginBottom: "6px",
-    display: "block"
+    marginBottom: "6px"
   },
 
   input: {

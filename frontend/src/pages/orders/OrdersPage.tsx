@@ -9,7 +9,7 @@ export function OrdersPage() {
   const { role } = useOutletContext<{ role: Role }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  if (role === 'Digital Operations') {
+  if (role === 'digitalOps') {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center text-center p-6 bg-white rounded-lg border border-slate-200 shadow-soft">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-danger/10 text-danger mb-4">
@@ -24,6 +24,17 @@ export function OrdersPage() {
   }
   const campaignId = searchParams.get('campaignId');
   const campaign = campaigns.find((item) => item.id === campaignId) || campaigns[0];
+
+  if (!campaign) {
+    return (
+      <div className="flex h-[60vh] flex-col items-center justify-center text-center p-6 bg-white rounded-lg border border-slate-200 shadow-soft animate-in fade-in duration-200">
+        <h3 className="text-xl font-bold text-ink">No Campaigns Available</h3>
+        <p className="mt-2 text-sm text-slate-500 max-w-sm leading-relaxed">
+          There are no campaigns registered in the system yet. Please create a campaign from the Campaigns page first.
+        </p>
+      </div>
+    );
+  }
 
   const handleCampaignChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSearchParams({ campaignId: e.target.value });

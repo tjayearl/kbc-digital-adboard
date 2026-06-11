@@ -41,9 +41,9 @@ export function ManagementPage() {
   const [editingUserItem, setEditingUserItem] = useState<UserItem | null>(null);
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
-  const [userRole, setUserRole] = useState<Role>('Sales');
+  const [userRole, setUserRole] = useState<Role>('sales');
 
-  if (role !== 'Admin') {
+  if (role !== 'admin') {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center text-center p-6 bg-white rounded-lg border border-slate-200 shadow-soft">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-danger/10 text-danger mb-4">
@@ -144,7 +144,7 @@ export function ManagementPage() {
     setEditingUserItem(null);
     setUserName('');
     setUserEmail('');
-    setUserRole('Sales');
+    setUserRole('sales');
     setShowUserModal(true);
   };
 
@@ -342,7 +342,7 @@ export function ManagementPage() {
                     <td className="px-5 py-4 font-bold text-ink">{item.name}</td>
                     <td className="px-5 py-4 text-slate-600">{item.email}</td>
                     <td className="px-5 py-4">
-                      <Badge tone={item.role === 'Admin' ? 'gold' : item.role === 'Advertising Manager' ? 'navy' : 'teal'}>
+                      <Badge tone={item.role === 'admin' ? 'gold' : item.role === 'adManager' ? 'navy' : 'teal'}>
                         {item.role}
                       </Badge>
                     </td>
@@ -367,7 +367,7 @@ export function ManagementPage() {
             {users.map((item) => (
               <article key={item.id} className={`rounded-lg border border-slate-200 p-4 ${item.status === 'Suspended' ? 'opacity-60 bg-slate-50/55' : ''}`}>
                 <div className="flex justify-between items-start gap-2">
-                  <Badge tone={item.role === 'Admin' ? 'gold' : item.role === 'Advertising Manager' ? 'navy' : 'teal'}>{item.role}</Badge>
+                  <Badge tone={item.role === 'admin' ? 'gold' : item.role === 'adManager' ? 'navy' : 'teal'}>{item.role}</Badge>
                   <Badge tone={item.status === 'Active' ? 'teal' : 'danger'}>{item.status}</Badge>
                 </div>
                 <h3 className="mt-3 font-bold text-ink">{item.name}</h3>
@@ -491,10 +491,10 @@ export function ManagementPage() {
                   value={userRole}
                   onChange={(e) => setUserRole(e.target.value as Role)}
                 >
-                  <option value="Sales">Sales</option>
-                  <option value="Advertising Manager">Advertising Manager</option>
-                  <option value="Digital Operations">Digital Operations</option>
-                  <option value="Admin">Admin</option>
+                  <option value="sales">Sales</option>
+                  <option value="adManager">Advertising Manager</option>
+                  <option value="digitalOps">Digital Operations</option>
+                  <option value="admin">Admin</option>
                 </SelectField>
               </div>
               <div className="flex justify-end gap-3 border-t border-slate-100 pt-3.5 shrink-0 mt-2">

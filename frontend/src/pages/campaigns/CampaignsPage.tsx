@@ -20,9 +20,9 @@ export function CampaignsPage() {
   const allCampaigns = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     let list = campaigns;
-    if (role === 'Sales') {
+    if (role === 'sales') {
       list = campaigns.filter((c) => c.owner === (currentUser?.name || 'Grace Mwangi'));
-    } else if (role === 'Digital Operations') {
+    } else if (role === 'digitalOps') {
       list = campaigns.filter((c) => c.status === 'Brief Unlocked');
     }
 

@@ -68,7 +68,7 @@ export function ReportsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const canUpload = role === 'Digital Operations' || role === 'Admin';
+  const canUpload = role === 'digitalOps' || role === 'admin';
 
   return (
     <div className="space-y-6">

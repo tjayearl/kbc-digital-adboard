@@ -25,7 +25,7 @@ export function Dashboard({ role }: DashboardProps) {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-3xl">
             <Badge tone="gold" className="mb-4 bg-gold text-white ring-white/20">
-              Mock {role} workspace
+              {role} workspace
             </Badge>
             <h2 className="text-2xl font-bold sm:text-3xl">Clear, priced digital advertising orders from campaign brief to countersignature.</h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-white/80">

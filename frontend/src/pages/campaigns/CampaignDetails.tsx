@@ -23,7 +23,7 @@ export function CampaignDetails() {
   if (!campaign) return <Navigate to="/campaigns" replace />;
   
   // Digital Ops reads docs at status >= briefUnlocked
-  if (role === 'Digital Operations' && campaign.status !== 'Brief Unlocked') {
+  if (role === 'digitalOps' && campaign.status !== 'Brief Unlocked') {
     return <Navigate to="/campaigns" replace />;
   }
 
@@ -63,7 +63,7 @@ export function CampaignDetails() {
       campaignId: campaign.id,
       action: `Change Order ${coRef} Raised (Scope: ${coScope || 'NIL'})`,
       user: currentUser?.name || 'Grace Mwangi',
-      role: 'Sales',
+      role: role,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
     });
 
@@ -264,7 +264,7 @@ export function CampaignDetails() {
           <p className="mt-1 text-sm text-slate-500">{campaign.clientCompany} • Owner: {campaign.owner}</p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
-          {(role === 'Sales' || role === 'Admin') && (
+          {(role === 'sales' || role === 'admin') && (
             <>
               <Button variant="secondary" onClick={() => setShowCoModal(true)}>Raise DAB-CO</Button>
               <Button onClick={() => setActiveTab('Order Sheet')}>Generate Order Sheet</Button>

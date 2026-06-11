@@ -9,7 +9,6 @@ import { InputField, SelectField, TextareaField } from '../../components/ui/Fiel
 import { campaigns, campaignTotals, lineTotal, materialSpecs, money, productCatalog, rateCard, approvals, workflowStages, type ProductCategory, type ProductLine, type Role } from '../../data/mockData';
 
 const enquirySteps = ['Client details', 'Campaign brief', 'Products', 'Review', 'Order sheet'];
-const draft = campaigns[0];
 
 const categoryOrder: ProductCategory[] = ['Social Media', 'Livestream Coverage', 'Display', 'Rich Media', 'Content', 'Mobile App', 'Push & SMS', 'Production'];
 
@@ -41,71 +40,67 @@ const productionProductsList = [
 export function CampaignWizard() {
   const navigate = useNavigate();
   const { currentUser } = useOutletContext<{ currentUser?: any }>();
-  const [openCategory, setOpenCategory] = useState<ProductCategory | null>('Social Media');
-  const [selectedProducts, setSelectedProducts] = useState<ProductLine[]>(draft.products);
+  const [openCategory, setOpenCategory] = useState<ProductCategory | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<ProductLine[]>([]);
 
-  const [organisation, setOrganisation] = useState('Kenya Tourism Board');
-  const [kraPin, setKraPin] = useState('P051234567M');
-  const [industry, setIndustry] = useState('Hospitality & tourism');
-  const [bookingType, setBookingType] = useState('Direct client');
-  const [contactName, setContactName] = useState('Amina Wekesa');
-  const [contactJobTitle, setContactJobTitle] = useState('Marketing Manager');
-  const [email, setEmail] = useState('amina@ktb.example');
-  const [phone, setPhone] = useState('+254 711 204 500');
-  const [billingAddress, setBillingAddress] = useState('P.O. Box 1234-00100, Nairobi');
+  const [organisation, setOrganisation] = useState('');
+  const [kraPin, setKraPin] = useState('');
+  const [industry, setIndustry] = useState('');
+  const [bookingType, setBookingType] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [contactJobTitle, setContactJobTitle] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [billingAddress, setBillingAddress] = useState('');
 
-  const [campaignGoal, setCampaignGoal] = useState('Brand awareness / reach');
-  const [targetAudience, setTargetAudience] = useState('General public (all adults)');
-  const [geography, setGeography] = useState('National (all Kenya)');
-  const [budgetRange, setBudgetRange] = useState('Ksh 500,000 - 1,000,000');
-  const [startDate, setStartDate] = useState('2026-06-15');
-  const [endDate, setEndDate] = useState('2026-07-15');
-  const [campaignDescription, setCampaignDescription] = useState('Promote domestic travel packages with social posts, display placements, and app push reminders.');
-  const [creativeAssets, setCreativeAssets] = useState('Banners & social images');
+  const [campaignGoal, setCampaignGoal] = useState('');
+  const [targetAudience, setTargetAudience] = useState('');
+  const [geography, setGeography] = useState('');
+  const [budgetRange, setBudgetRange] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [campaignDescription, setCampaignDescription] = useState('');
+  const [creativeAssets, setCreativeAssets] = useState('');
 
   // Configurator inputs states
   // 1. Social Media
-  const [socialPlatforms, setSocialPlatforms] = useState<string[]>(['Facebook', 'Instagram']);
-  const [socialSchedule, setSocialSchedule] = useState<Array<{ id: string; startDate: string; endDate: string; postsPerDay: number }>>([
-    { id: 's-1', startDate: '2026-06-15', endDate: '2026-07-15', postsPerDay: 1 }
-  ]);
-  const [socialCopyBy, setSocialCopyBy] = useState('Client');
-  const [socialLanguage, setSocialLanguage] = useState('English');
-  const [socialBrief, setSocialBrief] = useState('Promote domestic travel packages with social posts.');
-  const [socialBoost, setSocialBoost] = useState('Organic only (KBC page reach)');
-  const [socialExclusivity, setSocialExclusivity] = useState('No');
+  const [socialPlatforms, setSocialPlatforms] = useState<string[]>([]);
+  const [socialSchedule, setSocialSchedule] = useState<Array<{ id: string; startDate: string; endDate: string; postsPerDay: number }>>([]);
+  const [socialCopyBy, setSocialCopyBy] = useState('');
+  const [socialLanguage, setSocialLanguage] = useState('');
+  const [socialBrief, setSocialBrief] = useState('');
+  const [socialBoost, setSocialBoost] = useState('');
+  const [socialExclusivity, setSocialExclusivity] = useState('');
 
   // 2. Livestream
-  const [liveDest, setLiveDest] = useState('All three');
+  const [liveDest, setLiveDest] = useState('');
   const [livePackage, setLivePackage] = useState('');
-  const [liveDays, setLiveDays] = useState<Array<{ id: string; date: string; start: string; end: string }>>([
-    { id: 'l-1', date: '', start: '', end: '' }
-  ]);
+  const [liveDays, setLiveDays] = useState<Array<{ id: string; date: string; start: string; end: string }>>([]);
   const [liveEventName, setLiveEventName] = useState('');
   const [liveLocation, setLiveLocation] = useState('');
-  const [liveFeed, setLiveFeed] = useState('Client provides encoder/feed');
-  const [liveOverlays, setLiveOverlays] = useState('No');
+  const [liveFeed, setLiveFeed] = useState('');
+  const [liveOverlays, setLiveOverlays] = useState('');
 
   // 3. Display
-  const [displayType, setDisplayType] = useState('5200'); // Above the fold
-  const [displayFormat, setDisplayFormat] = useState('Both formats');
-  const [displayStartDate, setDisplayStartDate] = useState('2026-06-15');
-  const [displayEndDate, setDisplayEndDate] = useState('2026-06-28'); // 14 days
-  const [displaySection, setDisplaySection] = useState('Homepage only');
-  const [displayUrl, setDisplayUrl] = useState('https://magicalkenya.example');
-  const [displayCreative, setDisplayCreative] = useState('Client will supply (per spec sheet)');
+  const [displayType, setDisplayType] = useState(''); // Above the fold
+  const [displayFormat, setDisplayFormat] = useState('');
+  const [displayStartDate, setDisplayStartDate] = useState('');
+  const [displayEndDate, setDisplayEndDate] = useState(''); // 14 days
+  const [displaySection, setDisplaySection] = useState('');
+  const [displayUrl, setDisplayUrl] = useState('');
+  const [displayCreative, setDisplayCreative] = useState('');
 
   // 4. Rich Media
   const [rmTypes, setRmTypes] = useState<string[]>([]);
   const [rmStartDate, setRmStartDate] = useState('');
   const [rmEndDate, setRmEndDate] = useState('');
-  const [rmHours, setRmHours] = useState(1);
+  const [rmHours, setRmHours] = useState<number | ''>('');
   const [rmTimeSlots, setRmTimeSlots] = useState('');
   const [rmUrl, setRmUrl] = useState('');
 
   // 5. Content
   const [contentTypes, setContentTypes] = useState<string[]>([]);
-  const [contentQty, setContentQty] = useState(1);
+  const [contentQty, setContentQty] = useState<number | ''>('');
   const [contentFreq, setContentFreq] = useState('');
   const [contentStartDate, setContentStartDate] = useState('');
   const [contentEndDate, setContentEndDate] = useState('');
@@ -113,18 +108,18 @@ export function CampaignWizard() {
 
   // 6. Mobile App
   const [appType, setAppType] = useState('');
-  const [appMonths, setAppMonths] = useState(1);
+  const [appMonths, setAppMonths] = useState<number | ''>('');
   const [appPlacement, setAppPlacement] = useState('');
   const [appStartDate, setAppStartDate] = useState('');
   const [appUrl, setAppUrl] = useState('');
 
   // 7. Push & SMS
-  const [pushChannel, setPushChannel] = useState('App push notification');
-  const [pushSends, setPushSends] = useState(8);
-  const [pushReach, setPushReach] = useState(10000);
-  const [pushDate, setPushDate] = useState('2026-06-20');
-  const [pushTime, setPushTime] = useState('10:00');
-  const [pushMessage, setPushMessage] = useState('Discover domestic travel deals this holiday season!');
+  const [pushChannel, setPushChannel] = useState('');
+  const [pushSends, setPushSends] = useState<number | ''>('');
+  const [pushReach, setPushReach] = useState<number | ''>('');
+  const [pushDate, setPushDate] = useState('');
+  const [pushTime, setPushTime] = useState('');
+  const [pushMessage, setPushMessage] = useState('');
 
   // 8. Production
   const [prodTypes, setProdTypes] = useState<string[]>([]);
@@ -135,9 +130,9 @@ export function CampaignWizard() {
   // Submission state
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [generatedRef, setGeneratedRef] = useState('');
-  const [dec1, setDec1] = useState(true);
-  const [dec2, setDec2] = useState(true);
-  const [dec3, setDec3] = useState(true);
+  const [dec1, setDec1] = useState(false);
+  const [dec2, setDec2] = useState(false);
+  const [dec3, setDec3] = useState(false);
 
   // Synchronise configured states into selectedProducts
   useEffect(() => {
@@ -339,9 +334,9 @@ export function CampaignWizard() {
 
   const totals = useMemo(() => {
     return campaignTotals({
-      ...draft,
       products: selectedProducts,
-    });
+      discountPercent: 0,
+    } as any);
   }, [selectedProducts]);
 
   const groupedProducts = useMemo(
@@ -577,6 +572,7 @@ export function CampaignWizard() {
           value={socialExclusivity}
           onChange={(e) => setSocialExclusivity(e.target.value)}
         >
+          <option value="">— select —</option>
           <option>No</option>
           <option>Yes — specify below</option>
         </SelectField>
@@ -710,6 +706,7 @@ export function CampaignWizard() {
           value={liveFeed}
           onChange={(e) => setLiveFeed(e.target.value)}
         >
+          <option value="">— select —</option>
           <option>Client provides encoder/feed</option>
           <option>KBC production crew required</option>
           <option>To be discussed</option>
@@ -719,6 +716,7 @@ export function CampaignWizard() {
           value={liveOverlays}
           onChange={(e) => setLiveOverlays(e.target.value)}
         >
+          <option value="">— select —</option>
           <option>No</option>
           <option>Yes — client provides graphics</option>
           <option>Yes — KBC to design</option>
@@ -795,6 +793,7 @@ export function CampaignWizard() {
         value={displayCreative}
         onChange={(e) => setDisplayCreative(e.target.value)}
       >
+        <option value="">— select —</option>
         <option>Client will supply (per spec sheet)</option>
         <option>KBC to design — Ksh 15,600 per banner</option>
       </SelectField>
@@ -849,7 +848,7 @@ export function CampaignWizard() {
           type="number"
           min="1"
           value={rmHours}
-          onChange={(e) => setRmHours(parseInt(e.target.value) || 1)}
+          onChange={(e) => setRmHours(e.target.value === '' ? '' : (parseInt(e.target.value) || 1))}
           placeholder="e.g. 4"
         />
       </div>
@@ -911,7 +910,7 @@ export function CampaignWizard() {
               type="number"
               min="1"
               value={contentQty}
-              onChange={(e) => setContentQty(parseInt(e.target.value) || 1)}
+              onChange={(e) => setContentQty(e.target.value === '' ? '' : (parseInt(e.target.value) || 1))}
               placeholder="Number of units"
             />
             <SelectField
@@ -993,7 +992,7 @@ export function CampaignWizard() {
           min="1"
           max="12"
           value={appMonths}
-          onChange={(e) => setAppMonths(parseInt(e.target.value) || 1)}
+          onChange={(e) => setAppMonths(e.target.value === '' ? '' : (parseInt(e.target.value) || 1))}
         />
         <SelectField
           label="Preferred placement"
@@ -1064,7 +1063,7 @@ export function CampaignWizard() {
           type="number"
           min="1"
           value={pushSends}
-          onChange={(e) => setPushSends(parseInt(e.target.value) || 1)}
+          onChange={(e) => setPushSends(e.target.value === '' ? '' : (parseInt(e.target.value) || 1))}
         />
         <InputField
           label="Estimated reach per send *"
@@ -1072,7 +1071,7 @@ export function CampaignWizard() {
           min="1000"
           step="1000"
           value={pushReach}
-          onChange={(e) => setPushReach(parseInt(e.target.value) || 10000)}
+          onChange={(e) => setPushReach(e.target.value === '' ? '' : (parseInt(e.target.value) || 10000))}
           placeholder="e.g. 25000"
         />
       </div>
@@ -1153,7 +1152,7 @@ export function CampaignWizard() {
               value={prodVoLang}
               onChange={(e) => setProdVoLang(e.target.value)}
             >
-              <option value="">— N/A —</option>
+              <option value="">— select / N/A —</option>
               <option>English</option>
               <option>Kiswahili</option>
               <option>English &amp; Kiswahili</option>
@@ -1283,9 +1282,10 @@ export function CampaignWizard() {
           <p className="mt-1 text-sm text-slate-500">Fields align to the DAB enquiry reference.</p>
         </CardHeader>
         <CardBody className="grid gap-4 md:grid-cols-2">
-          <InputField label="Company / organisation name" value={organisation} onChange={(e) => setOrganisation(e.target.value)} />
-          <InputField label="KRA PIN / registration no." value={kraPin} onChange={(e) => setKraPin(e.target.value)} />
+          <InputField label="Company / organisation name" value={organisation} onChange={(e) => setOrganisation(e.target.value)} placeholder="e.g. Kenya Tourism Board" />
+          <InputField label="KRA PIN / registration no." value={kraPin} onChange={(e) => setKraPin(e.target.value)} placeholder="e.g. P051234567M" />
           <SelectField label="Industry / sector" value={industry} onChange={(e) => setIndustry(e.target.value)}>
+            <option value="">— select —</option>
             <option>Telecommunications</option>
             <option>Banking & finance</option>
             <option>Government / public sector</option>
@@ -1294,16 +1294,17 @@ export function CampaignWizard() {
             <option>Technology</option>
           </SelectField>
           <SelectField label="Booking type" value={bookingType} onChange={(e) => setBookingType(e.target.value)}>
+            <option value="">— select —</option>
             <option>Direct client</option>
             <option>Through advertising agency</option>
             <option>Through media buying agency</option>
             <option>Government / LPO basis</option>
           </SelectField>
-          <InputField label="Client Full name" value={contactName} onChange={(e) => setContactName(e.target.value)} />
-          <InputField label="Job title" value={contactJobTitle} onChange={(e) => setContactJobTitle(e.target.value)} />
-          <InputField label="Email address" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <InputField label="Phone / WhatsApp" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          <InputField label="Billing address / P.O. Box" className="md:col-span-2" value={billingAddress} onChange={(e) => setBillingAddress(e.target.value)} />
+          <InputField label="Client Full name" value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="e.g. Amina Wekesa" />
+          <InputField label="Job title" value={contactJobTitle} onChange={(e) => setContactJobTitle(e.target.value)} placeholder="e.g. Marketing Manager" />
+          <InputField label="Email address" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g. amina@ktb.example" />
+          <InputField label="Phone / WhatsApp" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="e.g. +254 711 204 500" />
+          <InputField label="Billing address / P.O. Box" className="md:col-span-2" value={billingAddress} onChange={(e) => setBillingAddress(e.target.value)} placeholder="e.g. P.O. Box 1234-00100, Nairobi" />
         </CardBody>
       </Card>
 
@@ -1314,6 +1315,7 @@ export function CampaignWizard() {
         </CardHeader>
         <CardBody className="grid gap-4 md:grid-cols-2">
           <SelectField label="Primary campaign goal" value={campaignGoal} onChange={(e) => setCampaignGoal(e.target.value)}>
+            <option value="">— select —</option>
             <option>Brand awareness / reach</option>
             <option>Product or service launch</option>
             <option>Lead generation</option>
@@ -1323,6 +1325,7 @@ export function CampaignWizard() {
             <option>Political campaign</option>
           </SelectField>
           <SelectField label="Primary audience" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)}>
+            <option value="">— select —</option>
             <option>General public (all adults)</option>
             <option>Youth (18-34)</option>
             <option>Adults 35-54</option>
@@ -1331,6 +1334,7 @@ export function CampaignWizard() {
             <option>Parents / families</option>
           </SelectField>
           <SelectField label="Geographic focus" value={geography} onChange={(e) => setGeography(e.target.value)}>
+            <option value="">— select —</option>
             <option>National (all Kenya)</option>
             <option>Nairobi & Central</option>
             <option>Coast region</option>
@@ -1338,10 +1342,18 @@ export function CampaignWizard() {
             <option>Rift Valley</option>
             <option>Multiple regions</option>
           </SelectField>
+          <SelectField label="Estimated budget range" value={budgetRange} onChange={(e) => setBudgetRange(e.target.value)}>
+            <option value="">— select —</option>
+            <option>Under Ksh 100,000</option>
+            <option>Ksh 100,000 - 500,000</option>
+            <option>Ksh 500,000 - 1,000,000</option>
+            <option>Ksh 1,000,000 - 5,000,000</option>
+            <option>Over Ksh 5,000,000</option>
+          </SelectField>
           <InputField label="Preferred start date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           <InputField label="Preferred end date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-          <InputField label="Creative assets / specifications" className="md:col-span-2" value={creativeAssets} onChange={(e) => setCreativeAssets(e.target.value)} hint="E.g., high-res banner PNGs, video links, specific campaign copy, or logo vectors" />
-          <TextareaField label="Campaign description" className="md:col-span-2" value={campaignDescription} onChange={(e) => setCampaignDescription(e.target.value)} />
+          <InputField label="Creative assets / specifications" className="md:col-span-2" value={creativeAssets} onChange={(e) => setCreativeAssets(e.target.value)} placeholder="e.g. Banners & social images" hint="E.g., high-res banner PNGs, video links, specific campaign copy, or logo vectors" />
+          <TextareaField label="Campaign description" className="md:col-span-2" value={campaignDescription} onChange={(e) => setCampaignDescription(e.target.value)} placeholder="e.g. Promote domestic travel packages with social posts, display placements, and app push reminders." />
           
         </CardBody>
       </Card>

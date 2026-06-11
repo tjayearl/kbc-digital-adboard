@@ -13,7 +13,6 @@ import { ManagementPage } from './pages/management/ManagementPage';
 import { OperationsPage } from './pages/operations/OperationsPage';
 import { OrdersPage } from './pages/orders/OrdersPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
-import { SettingsPage } from './pages/settings/SettingsPage';
 import Login from "./pages/auth/Login";
 
 export default function App() {
@@ -26,20 +25,46 @@ export default function App() {
   const role = currentUser.role;
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      if (currentUser && currentUser.email) {
-        const matchingUser = users.find(
-          (u) => u.email.toLowerCase() === currentUser.email?.toLowerCase()
-        );
-        if (matchingUser) {
-          setCurrentUserId(matchingUser.id);
-        }
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      
+      if (firebaseUser) {
+        const checkUser = async () => {
+          const matchingUser = usersList.find(
+            (u) => u.email.toLowerCase() === firebaseUser.email?.toLowerCase()
+          );
+          
+          if (matchingUser) {
+            setCurrentUserId(matchingUser.id);
+          } else {
+            const tokenResult = await firebaseUser.getIdTokenResult();
+            const roleClaim = tokenResult.claims.role as Role | undefined;
+            if (roleClaim) {
+              const tempUser: UserItem = {
+                id: `usr-fb-${firebaseUser.uid}`,
+                name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Authenticated User',
+                email: firebaseUser.email || '',
+                role: roleClaim,
+                status: 'Active'
+              };
+              setUsers(prev => {
+                if (prev.some(u => u.email.toLowerCase() === tempUser.email.toLowerCase())) {
+                  return prev;
+                }
+                return [...prev, tempUser];
+              });
+              setCurrentUserId(tempUser.id);
+            }
+          }
+          setLoading(false);
+        };
+        checkUser();
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
     return unsubscribe;
-  }, [users]);
+  }, []);
 
   const router = createBrowserRouter([
     {
@@ -48,7 +73,6 @@ export default function App() {
         <AppShell
           role={role}
           currentUserId={currentUserId}
-          onUserChange={setCurrentUserId}
           users={users}
           setUsers={setUsers}
         />
@@ -63,7 +87,6 @@ export default function App() {
         { path: 'operations', element: <OperationsPage /> },
         { path: 'reports', element: <ReportsPage /> },
         { path: 'management', element: <ManagementPage /> },
-        { path: 'settings', element: <SettingsPage role={role} /> },
         { path: 'login', element: <Login /> }
       ],
     },
@@ -84,4 +107,3 @@ export default function App() {
 
   return <RouterProvider router={router} />;
 }
-
