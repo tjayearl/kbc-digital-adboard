@@ -82,6 +82,7 @@ export default function App() {
         { path: 'campaigns', element: <CampaignsPage /> },
         { path: 'campaigns/new', element: <CampaignWizard /> },
         { path: 'campaigns/:campaignId', element: <CampaignDetails /> },
+        { path: 'campaigns/:campaignId/edit', element: <CampaignWizard /> },
         { path: 'orders', element: <OrdersPage /> },
         { path: 'approvals', element: <ApprovalsPage /> },
         { path: 'operations', element: <OperationsPage /> },

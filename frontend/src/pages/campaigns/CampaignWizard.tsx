@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { Check, ChevronDown, FileText, Plus, Send, Trash2 } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
-import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
@@ -39,6 +39,8 @@ const productionProductsList = [
 
 export function CampaignWizard() {
   const navigate = useNavigate();
+  const { campaignId } = useParams();
+  const isEdit = Boolean(campaignId);
   const { currentUser } = useOutletContext<{ currentUser?: any }>();
   const [openCategory, setOpenCategory] = useState<ProductCategory | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<ProductLine[]>([]);
@@ -133,6 +135,83 @@ export function CampaignWizard() {
   const [dec1, setDec1] = useState(false);
   const [dec2, setDec2] = useState(false);
   const [dec3, setDec3] = useState(false);
+
+  // Load existing campaign data if in edit mode
+  useEffect(() => {
+    if (isEdit && campaignId) {
+      const existing = campaigns.find(c => c.id === campaignId);
+      if (existing) {
+        setOrganisation(existing.clientCompany || '');
+        setKraPin(existing.kraPin || '');
+        setIndustry(existing.industry || '');
+        setBookingType(existing.bookingType || '');
+        setContactName(existing.clientName || '');
+        setContactJobTitle(existing.contactJobTitle || '');
+        setEmail(existing.clientEmail || '');
+        setPhone(existing.clientPhone || '');
+        setBillingAddress(existing.billingAddress || '');
+        setCampaignGoal(existing.objective || '');
+        setCampaignDescription(existing.campaignDescription || '');
+        setTargetAudience(existing.targetAudience || '');
+        setGeography(existing.geography || '');
+        setBudgetRange(existing.budgetRange || '');
+        setStartDate(existing.startDate || '');
+        setEndDate(existing.endDate || '');
+        setCreativeAssets(existing.creativeAssets || '');
+        setSocialPlatforms(existing.socialPlatforms || []);
+        setSocialSchedule(existing.socialSchedule || []);
+        setSocialCopyBy(existing.socialCopyBy || '');
+        setSocialLanguage(existing.socialLanguage || '');
+        setSocialBrief(existing.socialBrief || '');
+        setSocialBoost(existing.socialBoost || '');
+        setSocialExclusivity(existing.socialExclusivity || '');
+        setLiveDest(existing.liveDest || '');
+        setLivePackage(existing.livePackage || '');
+        setLiveDays(existing.liveDays || []);
+        setLiveEventName(existing.liveEventName || '');
+        setLiveLocation(existing.liveLocation || '');
+        setLiveFeed(existing.liveFeed || '');
+        setLiveOverlays(existing.liveOverlays || '');
+        setDisplayType(existing.displayType || '');
+        setDisplayFormat(existing.displayFormat || '');
+        setDisplayStartDate(existing.displayStartDate || '');
+        setDisplayEndDate(existing.displayEndDate || '');
+        setDisplaySection(existing.displaySection || '');
+        setDisplayUrl(existing.displayUrl || '');
+        setDisplayCreative(existing.displayCreative || '');
+        setRmTypes(existing.rmTypes || []);
+        setRmStartDate(existing.rmStartDate || '');
+        setRmEndDate(existing.rmEndDate || '');
+        setRmHours(existing.rmHours ?? '');
+        setRmTimeSlots(existing.rmTimeSlots || '');
+        setRmUrl(existing.rmUrl || '');
+        setContentTypes(existing.contentTypes || []);
+        setContentQty(existing.contentQty ?? '');
+        setContentFreq(existing.contentFreq || '');
+        setContentStartDate(existing.contentStartDate || '');
+        setContentEndDate(existing.contentEndDate || '');
+        setContentBrief(existing.contentBrief || '');
+        setAppType(existing.appType || '');
+        setAppMonths(existing.appMonths ?? '');
+        setAppPlacement(existing.appPlacement || '');
+        setAppStartDate(existing.appStartDate || '');
+        setAppUrl(existing.appUrl || '');
+        setPushChannel(existing.pushChannel || '');
+        setPushSends(existing.pushSends ?? '');
+        setPushReach(existing.pushReach ?? '');
+        setPushDate(existing.pushDate || '');
+        setPushTime(existing.pushTime || '');
+        setPushMessage(existing.pushMessage || '');
+        setProdTypes(existing.prodTypes || []);
+        setProdBrief(existing.prodBrief || '');
+        setProdDueDate(existing.prodDueDate || '');
+        setProdVoLang(existing.prodVoLang || '');
+        setDec1(existing.dec1 || false);
+        setDec2(existing.dec2 || false);
+        setDec3(existing.dec3 || false);
+      }
+    }
+  }, [campaignId, isEdit]);
 
   // Synchronise configured states into selectedProducts
   useEffect(() => {
@@ -386,6 +465,107 @@ export function CampaignWizard() {
       alert('Please check all declaration boxes to proceed.');
       return;
     }
+
+    if (isEdit && campaignId) {
+      const idx = campaigns.findIndex((c) => c.id === campaignId);
+      if (idx !== -1) {
+        campaigns[idx] = {
+          ...campaigns[idx],
+          clientCompany: organisation,
+          clientName: contactName,
+          clientEmail: email,
+          clientPhone: phone,
+          industry: industry,
+          name: `Booking Enquiry - ${organisation}`,
+          objective: campaignGoal,
+          startDate: startDate,
+          endDate: endDate,
+          products: selectedProducts,
+          // Wizard states
+          bookingType,
+          contactJobTitle,
+          billingAddress,
+          campaignDescription,
+          targetAudience,
+          geography,
+          budgetRange,
+          creativeAssets,
+          socialPlatforms,
+          socialSchedule,
+          socialCopyBy,
+          socialLanguage,
+          socialBrief,
+          socialBoost,
+          socialExclusivity,
+          liveDest,
+          livePackage,
+          liveDays,
+          liveEventName,
+          liveLocation,
+          liveFeed,
+          liveOverlays,
+          displayType,
+          displayFormat,
+          displayStartDate,
+          displayEndDate,
+          displaySection,
+          displayUrl,
+          displayCreative,
+          rmTypes,
+          rmStartDate,
+          rmEndDate,
+          rmHours,
+          rmTimeSlots,
+          rmUrl,
+          contentTypes,
+          contentQty,
+          contentFreq,
+          contentStartDate,
+          contentEndDate,
+          contentBrief,
+          appType,
+          appMonths,
+          appPlacement,
+          appStartDate,
+          appUrl,
+          pushChannel,
+          pushSends,
+          pushReach,
+          pushDate,
+          pushTime,
+          pushMessage,
+          prodTypes,
+          prodBrief,
+          prodDueDate,
+          prodVoLang,
+          dec1,
+          dec2,
+          dec3,
+        };
+        setGeneratedRef(campaigns[idx].dabRef);
+
+        if (campaigns[idx].status === 'Draft') {
+          campaigns[idx].status = 'Discount Pending';
+          
+          // Push corresponding discount approval request if not exists
+          const existingApproval = approvals.find(ap => ap.campaignId === campaignId);
+          if (!existingApproval) {
+            approvals.push({
+              id: `ap-${Date.now()}`,
+              campaignId: campaignId,
+              type: 'Discount' as const,
+              requestedBy: currentUser?.name || 'Grace Mwangi',
+              value: 0,
+              status: 'Pending' as const,
+              note: 'Updated campaign booking enquiry submitted.',
+            });
+          }
+        }
+      }
+      setIsSubmitted(true);
+      return;
+    }
+
     const randNum = Math.floor(Math.random() * 90000 + 10000);
     const refNum = `DAB-2026-${randNum}`;
     setGeneratedRef(refNum);
@@ -407,6 +587,66 @@ export function CampaignWizard() {
       discountPercent: 0,
       paidDeposit: false,
       products: selectedProducts,
+      // Wizard states
+      bookingType,
+      contactJobTitle,
+      billingAddress,
+      campaignDescription,
+      targetAudience,
+      geography,
+      budgetRange,
+      creativeAssets,
+      socialPlatforms,
+      socialSchedule,
+      socialCopyBy,
+      socialLanguage,
+      socialBrief,
+      socialBoost,
+      socialExclusivity,
+      liveDest,
+      livePackage,
+      liveDays,
+      liveEventName,
+      liveLocation,
+      liveFeed,
+      liveOverlays,
+      displayType,
+      displayFormat,
+      displayStartDate,
+      displayEndDate,
+      displaySection,
+      displayUrl,
+      displayCreative,
+      rmTypes,
+      rmStartDate,
+      rmEndDate,
+      rmHours,
+      rmTimeSlots,
+      rmUrl,
+      contentTypes,
+      contentQty,
+      contentFreq,
+      contentStartDate,
+      contentEndDate,
+      contentBrief,
+      appType,
+      appMonths,
+      appPlacement,
+      appStartDate,
+      appUrl,
+      pushChannel,
+      pushSends,
+      pushReach,
+      pushDate,
+      pushTime,
+      pushMessage,
+      prodTypes,
+      prodBrief,
+      prodDueDate,
+      prodVoLang,
+      dec1,
+      dec2,
+      dec3,
     };
 
     campaigns.push(newCampaign);
@@ -426,6 +666,88 @@ export function CampaignWizard() {
   };
 
   const handleSaveDraft = () => {
+    if (isEdit && campaignId) {
+      const idx = campaigns.findIndex((c) => c.id === campaignId);
+      if (idx !== -1) {
+        campaigns[idx] = {
+          ...campaigns[idx],
+          clientCompany: organisation,
+          clientName: contactName,
+          clientEmail: email,
+          clientPhone: phone,
+          industry: industry,
+          name: organisation ? `Draft: Booking Enquiry - ${organisation}` : 'Draft: Booking Enquiry',
+          objective: campaignGoal,
+          startDate: startDate,
+          endDate: endDate,
+          products: selectedProducts,
+          // Wizard states
+          bookingType,
+          contactJobTitle,
+          billingAddress,
+          campaignDescription,
+          targetAudience,
+          geography,
+          budgetRange,
+          creativeAssets,
+          socialPlatforms,
+          socialSchedule,
+          socialCopyBy,
+          socialLanguage,
+          socialBrief,
+          socialBoost,
+          socialExclusivity,
+          liveDest,
+          livePackage,
+          liveDays,
+          liveEventName,
+          liveLocation,
+          liveFeed,
+          liveOverlays,
+          displayType,
+          displayFormat,
+          displayStartDate,
+          displayEndDate,
+          displaySection,
+          displayUrl,
+          displayCreative,
+          rmTypes,
+          rmStartDate,
+          rmEndDate,
+          rmHours,
+          rmTimeSlots,
+          rmUrl,
+          contentTypes,
+          contentQty,
+          contentFreq,
+          contentStartDate,
+          contentEndDate,
+          contentBrief,
+          appType,
+          appMonths,
+          appPlacement,
+          appStartDate,
+          appUrl,
+          pushChannel,
+          pushSends,
+          pushReach,
+          pushDate,
+          pushTime,
+          pushMessage,
+          prodTypes,
+          prodBrief,
+          prodDueDate,
+          prodVoLang,
+          dec1,
+          dec2,
+          dec3,
+        };
+      }
+      alert('Draft updated successfully!');
+      navigate('/campaigns');
+      return;
+    }
+
     const randNum = Math.floor(Math.random() * 90000 + 10000);
     const refNum = `DAB-2026-${randNum}`;
 
@@ -446,6 +768,66 @@ export function CampaignWizard() {
       discountPercent: 0,
       paidDeposit: false,
       products: selectedProducts,
+      // Wizard states
+      bookingType,
+      contactJobTitle,
+      billingAddress,
+      campaignDescription,
+      targetAudience,
+      geography,
+      budgetRange,
+      creativeAssets,
+      socialPlatforms,
+      socialSchedule,
+      socialCopyBy,
+      socialLanguage,
+      socialBrief,
+      socialBoost,
+      socialExclusivity,
+      liveDest,
+      livePackage,
+      liveDays,
+      liveEventName,
+      liveLocation,
+      liveFeed,
+      liveOverlays,
+      displayType,
+      displayFormat,
+      displayStartDate,
+      displayEndDate,
+      displaySection,
+      displayUrl,
+      displayCreative,
+      rmTypes,
+      rmStartDate,
+      rmEndDate,
+      rmHours,
+      rmTimeSlots,
+      rmUrl,
+      contentTypes,
+      contentQty,
+      contentFreq,
+      contentStartDate,
+      contentEndDate,
+      contentBrief,
+      appType,
+      appMonths,
+      appPlacement,
+      appStartDate,
+      appUrl,
+      pushChannel,
+      pushSends,
+      pushReach,
+      pushDate,
+      pushTime,
+      pushMessage,
+      prodTypes,
+      prodBrief,
+      prodDueDate,
+      prodVoLang,
+      dec1,
+      dec2,
+      dec3,
     };
 
     campaigns.push(newCampaign);
@@ -963,7 +1345,7 @@ export function CampaignWizard() {
             <InputField
               label="End date"
               type="date"
-              value={contentEndDate}
+a              value={contentEndDate}
               onChange={(e) => setContentEndDate(e.target.value)}
             />
           </div>
@@ -1257,7 +1639,7 @@ export function CampaignWizard() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-ink">New KBC Digital booking</h2>
+        <h2 className="text-2xl font-bold text-ink">{isEdit ? 'Edit KBC Digital booking' : 'New KBC Digital booking'}</h2>
         <p className="mt-1 text-sm text-slate-500">Client enquiry, campaign brief, product configuration, and order sheet preparation.</p>
       </div>
 

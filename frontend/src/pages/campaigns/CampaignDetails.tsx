@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Navigate, useParams, useOutletContext } from 'react-router-dom';
+import { Navigate, useParams, useOutletContext, useNavigate, Link } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
@@ -21,6 +21,25 @@ export function CampaignDetails() {
   const [updateCount, setUpdateCount] = useState(0);
 
   if (!campaign) return <Navigate to="/campaigns" replace />;
+
+  const navigate = useNavigate();
+
+  const handleDeleteCampaign = () => {
+    if (confirm('Are you sure you want to delete this campaign? This action cannot be undone.')) {
+      const idx = campaigns.findIndex((item) => item.id === campaign.id);
+      if (idx !== -1) {
+        campaigns.splice(idx, 1);
+      }
+      // Delete related approvals
+      let approvalIdx = approvals.findIndex((ap) => ap.campaignId === campaign.id);
+      while (approvalIdx !== -1) {
+        approvals.splice(approvalIdx, 1);
+        approvalIdx = approvals.findIndex((ap) => ap.campaignId === campaign.id);
+      }
+      alert('Campaign deleted successfully.');
+      navigate('/campaigns');
+    }
+  };
   
   // Digital Ops reads docs at status >= briefUnlocked
   if (role === 'digitalOps' && campaign.status !== 'Brief Unlocked') {
@@ -266,6 +285,10 @@ export function CampaignDetails() {
         <div className="flex flex-col gap-3 sm:flex-row">
           {(role === 'sales' || role === 'admin') && (
             <>
+              <Link to={`/campaigns/${campaign.id}/edit`}>
+                <Button variant="secondary">Edit Campaign</Button>
+              </Link>
+              <Button variant="danger" onClick={handleDeleteCampaign}>Delete</Button>
               <Button variant="secondary" onClick={() => setShowCoModal(true)}>Raise DAB-CO</Button>
               <Button onClick={() => setActiveTab('Order Sheet')}>Generate Order Sheet</Button>
             </>
