@@ -26,12 +26,32 @@ export default function Login() {
         password
       );
 
-      setMessage(`Welcome back, ${userCredential.user.email}`);
-      // Small delay to show success message before redirect
+      const user = userCredential.user;
+
+      // Get token + role claims
+      const tokenResult = await user.getIdTokenResult(true);
+      const role = tokenResult.claims.role as string | undefined;
+
+      console.log("USER EMAIL:", user.email);
+      console.log("USER UID:", user.uid);
+      console.log("USER CLAIMS:", tokenResult.claims);
+      console.log("ROLE:", role);
+
+      // Save role to localStorage for dashboard to use
+      if (role) {
+        localStorage.setItem("role", role);
+        setMessage(`Welcome back, ${user.email}. Role: ${role}`);
+      } else {
+        setMessage(`Welcome back, ${user.email}. No role assigned.`);
+      }
+
+      // Redirect after short delay
       setTimeout(() => {
         window.location.href = "/";
       }, 500);
+
     } catch (err) {
+      console.error(err);
       setError("Invalid email or password");
     } finally {
       setLoading(false);
@@ -59,7 +79,6 @@ export default function Login() {
   return (
     <div style={styles.page}>
 
-      {/* LOGO + HEADER */}
       <img src="/logo.png" style={styles.logo} />
 
       <h1 style={styles.title}>Digital AdBoard</h1>
@@ -67,7 +86,6 @@ export default function Login() {
         Advertising Booking & Order Management
       </p>
 
-      {/* LOGIN CARD */}
       <form style={styles.card} onSubmit={handleLogin}>
 
         <h2 style={styles.welcome}>Welcome Back</h2>
@@ -98,16 +116,13 @@ export default function Login() {
           />
         </div>
 
-        {/* ERROR / SUCCESS */}
         {error && <p style={styles.error}>{error}</p>}
         {message && <p style={styles.success}>{message}</p>}
 
-        {/* LOGIN BUTTON */}
         <button type="submit" style={styles.button} disabled={loading}>
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        {/* FORGOT PASSWORD */}
         <p style={styles.forgot} onClick={handleResetPassword}>
           Forgot password?
         </p>
@@ -119,7 +134,6 @@ export default function Login() {
 
 /* ================= STYLES ================= */
 const styles: any = {
-
   page: {
     height: "100vh",
     display: "flex",
@@ -172,8 +186,7 @@ const styles: any = {
   label: {
     color: "#fff",
     fontSize: "15px",
-    marginBottom: "6px",
-    display: "block"
+    marginBottom: "6px"
   },
 
   input: {
