@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Search, SlidersHorizontal } from 'lucide-react';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext, useNavigate } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
@@ -15,6 +15,7 @@ function statusTone(status: string) {
 
 export function CampaignsPage() {
   const { role, currentUser } = useOutletContext<{ role: Role; currentUser?: any }>();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
 
   const allCampaigns = useMemo(() => {
@@ -88,11 +89,15 @@ export function CampaignsPage() {
                 </tr>
               ) : (
                 allCampaigns.map((campaign) => (
-                  <tr key={campaign.id} className="hover:bg-slate-50">
+                  <tr 
+                    key={campaign.id} 
+                    className="hover:bg-slate-50 cursor-pointer transition-colors duration-150"
+                    onClick={() => navigate(`/campaigns/${campaign.id}`)}
+                  >
                     <td className="px-5 py-4">
-                      <Link to={`/campaigns/${campaign.id}`} className="font-bold text-navy">
+                      <span className="font-bold text-navy hover:underline">
                         {campaign.name}
-                      </Link>
+                      </span>
                       <p className="mt-1 text-xs text-slate-500">{campaign.dabRef}</p>
                     </td>
                     <td className="px-5 py-4">{campaign.clientCompany}</td>
