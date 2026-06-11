@@ -8,9 +8,15 @@ type FieldShellProps = {
 };
 
 function FieldShell({ label, children, hint }: FieldShellProps) {
+  const isRequired = label.endsWith(' *');
+  const cleanLabel = isRequired ? label.slice(0, -2) : label;
+
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-semibold text-slate-700">{label}</span>
+      <span className="mb-2 block text-sm font-semibold text-slate-700">
+        {cleanLabel}
+        {isRequired ? <span className="text-[#B71C1C] ml-1">*</span> : null}
+      </span>
       {children}
       {hint ? <span className="mt-2 block text-xs text-slate-500">{hint}</span> : null}
     </label>

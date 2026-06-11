@@ -356,6 +356,32 @@ export function CampaignWizard() {
   );
 
   const handleSubmitEnquiry = () => {
+    const missing: string[] = [];
+    if (!organisation.trim()) missing.push('Company / organisation name');
+    if (!kraPin.trim()) missing.push('KRA PIN / registration no.');
+    if (!industry) missing.push('Industry / sector');
+    if (!bookingType) missing.push('Booking type');
+    if (!contactName.trim()) missing.push('Full name');
+    if (!contactJobTitle.trim()) missing.push('Job title');
+    if (!email.trim()) missing.push('Email address');
+    if (!phone.trim()) missing.push('Phone / WhatsApp');
+    if (!billingAddress.trim()) missing.push('Billing address / P.O. Box');
+    if (!campaignGoal) missing.push('Primary campaign goal');
+    if (!campaignDescription.trim()) missing.push('Campaign description');
+    if (!targetAudience) missing.push('Primary audience');
+    if (!geography) missing.push('Geographic focus');
+    if (!startDate) missing.push('Preferred start date');
+    if (!endDate) missing.push('Preferred end date');
+    if (!budgetRange) missing.push('Estimated budget range');
+    if (selectedProducts.length === 0) {
+      missing.push('At least one product must be selected in the Product Configurator');
+    }
+
+    if (missing.length > 0) {
+      alert(`Please fill in all required fields before submitting:\n- ${missing.join('\n- ')}`);
+      return;
+    }
+
     if (!dec1 || !dec2 || !dec3) {
       alert('Please check all declaration boxes to proceed.');
       return;
@@ -1282,9 +1308,9 @@ export function CampaignWizard() {
           <p className="mt-1 text-sm text-slate-500">Fields align to the DAB enquiry reference.</p>
         </CardHeader>
         <CardBody className="grid gap-4 md:grid-cols-2">
-          <InputField label="Company / organisation name" value={organisation} onChange={(e) => setOrganisation(e.target.value)} placeholder="e.g. Kenya Tourism Board" />
-          <InputField label="KRA PIN / registration no." value={kraPin} onChange={(e) => setKraPin(e.target.value)} placeholder="e.g. P051234567M" />
-          <SelectField label="Industry / sector" value={industry} onChange={(e) => setIndustry(e.target.value)}>
+          <InputField label="Company / organisation name *" value={organisation} onChange={(e) => setOrganisation(e.target.value)} placeholder="e.g. Kenya Tourism Board" />
+          <InputField label="KRA PIN / registration no. *" value={kraPin} onChange={(e) => setKraPin(e.target.value)} placeholder="e.g. P051234567M" />
+          <SelectField label="Industry / sector *" value={industry} onChange={(e) => setIndustry(e.target.value)}>
             <option value="">— select —</option>
             <option>Telecommunications</option>
             <option>Banking & finance</option>
@@ -1293,18 +1319,18 @@ export function CampaignWizard() {
             <option>Retail</option>
             <option>Technology</option>
           </SelectField>
-          <SelectField label="Booking type" value={bookingType} onChange={(e) => setBookingType(e.target.value)}>
+          <SelectField label="Booking type *" value={bookingType} onChange={(e) => setBookingType(e.target.value)}>
             <option value="">— select —</option>
             <option>Direct client</option>
             <option>Through advertising agency</option>
             <option>Through media buying agency</option>
             <option>Government / LPO basis</option>
           </SelectField>
-          <InputField label="Client Full name" value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="e.g. Amina Wekesa" />
-          <InputField label="Job title" value={contactJobTitle} onChange={(e) => setContactJobTitle(e.target.value)} placeholder="e.g. Marketing Manager" />
-          <InputField label="Email address" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g. amina@ktb.example" />
-          <InputField label="Phone / WhatsApp" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="e.g. +254 711 204 500" />
-          <InputField label="Billing address / P.O. Box" className="md:col-span-2" value={billingAddress} onChange={(e) => setBillingAddress(e.target.value)} placeholder="e.g. P.O. Box 1234-00100, Nairobi" />
+          <InputField label="Full name *" value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="e.g. Amina Wekesa" />
+          <InputField label="Job title *" value={contactJobTitle} onChange={(e) => setContactJobTitle(e.target.value)} placeholder="e.g. Marketing Manager" />
+          <InputField label="Email address *" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g. amina@ktb.example" />
+          <InputField label="Phone / WhatsApp *" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="e.g. +254 711 204 500" />
+          <InputField label="Billing address / P.O. Box *" className="md:col-span-2" value={billingAddress} onChange={(e) => setBillingAddress(e.target.value)} placeholder="e.g. P.O. Box 1234-00100, Nairobi" />
         </CardBody>
       </Card>
 
@@ -1314,7 +1340,7 @@ export function CampaignWizard() {
           <p className="mt-1 text-sm text-slate-500">Plain-language inputs for sales teams and client approvals.</p>
         </CardHeader>
         <CardBody className="grid gap-4 md:grid-cols-2">
-          <SelectField label="Primary campaign goal" value={campaignGoal} onChange={(e) => setCampaignGoal(e.target.value)}>
+          <SelectField label="Primary campaign goal *" value={campaignGoal} onChange={(e) => setCampaignGoal(e.target.value)}>
             <option value="">— select —</option>
             <option>Brand awareness / reach</option>
             <option>Product or service launch</option>
@@ -1324,7 +1350,7 @@ export function CampaignWizard() {
             <option>Corporate reputation / PR</option>
             <option>Political campaign</option>
           </SelectField>
-          <SelectField label="Primary audience" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)}>
+          <SelectField label="Primary audience *" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)}>
             <option value="">— select —</option>
             <option>General public (all adults)</option>
             <option>Youth (18-34)</option>
@@ -1333,7 +1359,7 @@ export function CampaignWizard() {
             <option>Business decision-makers</option>
             <option>Parents / families</option>
           </SelectField>
-          <SelectField label="Geographic focus" value={geography} onChange={(e) => setGeography(e.target.value)}>
+          <SelectField label="Geographic focus *" value={geography} onChange={(e) => setGeography(e.target.value)}>
             <option value="">— select —</option>
             <option>National (all Kenya)</option>
             <option>Nairobi & Central</option>
@@ -1342,7 +1368,7 @@ export function CampaignWizard() {
             <option>Rift Valley</option>
             <option>Multiple regions</option>
           </SelectField>
-          <SelectField label="Estimated budget range" value={budgetRange} onChange={(e) => setBudgetRange(e.target.value)}>
+          <SelectField label="Estimated budget range *" value={budgetRange} onChange={(e) => setBudgetRange(e.target.value)}>
             <option value="">— select —</option>
             <option>Under Ksh 100,000</option>
             <option>Ksh 100,000 - 500,000</option>
@@ -1350,17 +1376,20 @@ export function CampaignWizard() {
             <option>Ksh 1,000,000 - 5,000,000</option>
             <option>Over Ksh 5,000,000</option>
           </SelectField>
-          <InputField label="Preferred start date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-          <InputField label="Preferred end date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          <InputField label="Preferred start date *" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          <InputField label="Preferred end date *" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
           <InputField label="Creative assets / specifications" className="md:col-span-2" value={creativeAssets} onChange={(e) => setCreativeAssets(e.target.value)} placeholder="e.g. Banners & social images" hint="E.g., high-res banner PNGs, video links, specific campaign copy, or logo vectors" />
-          <TextareaField label="Campaign description" className="md:col-span-2" value={campaignDescription} onChange={(e) => setCampaignDescription(e.target.value)} placeholder="e.g. Promote domestic travel packages with social posts, display placements, and app push reminders." />
+          <TextareaField label="Campaign description *" className="md:col-span-2" value={campaignDescription} onChange={(e) => setCampaignDescription(e.target.value)} placeholder="e.g. Promote domestic travel packages with social posts, display placements, and app push reminders." />
           
         </CardBody>
       </Card>
 
       <Card id="step-products" className="scroll-mt-24">
         <CardHeader>
-          <h3 className="text-lg font-bold text-ink">3. Product configurator</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-lg font-bold text-ink">3. Product configurator</h3>
+            <span className="rounded bg-[#B71C1C]/10 px-2 py-0.5 text-xs font-bold text-[#B71C1C]">select at least one *</span>
+          </div>
           <p className="mt-1 text-sm text-slate-500">Expandable product clusters and locked rate-card prices from the DAB reference.</p>
         </CardHeader>
         <CardBody className="space-y-3">
