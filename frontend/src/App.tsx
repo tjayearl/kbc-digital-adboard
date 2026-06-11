@@ -3,7 +3,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from './firebase';
 import { AppShell } from './components/layout/AppShell';
-import { type Role } from './data/mockData';
+import { type Role, type UserItem, usersList } from './data/mockData';
 import { ApprovalsPage } from './pages/approvals/ApprovalsPage';
 import { CampaignDetails } from './pages/campaigns/CampaignDetails';
 import { CampaignsPage } from './pages/campaigns/CampaignsPage';
@@ -17,22 +17,42 @@ import { SettingsPage } from './pages/settings/SettingsPage';
 import Login from "./pages/auth/Login";
 
 export default function App() {
-  const [role, setRole] = useState<Role>('Sales');
+  const [users, setUsers] = useState<UserItem[]>(usersList);
+  const [currentUserId, setCurrentUserId] = useState<string>('usr-1');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const currentUser = users.find((u) => u.id === currentUserId) || users[0];
+  const role = currentUser.role;
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      if (currentUser && currentUser.email) {
+        const matchingUser = users.find(
+          (u) => u.email.toLowerCase() === currentUser.email?.toLowerCase()
+        );
+        if (matchingUser) {
+          setCurrentUserId(matchingUser.id);
+        }
+      }
       setLoading(false);
     });
     return unsubscribe;
-  }, []);
+  }, [users]);
 
   const router = createBrowserRouter([
     {
       path: '/',
-      element: <AppShell role={role} onRoleChange={setRole} />,
+      element: (
+        <AppShell
+          role={role}
+          currentUserId={currentUserId}
+          onUserChange={setCurrentUserId}
+          users={users}
+          setUsers={setUsers}
+        />
+      ),
       children: [
         { index: true, element: <Dashboard role={role} /> },
         { path: 'campaigns', element: <CampaignsPage /> },
@@ -48,6 +68,7 @@ export default function App() {
       ],
     },
   ]);
+
 
   if (loading) {
     return (

@@ -1,12 +1,12 @@
 import clsx from 'clsx';
 import { Check, ChevronDown, FileText, Plus, Send, Trash2 } from 'lucide-react';
 import { useMemo, useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { InputField, SelectField, TextareaField } from '../../components/ui/Field';
-import { campaigns, campaignTotals, lineTotal, materialSpecs, money, productCatalog, workflowStages, type ProductCategory, type ProductLine } from '../../data/mockData';
+import { campaigns, campaignTotals, lineTotal, materialSpecs, money, productCatalog, rateCard, approvals, workflowStages, type ProductCategory, type ProductLine, type Role } from '../../data/mockData';
 
 const enquirySteps = ['Client details', 'Campaign brief', 'Products', 'Review', 'Order sheet'];
 const draft = campaigns[0];
@@ -40,6 +40,7 @@ const productionProductsList = [
 
 export function CampaignWizard() {
   const navigate = useNavigate();
+  const { currentUser } = useOutletContext<{ currentUser?: any }>();
   const [openCategory, setOpenCategory] = useState<ProductCategory | null>('Social Media');
   const [selectedProducts, setSelectedProducts] = useState<ProductLine[]>(draft.products);
 
@@ -348,7 +349,11 @@ export function CampaignWizard() {
       categoryOrder
         .map((category) => ({
           category,
-          products: productCatalog.filter((item) => item.category === category),
+          products: productCatalog.filter((item) => {
+            if (item.category !== category) return false;
+            const rcItem = rateCard.find((rc) => rc.id === `rc-${item.id}` || rc.id === item.id);
+            return !rcItem || rcItem.status === 'Active';
+          }),
           spec: materialSpecs.find((item) => item.category === category),
         }))
         .filter((group) => group.products.length > 0),
@@ -376,7 +381,7 @@ export function CampaignWizard() {
       objective: campaignGoal,
       startDate: startDate,
       endDate: endDate,
-      owner: 'Grace Mwangi',
+      owner: currentUser?.name || 'Grace Mwangi',
       status: 'Discount Pending' as const,
       discountPercent: 0,
       paidDeposit: false,
@@ -384,6 +389,18 @@ export function CampaignWizard() {
     };
 
     campaigns.push(newCampaign);
+
+    // Push the corresponding discount approval request
+    approvals.push({
+      id: `ap-${Date.now()}`,
+      campaignId: newCampaign.id,
+      type: 'Discount' as const,
+      requestedBy: currentUser?.name || 'Grace Mwangi',
+      value: 0,
+      status: 'Pending' as const,
+      note: 'New campaign booking enquiry submitted.',
+    });
+
     setIsSubmitted(true);
   };
 
@@ -403,7 +420,7 @@ export function CampaignWizard() {
       objective: campaignGoal,
       startDate: startDate,
       endDate: endDate,
-      owner: 'Grace Mwangi',
+      owner: currentUser?.name || 'Grace Mwangi',
       status: 'Draft' as const,
       discountPercent: 0,
       paidDeposit: false,
@@ -534,6 +551,7 @@ export function CampaignWizard() {
           <option>English</option>
           <option>Kiswahili</option>
           <option>English &amp; Kiswahili</option>
+          <option>Vernacular</option>
         </SelectField>
       </div>
 
@@ -553,7 +571,6 @@ export function CampaignWizard() {
           <option value="">— select —</option>
           <option>Organic only (KBC page reach)</option>
           <option>Boosted — KBC manages spend</option>
-          <option>Boosted — client manages own ad account</option>
         </SelectField>
         <SelectField
           label="Competitor exclusivity required?"
@@ -1139,7 +1156,8 @@ export function CampaignWizard() {
               <option value="">— N/A —</option>
               <option>English</option>
               <option>Kiswahili</option>
-              <option>Both</option>
+              <option>English &amp; Kiswahili</option>
+              <option>Vernacular</option>
             </SelectField>
           </div>
         </>
@@ -1234,12 +1252,7 @@ export function CampaignWizard() {
                   ];
                   document.getElementById(stepIds[index])?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className={clsx(
-                  'flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer transition-colors duration-200 select-none',
-                  index < 3
-                    ? 'bg-navy/10 text-navy hover:bg-navy/20'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                )}
+                className="flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer bg-navy/10 text-navy hover:bg-navy/20 transition-colors duration-200 select-none"
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -1256,7 +1269,7 @@ export function CampaignWizard() {
                   }
                 }}
               >
-                <span className={clsx('flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shrink-0', index < 3 ? 'bg-navy text-white' : 'bg-slate-200 text-slate-600')}>{index + 1}</span>
+                <span className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shrink-0 bg-navy text-white">{index + 1}</span>
                 <span className="text-sm font-semibold">{step}</span>
               </li>
             ))}
@@ -1286,7 +1299,7 @@ export function CampaignWizard() {
             <option>Through media buying agency</option>
             <option>Government / LPO basis</option>
           </SelectField>
-          <InputField label="Full name" value={contactName} onChange={(e) => setContactName(e.target.value)} />
+          <InputField label="Client Full name" value={contactName} onChange={(e) => setContactName(e.target.value)} />
           <InputField label="Job title" value={contactJobTitle} onChange={(e) => setContactJobTitle(e.target.value)} />
           <InputField label="Email address" value={email} onChange={(e) => setEmail(e.target.value)} />
           <InputField label="Phone / WhatsApp" value={phone} onChange={(e) => setPhone(e.target.value)} />
@@ -1325,18 +1338,11 @@ export function CampaignWizard() {
             <option>Rift Valley</option>
             <option>Multiple regions</option>
           </SelectField>
-          <SelectField label="Estimated budget" value={budgetRange} onChange={(e) => setBudgetRange(e.target.value)}>
-            <option>Under Ksh 50,000</option>
-            <option>Ksh 50,000 - 150,000</option>
-            <option>Ksh 150,000 - 500,000</option>
-            <option>Ksh 500,000 - 1,000,000</option>
-            <option>Over Ksh 1,000,000</option>
-            <option>Flexible / open to recommendation</option>
-          </SelectField>
           <InputField label="Preferred start date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           <InputField label="Preferred end date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-          <TextareaField label="Campaign description" className="md:col-span-2" value={campaignDescription} onChange={(e) => setCampaignDescription(e.target.value)} />
           <InputField label="Creative assets / specifications" className="md:col-span-2" value={creativeAssets} onChange={(e) => setCreativeAssets(e.target.value)} hint="E.g., high-res banner PNGs, video links, specific campaign copy, or logo vectors" />
+          <TextareaField label="Campaign description" className="md:col-span-2" value={campaignDescription} onChange={(e) => setCampaignDescription(e.target.value)} />
+          
         </CardBody>
       </Card>
 

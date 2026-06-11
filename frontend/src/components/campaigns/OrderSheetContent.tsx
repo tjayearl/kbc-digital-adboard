@@ -37,6 +37,7 @@ export function OrderSheetContent({ campaign }: OrderSheetContentProps) {
     <div className="space-y-8">
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between">
         <div>
+          <img src="/logo.png" alt="KBC Logo" className="h-10 w-auto mb-3" />
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold">Kenya Broadcasting Corporation</p>
           <h3 className="mt-2 text-2xl font-bold text-navy">Digital Advertising Order Sheet</h3>
           <p className="mt-1 text-sm text-slate-500">The Air-Time Order authorises budget. This Order Sheet defines exactly what that budget buys.</p>

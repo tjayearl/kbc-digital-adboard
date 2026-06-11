@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Search, SlidersHorizontal } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
-import { campaigns, campaignTotals, money } from '../../data/mockData';
+import { campaigns, campaignTotals, money, type Role } from '../../data/mockData';
 
 function statusTone(status: string) {
   if (status.includes('Pending')) return 'gold' as const;
@@ -14,18 +14,26 @@ function statusTone(status: string) {
 }
 
 export function CampaignsPage() {
+  const { role, currentUser } = useOutletContext<{ role: Role; currentUser?: any }>();
   const [searchQuery, setSearchQuery] = useState('');
 
   const allCampaigns = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    if (!query) return campaigns;
-    return campaigns.filter(
+    let list = campaigns;
+    if (role === 'Sales') {
+      list = campaigns.filter((c) => c.owner === (currentUser?.name || 'Grace Mwangi'));
+    } else if (role === 'Digital Operations') {
+      list = campaigns.filter((c) => c.status === 'Brief Unlocked');
+    }
+
+    if (!query) return list;
+    return list.filter(
       (item) =>
         item.name.toLowerCase().includes(query) ||
         item.clientCompany.toLowerCase().includes(query) ||
         item.dabRef.toLowerCase().includes(query)
     );
-  }, [searchQuery]);
+  }, [searchQuery, role]);
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

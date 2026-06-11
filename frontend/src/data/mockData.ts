@@ -52,6 +52,7 @@ export type Campaign = {
   discountPercent: number;
   discountReason?: string;
   paidDeposit: boolean;
+  reportFile?: string;
 };
 
 export type Approval = {
@@ -427,3 +428,19 @@ export const money = new Intl.NumberFormat('en-KE', {
   currency: 'KES',
   maximumFractionDigits: 0,
 });
+
+export type UserItem = {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  status: 'Active' | 'Suspended';
+};
+
+export const usersList: UserItem[] = [
+  { id: 'usr-1', name: 'Grace Mwangi', email: 'grace@kbc.example', role: 'Sales', status: 'Active' },
+  { id: 'usr-2', name: 'Daniel Kariuki', email: 'daniel@kbc.example', role: 'Sales', status: 'Active' },
+  { id: 'usr-3', name: 'Mary Njeri', email: 'mary@kbc.example', role: 'Advertising Manager', status: 'Active' },
+  { id: 'usr-4', name: 'James Ochieng', email: 'james@kbc.example', role: 'Digital Operations', status: 'Active' },
+  { id: 'usr-5', name: 'System Admin', email: 'admin@kbc.example', role: 'Admin', status: 'Active' },
+];

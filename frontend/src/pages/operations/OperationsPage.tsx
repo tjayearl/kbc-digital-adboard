@@ -1,10 +1,26 @@
-import { AlertTriangle, CalendarDays, CheckSquare, Clock3, UploadCloud } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckSquare, Clock3, UploadCloud, Lock } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { StatCard } from '../../components/ui/StatCard';
-import { materialSpecs } from '../../data/mockData';
+import { materialSpecs, type Role } from '../../data/mockData';
 
 export function OperationsPage() {
+  const { role } = useOutletContext<{ role: Role }>();
+
+  if (role !== 'Digital Operations' && role !== 'Admin') {
+    return (
+      <div className="flex h-[60vh] flex-col items-center justify-center text-center p-6 bg-white rounded-lg border border-slate-200 shadow-soft">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-danger/10 text-danger mb-4">
+          <Lock size={28} />
+        </div>
+        <h3 className="text-xl font-bold text-ink">Access Denied</h3>
+        <p className="mt-2 text-sm text-slate-500 max-w-sm leading-relaxed">
+          You do not have permission to access the Digital Operations dashboard. This page is restricted to Digital Operations.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
       <div>

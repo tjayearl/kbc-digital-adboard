@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate, useParams, useOutletContext } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
-import { auditEvents, approvals, campaignTotals, campaigns, lineTotal, money, productCatalog } from '../../data/mockData';
+import { auditEvents, approvals, campaignTotals, campaigns, lineTotal, money, productCatalog, rateCard, type Role } from '../../data/mockData';
 import { OrderSheetContent } from '../../components/campaigns/OrderSheetContent';
 
 const tabs = ['Overview', 'Pricing', 'Order Sheet', 'Gate Checks', 'Audit Log'];
 
 export function CampaignDetails() {
+  const { role, currentUser } = useOutletContext<{ role: Role; currentUser?: any }>();
   const { campaignId } = useParams();
   const campaign = campaigns.find((item) => item.id === campaignId);
   const [activeTab, setActiveTab] = useState('Overview');
@@ -20,6 +21,11 @@ export function CampaignDetails() {
   const [updateCount, setUpdateCount] = useState(0);
 
   if (!campaign) return <Navigate to="/campaigns" replace />;
+  
+  // Digital Ops reads docs at status >= briefUnlocked
+  if (role === 'Digital Operations' && campaign.status !== 'Brief Unlocked') {
+    return <Navigate to="/campaigns" replace />;
+  }
 
   const totals = useMemo(() => {
     return campaignTotals(campaign);
@@ -56,7 +62,7 @@ export function CampaignDetails() {
       id: `ev-co-${Date.now()}`,
       campaignId: campaign.id,
       action: `Change Order ${coRef} Raised (Scope: ${coScope || 'NIL'})`,
-      user: 'Grace Mwangi',
+      user: currentUser?.name || 'Grace Mwangi',
       role: 'Sales',
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
     });
@@ -66,7 +72,7 @@ export function CampaignDetails() {
       id: `ap-co-${Date.now()}`,
       campaignId: campaign.id,
       type: 'Discount',
-      requestedBy: 'Grace Mwangi',
+      requestedBy: currentUser?.name || 'Grace Mwangi',
       value: prod.unitPrice * coQuantity,
       status: 'Pending',
       note: `Change Order ${coRef} scope addition: ${coScope || 'NIL'}`
@@ -79,6 +85,43 @@ export function CampaignDetails() {
     setCoScope('');
     setUpdateCount(prev => prev + 1);
     setActiveTab('Overview');
+  };
+
+  const handleDownloadPDF = () => {
+    alert(`Downloading PDF for ${campaign.dabRef}...`);
+    const docText = `KBC Digital AdBoard Order Sheet - ${campaign.dabRef}\n` +
+      `==================================================\n` +
+      `Client Company: ${campaign.clientCompany}\n` +
+      `Client Contact: ${campaign.clientName}\n` +
+      `Campaign Name: ${campaign.name}\n` +
+      `Start Date: ${campaign.startDate}\n` +
+      `End Date: ${campaign.endDate}\n` +
+      `--------------------------------------------------\n` +
+      `Products Ordered:\n` +
+      campaign.products.map(p => ` - ${p.name}: ${p.quantity} ${p.unit} @ ${money.format(p.unitPrice)}`).join('\n') +
+      `\n--------------------------------------------------\n` +
+      `Subtotal: ${money.format(campaignTotals(campaign).subtotal)}\n` +
+      `VAT (16%): ${money.format(campaignTotals(campaign).vat)}\n` +
+      `Grand Total: ${money.format(campaignTotals(campaign).grandTotal)}\n`;
+    
+    const blob = new Blob([docText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${campaign.dabRef}_Order_Sheet.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrintPDF = () => {
+    window.print();
+  };
+
+  const handleSharePDF = () => {
+    const email = prompt("Enter email address to share the Order Sheet PDF with:", campaign.clientEmail);
+    if (email) {
+      alert(`Order Sheet PDF for ${campaign.dabRef} shared successfully with ${email}!`);
+    }
   };
 
   const renderTabContent = () => {
@@ -163,9 +206,9 @@ export function CampaignDetails() {
                 <p className="mt-1 text-sm text-slate-500">{campaign.dabRef}</p>
               </CardHeader>
               <CardBody className="flex flex-col gap-3 sm:flex-row">
-                <Button className="w-full sm:w-auto">Download PDF</Button>
-                <Button variant="secondary" className="w-full sm:w-auto">Print PDF</Button>
-                <Button variant="secondary" className="w-full sm:w-auto">Share PDF</Button>
+                <Button className="w-full sm:w-auto" onClick={handleDownloadPDF}>Download PDF</Button>
+                <Button variant="secondary" className="w-full sm:w-auto" onClick={handlePrintPDF}>Print PDF</Button>
+                <Button variant="secondary" className="w-full sm:w-auto" onClick={handleSharePDF}>Share PDF</Button>
               </CardBody>
             </Card>
           </div>
@@ -221,8 +264,12 @@ export function CampaignDetails() {
           <p className="mt-1 text-sm text-slate-500">{campaign.clientCompany} • Owner: {campaign.owner}</p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button variant="secondary" onClick={() => setShowCoModal(true)}>Raise DAB-CO</Button>
-          <Button onClick={() => setActiveTab('Order Sheet')}>Generate Order Sheet</Button>
+          {(role === 'Sales' || role === 'Admin') && (
+            <>
+              <Button variant="secondary" onClick={() => setShowCoModal(true)}>Raise DAB-CO</Button>
+              <Button onClick={() => setActiveTab('Order Sheet')}>Generate Order Sheet</Button>
+            </>
+          )}
         </div>
       </section>
 
@@ -270,11 +317,16 @@ export function CampaignDetails() {
                     value={selectedProductId}
                     onChange={(e) => setSelectedProductId(e.target.value)}
                   >
-                    {productCatalog.map((prod) => (
-                      <option key={prod.id} value={prod.id}>
-                        [{prod.category}] {prod.name} — {money.format(prod.unitPrice)} / {prod.unit}
-                      </option>
-                    ))}
+                    {productCatalog
+                      .filter((p) => {
+                        const rcItem = rateCard.find((rc) => rc.id === `rc-${p.id}` || rc.id === p.id);
+                        return !rcItem || rcItem.status === 'Active';
+                      })
+                      .map((prod) => (
+                        <option key={prod.id} value={prod.id}>
+                          [{prod.category}] {prod.name} — {money.format(prod.unitPrice)} / {prod.unit}
+                        </option>
+                      ))}
                   </select>
                 </div>
 

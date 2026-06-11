@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { CheckCircle2, CreditCard, FileSignature, XCircle } from 'lucide-react';
+import { CheckCircle2, CreditCard, FileSignature, XCircle, Lock } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
-import { approvals as mockApprovals, campaigns, campaignTotals, money, auditEvents } from '../../data/mockData';
+import { approvals as mockApprovals, campaigns, campaignTotals, money, auditEvents, type Role } from '../../data/mockData';
 
 const tabs = ['Pending Discounts', 'Awaiting Countersign', 'Payment Verification'];
 
@@ -15,9 +16,25 @@ const tabToType: Record<string, string> = {
 };
 
 export function ApprovalsPage() {
+  const { role, currentUser } = useOutletContext<{ role: Role; currentUser?: any }>();
+
   // State for active tab and approvals (starts as copy of mock data)
   const [activeTab, setActiveTab] = useState('Pending Discounts');
   const [approvals, setApprovals] = useState(mockApprovals);
+
+  if (role !== 'Advertising Manager' && role !== 'Admin') {
+    return (
+      <div className="flex h-[60vh] flex-col items-center justify-center text-center p-6 bg-white rounded-lg border border-slate-200 shadow-soft">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-danger/10 text-danger mb-4">
+          <Lock size={28} />
+        </div>
+        <h3 className="text-xl font-bold text-ink">Access Denied</h3>
+        <p className="mt-2 text-sm text-slate-500 max-w-sm leading-relaxed">
+          You do not have permission to access the Approval Center. This page is restricted to the Advertising Manager.
+        </p>
+      </div>
+    );
+  }
 
   // Get the type for current tab
   const currentType = tabToType[activeTab];
@@ -66,7 +83,7 @@ export function ApprovalsPage() {
         id: `ev-app-${Date.now()}-2`,
         campaignId: campaign.id,
         action: 'Order Sheet Generated & Shared',
-        user: 'Grace Mwangi',
+        user: currentUser?.name || 'Grace Mwangi',
         role: 'Sales',
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       });
@@ -88,7 +105,7 @@ export function ApprovalsPage() {
         id: `ap-cs-${Date.now()}`,
         campaignId: campaign.id,
         type: 'Countersign' as const,
-        requestedBy: 'Grace Mwangi',
+        requestedBy: currentUser?.name || 'Grace Mwangi',
         value: campaignTotals(campaign).grandTotal,
         status: 'Pending' as const,
         note: 'Order Sheet signed by client. Ready for countersigning.',
@@ -135,7 +152,7 @@ export function ApprovalsPage() {
         id: `ap-pay-${Date.now()}`,
         campaignId: campaign.id,
         type: 'Payment' as const,
-        requestedBy: 'Grace Mwangi',
+        requestedBy: currentUser?.name || 'Grace Mwangi',
         value: Math.round(campaignTotals(campaign).grandTotal * 0.5), // 50% deposit
         status: 'Pending' as const,
         note: 'Deposit payment receipt uploaded by client. Please verify.',
@@ -305,11 +322,31 @@ export function ApprovalsPage() {
                     <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
                       Value
                     </p>
-                    <p className="mt-1 font-semibold text-ink">
-                      {approval.type === 'Discount'
-                        ? `${approval.value}%`
-                        : money.format(approval.value)}
-                    </p>
+                    {approval.type === 'Discount' ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          className="w-20 rounded border border-slate-200 px-2 py-1 text-sm font-semibold text-ink outline-none focus:border-gold focus:ring-1 focus:ring-gold"
+                          value={approval.value}
+                          onChange={(e) => {
+                            const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                            setApprovals(prev => prev.map(a => a.id === approval.id ? { ...a, value: val } : a));
+                            const originalApproval = mockApprovals.find(a => a.id === approval.id);
+                            if (originalApproval) originalApproval.value = val;
+                            if (campaign) {
+                              campaign.discountPercent = val;
+                            }
+                          }}
+                        />
+                        <span className="text-sm font-bold text-slate-500">%</span>
+                      </div>
+                    ) : (
+                      <p className="mt-1 font-semibold text-ink">
+                        {money.format(approval.value)}
+                      </p>
+                    )}
                   </div>
                   {approval.type === 'Discount' && totals ? (
                     <div className="rounded-lg bg-gold/10 p-3">
