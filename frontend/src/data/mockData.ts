@@ -1,4 +1,4 @@
-export type Role = 'Sales' | 'Advertising Manager' | 'Digital Operations' | 'Admin';
+export type Role = 'sales' | 'adManager' | 'digitalOps' | 'finance' | 'admin';
 
 export type CampaignStatus =
   | 'Draft'
@@ -110,7 +110,7 @@ export type AuditEvent = {
   timestamp: string;
 };
 
-export const roles: Role[] = ['Sales', 'Advertising Manager', 'Digital Operations', 'Admin'];
+export const roles: Role[] = ['sales', 'adManager', 'digitalOps', 'finance', 'admin'];
 
 export const workflowStages: WorkflowStage[] = [
   { id: 'enquiry', name: 'Client enquiry & brief', description: 'Campaign objective, platform, budget, and timeline captured.', sla: 'Same day' },
@@ -398,11 +398,11 @@ export const approvals: Approval[] = [
 ];
 
 export const auditEvents: AuditEvent[] = [
-  { id: 'ev-1', campaignId: 'cmp-1', action: 'Campaign Created', user: 'Grace Mwangi', role: 'Sales', timestamp: '2026-06-02 09:14' },
-  { id: 'ev-2', campaignId: 'cmp-1', action: 'Discount Requested', user: 'Grace Mwangi', role: 'Sales', timestamp: '2026-06-02 10:06' },
-  { id: 'ev-3', campaignId: 'cmp-2', action: 'PDF Generated', user: 'Daniel Kariuki', role: 'Sales', timestamp: '2026-06-03 15:45' },
-  { id: 'ev-4', campaignId: 'cmp-2', action: 'Client Signed', user: 'Peter Otieno', role: 'Sales', timestamp: '2026-06-04 11:20' },
-  { id: 'ev-5', campaignId: 'cmp-3', action: 'Payment Confirmed', user: 'Mary Njeri', role: 'Advertising Manager', timestamp: '2026-06-05 14:01' },
+  { id: 'ev-1', campaignId: 'cmp-1', action: 'Campaign Created', user: 'Grace Mwangi', role: 'sales', timestamp: '2026-06-02 09:14' },
+  { id: 'ev-2', campaignId: 'cmp-1', action: 'Discount Requested', user: 'Grace Mwangi', role: 'sales', timestamp: '2026-06-02 10:06' },
+  { id: 'ev-3', campaignId: 'cmp-2', action: 'PDF Generated', user: 'Daniel Kariuki', role: 'sales', timestamp: '2026-06-03 15:45' },
+  { id: 'ev-4', campaignId: 'cmp-2', action: 'Client Signed', user: 'Peter Otieno', role: 'sales', timestamp: '2026-06-04 11:20' },
+  { id: 'ev-5', campaignId: 'cmp-3', action: 'Payment Confirmed', user: 'Mary Njeri', role: 'adManager', timestamp: '2026-06-05 14:01' },
 ];
 
 export function lineTotal(line: ProductLine) {

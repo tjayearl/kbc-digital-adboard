@@ -17,13 +17,24 @@ import { SettingsPage } from './pages/settings/SettingsPage';
 import Login from "./pages/auth/Login";
 
 export default function App() {
-  const [role, setRole] = useState<Role>('Sales');
+  const [role, setRole] = useState<Role>('sales');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      
+      // Read role from localStorage when user is authenticated
+      if (currentUser) {
+        const savedRole = localStorage.getItem('role') as Role | null;
+        if (savedRole && ['sales', 'adManager', 'digitalOps', 'finance', 'admin'].includes(savedRole)) {
+          setRole(savedRole);
+        } else {
+          setRole('sales');
+        }
+      }
+      
       setLoading(false);
     });
     return unsubscribe;
@@ -63,4 +74,3 @@ export default function App() {
 
   return <RouterProvider router={router} />;
 }
-

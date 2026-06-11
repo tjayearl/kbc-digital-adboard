@@ -42,12 +42,30 @@ export default function Login() {
         localStorage.setItem("role", role);
         setMessage(`Welcome back, ${user.email}. Role: ${role}`);
       } else {
-        setMessage(`Welcome back, ${user.email}. No role assigned.`);
+        localStorage.removeItem("role");
+        setMessage(`Welcome back, ${user.email}. No role assigned. Contact admin.`);
+      }
+
+      // Role-based redirect - CORRECT PATHS MATCHING APP.TSX
+      let redirectUrl = "/";
+
+      if (role === "adManager") {
+        redirectUrl = "/approvals";
+      } else if (role === "digitalOps") {
+        redirectUrl = "/operations";
+      } else if (role === "sales") {
+        redirectUrl = "/";
+      } else if (role === "admin") {
+        redirectUrl = "/";
+      } else if (role === "finance") {
+        redirectUrl = "/";
+      } else {
+        redirectUrl = "/";
       }
 
       // Redirect after short delay
       setTimeout(() => {
-        window.location.href = "/";
+        window.location.href = redirectUrl;
       }, 500);
 
     } catch (err) {
