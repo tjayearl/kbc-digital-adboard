@@ -1,23 +1,45 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BadgeDollarSign, CheckCircle2, FilePlus2, FileText, Lock, Megaphone, PlusCircle, Signature } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { StatCard } from '../../components/ui/StatCard';
-import { approvals, campaigns, campaignTotals, money, workflowStages, type Role } from '../../data/mockData';
+import { campaignTotals, money, workflowStages, type Role, type Campaign } from '../../data/mockData';
+import { getCampaigns } from '../../services/api';
 
 type DashboardProps = {
   role: Role;
 };
 
 export function Dashboard({ role }: DashboardProps) {
-  const allCampaigns = campaigns;
+  const [campaignList, setCampaignList] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const activeCampaigns = allCampaigns.filter((campaign) => campaign.status !== 'Brief Unlocked').length;
-  const pendingApprovals = approvals.filter((approval) => approval.status === 'Pending').length;
-  const revenue = allCampaigns.reduce((sum, campaign) => sum + campaignTotals(campaign).grandTotal, 0);
-  const awaitingSignatures = allCampaigns.filter((campaign) => ['Order Generated', 'Client Signed'].includes(campaign.status)).length;
+  useEffect(() => {
+    getCampaigns()
+      .then((data) => {
+        setCampaignList(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
+  const activeCampaigns = campaignList.filter((campaign) => campaign.status !== 'Brief Unlocked').length;
+  const pendingApprovals = campaignList.filter((c) => ['Discount Pending', 'Client Signed', 'Countersigned'].includes(c.status)).length;
+  const revenue = campaignList.reduce((sum, campaign) => sum + campaignTotals(campaign).grandTotal, 0);
+  const awaitingSignatures = campaignList.filter((campaign) => ['Order Generated', 'Client Signed'].includes(campaign.status)).length;
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

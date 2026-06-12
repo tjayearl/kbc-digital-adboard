@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from enum import Enum
 
@@ -60,6 +60,8 @@ class Totals(BaseModel):
     discountValue: float = 0
 
 class CreateCampaignRequest(BaseModel):
+    model_config = ConfigDict(extra='allow')
+
     client: ClientInfo
     campaign: CampaignInfo
     lineItems: List[LineItem]

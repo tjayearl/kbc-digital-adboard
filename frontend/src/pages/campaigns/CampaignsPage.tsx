@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { Link, useOutletContext, useNavigate } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
-import { campaigns, campaignTotals, money, type Role } from '../../data/mockData';
+import { campaignTotals, money, type Role, type Campaign } from '../../data/mockData';
+import { getCampaigns } from '../../services/api';
 
 function statusTone(status: string) {
   if (status.includes('Pending')) return 'gold' as const;
@@ -17,14 +18,30 @@ export function CampaignsPage() {
   const { role, currentUser } = useOutletContext<{ role: Role; currentUser?: any }>();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [campaignList, setCampaignList] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCampaigns()
+      .then((data) => {
+        setCampaignList(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError('Failed to load campaigns from server.');
+        setLoading(false);
+      });
+  }, []);
 
   const allCampaigns = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    let list = campaigns;
+    let list = campaignList;
     if (role === 'sales') {
-      list = campaigns.filter((c) => c.owner === (currentUser?.name || 'Grace Mwangi'));
+      list = campaignList.filter((c) => c.owner === currentUser?.name || c.owner === `usr-fb-${currentUser?.id}` || c.owner === currentUser?.email);
     } else if (role === 'digitalOps') {
-      list = campaigns.filter((c) => c.status === 'Brief Unlocked');
+      list = campaignList.filter((c) => c.status === 'Brief Unlocked');
     }
 
     if (!query) return list;
@@ -34,7 +51,15 @@ export function CampaignsPage() {
         item.clientCompany.toLowerCase().includes(query) ||
         item.dabRef.toLowerCase().includes(query)
     );
-  }, [searchQuery, role]);
+  }, [campaignList, searchQuery, role, currentUser]);
+
+  if (loading) {
+    return (
+      <div className="flex h-[40vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy border-t-transparent" />
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

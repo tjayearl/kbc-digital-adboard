@@ -1,13 +1,29 @@
+import { useEffect, useState } from 'react';
 import { Download, Lock, Printer, Share2, ChevronDown } from 'lucide-react';
 import { useSearchParams, useOutletContext } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
-import { campaigns, campaignTotals, money, type Role } from '../../data/mockData';
+import { campaignTotals, money, type Role, type Campaign } from '../../data/mockData';
 import { OrderSheetContent } from '../../components/campaigns/OrderSheetContent';
+import { getCampaigns } from '../../services/api';
 
 export function OrdersPage() {
   const { role } = useOutletContext<{ role: Role }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [campaignList, setCampaignList] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getCampaigns()
+      .then((data) => {
+        setCampaignList(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
 
   if (role === 'digitalOps') {
     return (
@@ -22,8 +38,17 @@ export function OrdersPage() {
       </div>
     );
   }
+
+  if (loading) {
+    return (
+      <div className="flex h-[40vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy border-t-transparent" />
+      </div>
+    );
+  }
+
   const campaignId = searchParams.get('campaignId');
-  const campaign = campaigns.find((item) => item.id === campaignId) || campaigns[0];
+  const campaign = campaignList.find((item) => item.id === campaignId) || campaignList[0];
 
   if (!campaign) {
     return (
@@ -91,7 +116,7 @@ export function OrdersPage() {
             value={campaign.id}
             onChange={handleCampaignChange}
           >
-            {campaigns.map((item) => (
+            {campaignList.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name} ({item.dabRef})
               </option>

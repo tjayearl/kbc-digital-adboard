@@ -1,33 +1,60 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { BarChart3, Download, Upload, Trash2, FileText, CheckCircle } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { campaigns, campaignTotals, money, type Role, type Campaign } from '../../data/mockData';
+import { campaignTotals, money, type Role, type Campaign } from '../../data/mockData';
+import { getCampaigns, updateCampaign } from '../../services/api';
 
 export function ReportsPage() {
   const { role } = useOutletContext<{ role: Role }>();
-  const [campaignList, setCampaignList] = useState<Campaign[]>(campaigns);
+  const [campaignList, setCampaignList] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updateCount, setUpdateCount] = useState(0);
+
+  useEffect(() => {
+    getCampaigns()
+      .then((data) => {
+        setCampaignList(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [updateCount]);
 
   const handleFileUpload = (campaignId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const campaign = campaigns.find((c) => c.id === campaignId);
+      const campaign = campaignList.find((c) => c.id === campaignId);
       if (campaign) {
-        campaign.reportFile = file.name;
-        setCampaignList([...campaigns]);
-        alert(`Report "${file.name}" uploaded successfully for campaign "${campaign.name}"!`);
+        updateCampaign(campaignId, { ...campaign, reportFile: file.name })
+          .then(() => {
+            setUpdateCount(prev => prev + 1);
+            alert(`Report "${file.name}" uploaded successfully for campaign "${campaign.name}"!`);
+          })
+          .catch((err) => {
+            console.error(err);
+            alert(`Failed to upload report: ${err.message || err}`);
+          });
       }
     }
   };
 
   const handleRemoveFile = (campaignId: string) => {
-    const campaign = campaigns.find((c) => c.id === campaignId);
+    const campaign = campaignList.find((c) => c.id === campaignId);
     if (campaign) {
-      campaign.reportFile = undefined;
-      setCampaignList([...campaigns]);
-      alert(`Report removed for campaign "${campaign.name}".`);
+      updateCampaign(campaignId, { ...campaign, reportFile: undefined })
+        .then(() => {
+          setUpdateCount(prev => prev + 1);
+          alert(`Report removed for campaign "${campaign.name}".`);
+        })
+        .catch((err) => {
+          console.error(err);
+          alert(`Failed to remove report: ${err.message || err}`);
+        });
     }
   };
 
@@ -69,6 +96,14 @@ export function ReportsPage() {
   };
 
   const canUpload = role === 'digitalOps' || role === 'admin' || role === 'sales';
+
+  if (loading) {
+    return (
+      <div className="flex h-[40vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

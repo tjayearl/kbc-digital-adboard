@@ -1,18 +1,21 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useParams, useOutletContext, useNavigate, Link } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
-import { auditEvents, approvals, campaignTotals, campaigns, lineTotal, money, productCatalog, rateCard, type Role } from '../../data/mockData';
+import { campaignTotals, lineTotal, money, productCatalog, rateCard, type Role, type Campaign, type AuditEvent } from '../../data/mockData';
 import { OrderSheetContent } from '../../components/campaigns/OrderSheetContent';
 import { FileText, Download, Upload, Trash2 } from 'lucide-react';
+import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder } from '../../services/api';
 
 const tabs = ['Overview', 'Pricing', 'Order Sheet', 'Gate Checks', 'Audit Log'];
 
 export function CampaignDetails() {
   const { role, currentUser } = useOutletContext<{ role: Role; currentUser?: any }>();
   const { campaignId } = useParams();
-  const campaign = campaigns.find((item) => item.id === campaignId);
+  const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('Overview');
 
   const [showCoModal, setShowCoModal] = useState(false);
@@ -21,39 +24,47 @@ export function CampaignDetails() {
   const [coScope, setCoScope] = useState('');
   const [updateCount, setUpdateCount] = useState(0);
 
-  if (!campaign) return <Navigate to="/campaigns" replace />;
-
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (campaignId) {
+      setLoading(true);
+      getCampaign(campaignId)
+        .then((data) => {
+          setCampaign(data);
+          setError(null);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error(err);
+          setError('Failed to fetch campaign details.');
+          setLoading(false);
+        });
+    }
+  }, [campaignId, updateCount]);
+
   const handleDeleteCampaign = () => {
+    if (!campaign) return;
     if (confirm('Are you sure you want to delete this campaign? This action cannot be undone.')) {
-      const idx = campaigns.findIndex((item) => item.id === campaign.id);
-      if (idx !== -1) {
-        campaigns.splice(idx, 1);
-      }
-      // Delete related approvals
-      let approvalIdx = approvals.findIndex((ap) => ap.campaignId === campaign.id);
-      while (approvalIdx !== -1) {
-        approvals.splice(approvalIdx, 1);
-        approvalIdx = approvals.findIndex((ap) => ap.campaignId === campaign.id);
-      }
-      alert('Campaign deleted successfully.');
-      navigate('/campaigns');
+      deleteCampaign(campaign.id)
+        .then(() => {
+          alert('Campaign deleted successfully.');
+          navigate('/campaigns');
+        })
+        .catch((err) => {
+          alert(`Failed to delete campaign: ${err.message || err}`);
+        });
     }
   };
-  
-  // Digital Ops reads docs at status >= briefUnlocked
-  if (role === 'digitalOps' && campaign.status !== 'Brief Unlocked') {
-    return <Navigate to="/campaigns" replace />;
-  }
 
   const totals = useMemo(() => {
-    return campaignTotals(campaign);
+    return campaign ? campaignTotals(campaign) : { subtotal: 0, boosting: 0, discount: 0, vat: 0, grandTotal: 0 };
   }, [campaign, updateCount]);
 
-  const events = useMemo(() => {
-    return auditEvents.filter((event) => event.campaignId === campaign.id);
-  }, [campaign.id, updateCount]);
+  const events = useMemo<AuditEvent[]>(() => {
+    // Return empty audit logs since audit logs are backend-only now (we can also fetch audit timeline if needed, but empty or a notice is fine)
+    return [];
+  }, [campaign?.id, updateCount]);
 
   const handleSubmitCo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +74,7 @@ export function CampaignDetails() {
     const randNum = Math.floor(Math.random() * 90000 + 10000);
     const coRef = `DAB-CO-2026-${randNum}`;
 
-    // Add to campaign products
+    // Add to campaign products locally to calculate
     const newProductLine = {
       id: `p-co-${Date.now()}`,
       category: prod.category,
@@ -72,42 +83,57 @@ export function CampaignDetails() {
       quantity: coQuantity,
       unitPrice: prod.unitPrice,
     };
-    campaign.products.push(newProductLine);
 
-    // Update campaign status
-    campaign.status = 'Discount Pending';
+    const updatedProducts = [...campaign.products, newProductLine];
+    const subtotal = coQuantity * prod.unitPrice;
+    const vat = Math.round(subtotal * 0.16);
 
-    // Push audit event
-    auditEvents.push({
-      id: `ev-co-${Date.now()}`,
-      campaignId: campaign.id,
-      action: `Change Order ${coRef} Raised (Scope: ${coScope || 'NIL'})`,
-      user: currentUser?.name || 'Grace Mwangi',
-      role: role,
-      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-    });
+    const coPayload = {
+      parentCampaignId: campaign.id,
+      additionalLineItems: [{
+        productId: prod.id,
+        productName: `[CO: ${coRef}] ${prod.name}`,
+        platform: '',
+        quantity: coQuantity,
+        postsPerDay: 1,
+        unitPrice: prod.unitPrice,
+        totalPrice: subtotal
+      }],
+      totals: {
+        subtotal: subtotal,
+        vatAmount: vat,
+        grandTotal: subtotal + vat,
+        discountValue: 0
+      },
+      reason: coScope || 'NIL'
+    };
 
-    // Push approval
-    approvals.push({
-      id: `ap-co-${Date.now()}`,
-      campaignId: campaign.id,
-      type: 'Discount',
-      requestedBy: currentUser?.name || 'Grace Mwangi',
-      value: prod.unitPrice * coQuantity,
-      status: 'Pending',
-      note: `Change Order ${coRef} scope addition: ${coScope || 'NIL'}`
-    });
-
-    alert(`Change Order ${coRef} raised successfully!\nCampaign status reset to Discount Pending for approval.`);
-    setShowCoModal(false);
-    setSelectedProductId(productCatalog[0].id);
-    setCoQuantity(1);
-    setCoScope('');
-    setUpdateCount(prev => prev + 1);
-    setActiveTab('Overview');
+    createChangeOrder(coPayload)
+      .then(() => {
+        const updatedCampaign: Partial<Campaign> = {
+          ...campaign,
+          products: updatedProducts,
+          status: 'Discount Pending' as any
+        };
+        return updateCampaign(campaign.id, updatedCampaign);
+      })
+      .then(() => {
+        alert(`Change Order ${coRef} raised successfully!\nCampaign status reset to Discount Pending for approval.`);
+        setShowCoModal(false);
+        setSelectedProductId(productCatalog[0]?.id || '');
+        setCoQuantity(1);
+        setCoScope('');
+        setUpdateCount(prev => prev + 1);
+        setActiveTab('Overview');
+      })
+      .catch((err) => {
+        console.error(err);
+        alert(`Failed to submit Change Order: ${err.message || err}`);
+      });
   };
 
   const handleDownloadPDF = () => {
+    if (!campaign) return;
     alert(`Downloading PDF for ${campaign.dabRef}...`);
     const docText = `KBC Digital AdBoard Order Sheet - ${campaign.dabRef}\n` +
       `==================================================\n` +
@@ -138,11 +164,29 @@ export function CampaignDetails() {
   };
 
   const handleSharePDF = () => {
+    if (!campaign) return;
     const email = prompt("Enter email address to share the Order Sheet PDF with:", campaign.clientEmail);
     if (email) {
       alert(`Order Sheet PDF for ${campaign.dabRef} shared successfully with ${email}!`);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error || !campaign) {
+    return <Navigate to="/campaigns" replace />;
+  }
+
+  // Digital Ops reads docs at status >= briefUnlocked
+  if (role === 'digitalOps' && campaign.status !== 'Brief Unlocked') {
+    return <Navigate to="/campaigns" replace />;
+  }
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -213,9 +257,14 @@ export function CampaignDetails() {
                             variant="danger" 
                             className="h-9 text-xs px-2.5"
                             onClick={() => {
-                              campaign.reportFile = undefined;
-                              setUpdateCount(prev => prev + 1);
-                              alert('Report file removed.');
+                              updateCampaign(campaign.id, { ...campaign, reportFile: undefined })
+                                .then(() => {
+                                  setUpdateCount(prev => prev + 1);
+                                  alert('Report file removed.');
+                                })
+                                .catch(err => {
+                                  alert(`Failed to remove report: ${err.message || err}`);
+                                });
                             }}
                           >
                             <Trash2 size={14} /> Remove
@@ -236,9 +285,14 @@ export function CampaignDetails() {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                campaign.reportFile = file.name;
-                                setUpdateCount(prev => prev + 1);
-                                alert(`Report "${file.name}" uploaded successfully!`);
+                                updateCampaign(campaign.id, { ...campaign, reportFile: file.name })
+                                  .then(() => {
+                                    setUpdateCount(prev => prev + 1);
+                                    alert(`Report "${file.name}" uploaded successfully!`);
+                                  })
+                                  .catch(err => {
+                                    alert(`Failed to upload report: ${err.message || err}`);
+                                  });
                               }
                             }}
                           />

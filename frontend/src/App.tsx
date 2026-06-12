@@ -14,6 +14,7 @@ import { OperationsPage } from './pages/operations/OperationsPage';
 import { OrdersPage } from './pages/orders/OrdersPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import Login from "./pages/auth/Login";
+import { fetchAndCacheRateCard } from './services/api';
 
 export default function App() {
   const [users, setUsers] = useState<UserItem[]>(usersList);
@@ -23,6 +24,10 @@ export default function App() {
 
   const currentUser = users.find((u) => u.id === currentUserId) || users[0];
   const role = currentUser.role;
+
+  useEffect(() => {
+    fetchAndCacheRateCard().catch(console.error);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {

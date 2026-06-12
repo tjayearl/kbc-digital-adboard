@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { InputField, SelectField, TextareaField } from '../../components/ui/Field';
 import { campaigns, campaignTotals, lineTotal, materialSpecs, money, productCatalog, rateCard, approvals, workflowStages, type ProductCategory, type ProductLine, type Role } from '../../data/mockData';
+import { getCampaign, createCampaign, updateCampaign } from '../../services/api';
 
 const enquirySteps = ['Client details', 'Campaign brief', 'Products', 'Review', 'Order sheet'];
 
@@ -139,77 +140,81 @@ export function CampaignWizard() {
   // Load existing campaign data if in edit mode
   useEffect(() => {
     if (isEdit && campaignId) {
-      const existing = campaigns.find(c => c.id === campaignId);
-      if (existing) {
-        setOrganisation(existing.clientCompany || '');
-        setKraPin(existing.kraPin || '');
-        setIndustry(existing.industry || '');
-        setBookingType(existing.bookingType || '');
-        setContactName(existing.clientName || '');
-        setContactJobTitle(existing.contactJobTitle || '');
-        setEmail(existing.clientEmail || '');
-        setPhone(existing.clientPhone || '');
-        setBillingAddress(existing.billingAddress || '');
-        setCampaignGoal(existing.objective || '');
-        setCampaignDescription(existing.campaignDescription || '');
-        setTargetAudience(existing.targetAudience || '');
-        setGeography(existing.geography || '');
-        setBudgetRange(existing.budgetRange || '');
-        setStartDate(existing.startDate || '');
-        setEndDate(existing.endDate || '');
-        setCreativeAssets(existing.creativeAssets || '');
-        setSocialPlatforms(existing.socialPlatforms || []);
-        setSocialSchedule(existing.socialSchedule || []);
-        setSocialCopyBy(existing.socialCopyBy || '');
-        setSocialLanguage(existing.socialLanguage || '');
-        setSocialBrief(existing.socialBrief || '');
-        setSocialBoost(existing.socialBoost || '');
-        setSocialExclusivity(existing.socialExclusivity || '');
-        setLiveDest(existing.liveDest || '');
-        setLivePackage(existing.livePackage || '');
-        setLiveDays(existing.liveDays || []);
-        setLiveEventName(existing.liveEventName || '');
-        setLiveLocation(existing.liveLocation || '');
-        setLiveFeed(existing.liveFeed || '');
-        setLiveOverlays(existing.liveOverlays || '');
-        setDisplayType(existing.displayType || '');
-        setDisplayFormat(existing.displayFormat || '');
-        setDisplayStartDate(existing.displayStartDate || '');
-        setDisplayEndDate(existing.displayEndDate || '');
-        setDisplaySection(existing.displaySection || '');
-        setDisplayUrl(existing.displayUrl || '');
-        setDisplayCreative(existing.displayCreative || '');
-        setRmTypes(existing.rmTypes || []);
-        setRmStartDate(existing.rmStartDate || '');
-        setRmEndDate(existing.rmEndDate || '');
-        setRmHours(existing.rmHours ?? '');
-        setRmTimeSlots(existing.rmTimeSlots || '');
-        setRmUrl(existing.rmUrl || '');
-        setContentTypes(existing.contentTypes || []);
-        setContentQty(existing.contentQty ?? '');
-        setContentFreq(existing.contentFreq || '');
-        setContentStartDate(existing.contentStartDate || '');
-        setContentEndDate(existing.contentEndDate || '');
-        setContentBrief(existing.contentBrief || '');
-        setAppType(existing.appType || '');
-        setAppMonths(existing.appMonths ?? '');
-        setAppPlacement(existing.appPlacement || '');
-        setAppStartDate(existing.appStartDate || '');
-        setAppUrl(existing.appUrl || '');
-        setPushChannel(existing.pushChannel || '');
-        setPushSends(existing.pushSends ?? '');
-        setPushReach(existing.pushReach ?? '');
-        setPushDate(existing.pushDate || '');
-        setPushTime(existing.pushTime || '');
-        setPushMessage(existing.pushMessage || '');
-        setProdTypes(existing.prodTypes || []);
-        setProdBrief(existing.prodBrief || '');
-        setProdDueDate(existing.prodDueDate || '');
-        setProdVoLang(existing.prodVoLang || '');
-        setDec1(existing.dec1 || false);
-        setDec2(existing.dec2 || false);
-        setDec3(existing.dec3 || false);
-      }
+      getCampaign(campaignId)
+        .then((existing) => {
+          setOrganisation(existing.clientCompany || '');
+          setKraPin(existing.kraPin || '');
+          setIndustry(existing.industry || '');
+          setBookingType(existing.bookingType || '');
+          setContactName(existing.clientName || '');
+          setContactJobTitle(existing.contactJobTitle || '');
+          setEmail(existing.clientEmail || '');
+          setPhone(existing.clientPhone || '');
+          setBillingAddress(existing.billingAddress || '');
+          setCampaignGoal(existing.objective || '');
+          setCampaignDescription(existing.campaignDescription || '');
+          setTargetAudience(existing.targetAudience || '');
+          setGeography(existing.geography || '');
+          setBudgetRange(existing.budgetRange || '');
+          setStartDate(existing.startDate || '');
+          setEndDate(existing.endDate || '');
+          setCreativeAssets(existing.creativeAssets || '');
+          setSocialPlatforms(existing.socialPlatforms || []);
+          setSocialSchedule(existing.socialSchedule || []);
+          setSocialCopyBy(existing.socialCopyBy || '');
+          setSocialLanguage(existing.socialLanguage || '');
+          setSocialBrief(existing.socialBrief || '');
+          setSocialBoost(existing.socialBoost || '');
+          setSocialExclusivity(existing.socialExclusivity || '');
+          setLiveDest(existing.liveDest || '');
+          setLivePackage(existing.livePackage || '');
+          setLiveDays(existing.liveDays || []);
+          setLiveEventName(existing.liveEventName || '');
+          setLiveLocation(existing.liveLocation || '');
+          setLiveFeed(existing.liveFeed || '');
+          setLiveOverlays(existing.liveOverlays || '');
+          setDisplayType(existing.displayType || '');
+          setDisplayFormat(existing.displayFormat || '');
+          setDisplayStartDate(existing.displayStartDate || '');
+          setDisplayEndDate(existing.displayEndDate || '');
+          setDisplaySection(existing.displaySection || '');
+          setDisplayUrl(existing.displayUrl || '');
+          setDisplayCreative(existing.displayCreative || '');
+          setRmTypes(existing.rmTypes || []);
+          setRmStartDate(existing.rmStartDate || '');
+          setRmEndDate(existing.rmEndDate || '');
+          setRmHours(existing.rmHours ?? '');
+          setRmTimeSlots(existing.rmTimeSlots || '');
+          setRmUrl(existing.rmUrl || '');
+          setContentTypes(existing.contentTypes || []);
+          setContentQty(existing.contentQty ?? '');
+          setContentFreq(existing.contentFreq || '');
+          setContentStartDate(existing.contentStartDate || '');
+          setContentEndDate(existing.contentEndDate || '');
+          setContentBrief(existing.contentBrief || '');
+          setAppType(existing.appType || '');
+          setAppMonths(existing.appMonths ?? '');
+          setAppPlacement(existing.appPlacement || '');
+          setAppStartDate(existing.appStartDate || '');
+          setAppUrl(existing.appUrl || '');
+          setPushChannel(existing.pushChannel || '');
+          setPushSends(existing.pushSends ?? '');
+          setPushReach(existing.pushReach ?? '');
+          setPushDate(existing.pushDate || '');
+          setPushTime(existing.pushTime || '');
+          setPushMessage(existing.pushMessage || '');
+          setProdTypes(existing.prodTypes || []);
+          setProdBrief(existing.prodBrief || '');
+          setProdDueDate(existing.prodDueDate || '');
+          setProdVoLang(existing.prodVoLang || '');
+          setDec1(existing.dec1 || false);
+          setDec2(existing.dec2 || false);
+          setDec3(existing.dec3 || false);
+        })
+        .catch((err) => {
+          console.error(err);
+          alert('Failed to load campaign data for editing.');
+        });
     }
   }, [campaignId, isEdit]);
 
@@ -467,102 +472,92 @@ export function CampaignWizard() {
     }
 
     if (isEdit && campaignId) {
-      const idx = campaigns.findIndex((c) => c.id === campaignId);
-      if (idx !== -1) {
-        campaigns[idx] = {
-          ...campaigns[idx],
-          clientCompany: organisation,
-          clientName: contactName,
-          clientEmail: email,
-          clientPhone: phone,
-          industry: industry,
-          name: `Booking Enquiry - ${organisation}`,
-          objective: campaignGoal,
-          startDate: startDate,
-          endDate: endDate,
-          products: selectedProducts,
-          // Wizard states
-          bookingType,
-          contactJobTitle,
-          billingAddress,
-          campaignDescription,
-          targetAudience,
-          geography,
-          budgetRange,
-          creativeAssets,
-          socialPlatforms,
-          socialSchedule,
-          socialCopyBy,
-          socialLanguage,
-          socialBrief,
-          socialBoost,
-          socialExclusivity,
-          liveDest,
-          livePackage,
-          liveDays,
-          liveEventName,
-          liveLocation,
-          liveFeed,
-          liveOverlays,
-          displayType,
-          displayFormat,
-          displayStartDate,
-          displayEndDate,
-          displaySection,
-          displayUrl,
-          displayCreative,
-          rmTypes,
-          rmStartDate,
-          rmEndDate,
-          rmHours,
-          rmTimeSlots,
-          rmUrl,
-          contentTypes,
-          contentQty,
-          contentFreq,
-          contentStartDate,
-          contentEndDate,
-          contentBrief,
-          appType,
-          appMonths,
-          appPlacement,
-          appStartDate,
-          appUrl,
-          pushChannel,
-          pushSends,
-          pushReach,
-          pushDate,
-          pushTime,
-          pushMessage,
-          prodTypes,
-          prodBrief,
-          prodDueDate,
-          prodVoLang,
-          dec1,
-          dec2,
-          dec3,
-        };
-        setGeneratedRef(campaigns[idx].dabRef);
+      const updatedCampaign = {
+        clientCompany: organisation,
+        clientName: contactName,
+        clientEmail: email,
+        clientPhone: phone,
+        industry: industry,
+        name: `Booking Enquiry - ${organisation}`,
+        objective: campaignGoal,
+        startDate: startDate,
+        endDate: endDate,
+        owner: currentUser?.name || 'Grace Mwangi',
+        status: 'Discount Pending' as const,
+        discountPercent: 0,
+        paidDeposit: false,
+        products: selectedProducts,
+        // Wizard states
+        bookingType,
+        contactJobTitle,
+        billingAddress,
+        campaignDescription,
+        targetAudience,
+        geography,
+        budgetRange,
+        creativeAssets,
+        socialPlatforms,
+        socialSchedule,
+        socialCopyBy,
+        socialLanguage,
+        socialBrief,
+        socialBoost,
+        socialExclusivity,
+        liveDest,
+        livePackage,
+        liveDays,
+        liveEventName,
+        liveLocation,
+        liveFeed,
+        liveOverlays,
+        displayType,
+        displayFormat,
+        displayStartDate,
+        displayEndDate,
+        displaySection,
+        displayUrl,
+        displayCreative,
+        rmTypes,
+        rmStartDate,
+        rmEndDate,
+        rmHours,
+        rmTimeSlots,
+        rmUrl,
+        contentTypes,
+        contentQty,
+        contentFreq,
+        contentStartDate,
+        contentEndDate,
+        contentBrief,
+        appType,
+        appMonths,
+        appPlacement,
+        appStartDate,
+        appUrl,
+        pushChannel,
+        pushSends,
+        pushReach,
+        pushDate,
+        pushTime,
+        pushMessage,
+        prodTypes,
+        prodBrief,
+        prodDueDate,
+        prodVoLang,
+        dec1,
+        dec2,
+        dec3,
+      };
 
-        if (campaigns[idx].status === 'Draft') {
-          campaigns[idx].status = 'Discount Pending';
-          
-          // Push corresponding discount approval request if not exists
-          const existingApproval = approvals.find(ap => ap.campaignId === campaignId);
-          if (!existingApproval) {
-            approvals.push({
-              id: `ap-${Date.now()}`,
-              campaignId: campaignId,
-              type: 'Discount' as const,
-              requestedBy: currentUser?.name || 'Grace Mwangi',
-              value: 0,
-              status: 'Pending' as const,
-              note: 'Updated campaign booking enquiry submitted.',
-            });
-          }
-        }
-      }
-      setIsSubmitted(true);
+      updateCampaign(campaignId, updatedCampaign)
+        .then(() => {
+          alert('Campaign enquiry updated successfully!');
+          navigate(`/campaigns/${campaignId}`);
+        })
+        .catch((err) => {
+          console.error(err);
+          alert(`Failed to update campaign: ${err.message || err}`);
+        });
       return;
     }
 
@@ -571,8 +566,6 @@ export function CampaignWizard() {
     setGeneratedRef(refNum);
 
     const newCampaign = {
-      id: `cmp-${Date.now()}`,
-      dabRef: refNum,
       clientCompany: organisation,
       clientName: contactName,
       clientEmail: email,
@@ -649,102 +642,105 @@ export function CampaignWizard() {
       dec3,
     };
 
-    campaigns.push(newCampaign);
-
-    // Push the corresponding discount approval request
-    approvals.push({
-      id: `ap-${Date.now()}`,
-      campaignId: newCampaign.id,
-      type: 'Discount' as const,
-      requestedBy: currentUser?.name || 'Grace Mwangi',
-      value: 0,
-      status: 'Pending' as const,
-      note: 'New campaign booking enquiry submitted.',
-    });
-
-    setIsSubmitted(true);
+    createCampaign(newCampaign)
+      .then((res) => {
+        alert('Campaign enquiry submitted successfully!');
+        navigate(`/campaigns/${res.campaignId}`);
+      })
+      .catch((err) => {
+        console.error(err);
+        alert(`Failed to submit campaign enquiry: ${err.message || err}`);
+      });
   };
 
   const handleSaveDraft = () => {
     if (isEdit && campaignId) {
-      const idx = campaigns.findIndex((c) => c.id === campaignId);
-      if (idx !== -1) {
-        campaigns[idx] = {
-          ...campaigns[idx],
-          clientCompany: organisation,
-          clientName: contactName,
-          clientEmail: email,
-          clientPhone: phone,
-          industry: industry,
-          name: organisation ? `Draft: Booking Enquiry - ${organisation}` : 'Draft: Booking Enquiry',
-          objective: campaignGoal,
-          startDate: startDate,
-          endDate: endDate,
-          products: selectedProducts,
-          // Wizard states
-          bookingType,
-          contactJobTitle,
-          billingAddress,
-          campaignDescription,
-          targetAudience,
-          geography,
-          budgetRange,
-          creativeAssets,
-          socialPlatforms,
-          socialSchedule,
-          socialCopyBy,
-          socialLanguage,
-          socialBrief,
-          socialBoost,
-          socialExclusivity,
-          liveDest,
-          livePackage,
-          liveDays,
-          liveEventName,
-          liveLocation,
-          liveFeed,
-          liveOverlays,
-          displayType,
-          displayFormat,
-          displayStartDate,
-          displayEndDate,
-          displaySection,
-          displayUrl,
-          displayCreative,
-          rmTypes,
-          rmStartDate,
-          rmEndDate,
-          rmHours,
-          rmTimeSlots,
-          rmUrl,
-          contentTypes,
-          contentQty,
-          contentFreq,
-          contentStartDate,
-          contentEndDate,
-          contentBrief,
-          appType,
-          appMonths,
-          appPlacement,
-          appStartDate,
-          appUrl,
-          pushChannel,
-          pushSends,
-          pushReach,
-          pushDate,
-          pushTime,
-          pushMessage,
-          prodTypes,
-          prodBrief,
-          prodDueDate,
-          prodVoLang,
-          dec1,
-          dec2,
-          dec3,
-        };
-      }
-      alert('Draft updated successfully!');
-      navigate('/campaigns');
+      const updatedCampaign = {
+        clientCompany: organisation,
+        clientName: contactName,
+        clientEmail: email,
+        clientPhone: phone,
+        industry: industry,
+        name: organisation ? `Draft: Booking Enquiry - ${organisation}` : 'Draft: Booking Enquiry',
+        objective: campaignGoal,
+        startDate: startDate,
+        endDate: endDate,
+        owner: currentUser?.name || 'Grace Mwangi',
+        status: 'Draft' as const,
+        discountPercent: 0,
+        paidDeposit: false,
+        products: selectedProducts,
+        // Wizard states
+        bookingType,
+        contactJobTitle,
+        billingAddress,
+        campaignDescription,
+        targetAudience,
+        geography,
+        budgetRange,
+        creativeAssets,
+        socialPlatforms,
+        socialSchedule,
+        socialCopyBy,
+        socialLanguage,
+        socialBrief,
+        socialBoost,
+        socialExclusivity,
+        liveDest,
+        livePackage,
+        liveDays,
+        liveEventName,
+        liveLocation,
+        liveFeed,
+        liveOverlays,
+        displayType,
+        displayFormat,
+        displayStartDate,
+        displayEndDate,
+        displaySection,
+        displayUrl,
+        displayCreative,
+        rmTypes,
+        rmStartDate,
+        rmEndDate,
+        rmHours,
+        rmTimeSlots,
+        rmUrl,
+        contentTypes,
+        contentQty,
+        contentFreq,
+        contentStartDate,
+        contentEndDate,
+        contentBrief,
+        appType,
+        appMonths,
+        appPlacement,
+        appStartDate,
+        appUrl,
+        pushChannel,
+        pushSends,
+        pushReach,
+        pushDate,
+        pushTime,
+        pushMessage,
+        prodTypes,
+        prodBrief,
+        prodDueDate,
+        prodVoLang,
+        dec1,
+        dec2,
+        dec3,
+      };
+
+      updateCampaign(campaignId, updatedCampaign)
+        .then(() => {
+          alert('Draft updated successfully!');
+          navigate('/campaigns');
+        })
+        .catch((err) => {
+          console.error(err);
+          alert(`Failed to update draft: ${err.message || err}`);
+        });
       return;
     }
 
@@ -752,8 +748,6 @@ export function CampaignWizard() {
     const refNum = `DAB-2026-${randNum}`;
 
     const newCampaign = {
-      id: `cmp-${Date.now()}`,
-      dabRef: refNum,
       clientCompany: organisation,
       clientName: contactName,
       clientEmail: email,
@@ -830,9 +824,15 @@ export function CampaignWizard() {
       dec3,
     };
 
-    campaigns.push(newCampaign);
-    alert('Draft saved successfully!');
-    navigate('/campaigns');
+    createCampaign(newCampaign)
+      .then(() => {
+        alert('Draft saved successfully!');
+        navigate('/campaigns');
+      })
+      .catch((err) => {
+        console.error(err);
+        alert(`Failed to save draft: ${err.message || err}`);
+      });
   };
 
   // Custom Form Renders

@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CheckCircle2, CreditCard, FileSignature, XCircle, Lock } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
-import { approvals as mockApprovals, campaigns, campaignTotals, money, auditEvents, type Role } from '../../data/mockData';
+import { campaignTotals, money, type Role, type Campaign, type Approval } from '../../data/mockData';
+import { getCampaigns, reviewDiscount, countersignOrderSheet, confirmPayment, updateCampaign } from '../../services/api';
 
 const tabs = ['Pending Discounts', 'Awaiting Countersign', 'Payment Verification'];
 
-// Map tab names to approval types
 const tabToType: Record<string, string> = {
   'Pending Discounts': 'Discount',
   'Awaiting Countersign': 'Countersign',
@@ -18,9 +18,22 @@ const tabToType: Record<string, string> = {
 export function ApprovalsPage() {
   const { role, currentUser } = useOutletContext<{ role: Role; currentUser?: any }>();
 
-  // State for active tab and approvals (starts as copy of mock data)
   const [activeTab, setActiveTab] = useState('Pending Discounts');
-  const [approvals, setApprovals] = useState(mockApprovals);
+  const [campaignList, setCampaignList] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updateCount, setUpdateCount] = useState(0);
+
+  useEffect(() => {
+    getCampaigns()
+      .then((data) => {
+        setCampaignList(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [updateCount]);
 
   if (role !== 'adManager' && role !== 'admin') {
     return (
@@ -36,205 +49,113 @@ export function ApprovalsPage() {
     );
   }
 
-  // Get the type for current tab
+  if (loading) {
+    return (
+      <div className="flex h-[40vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy border-t-transparent" />
+      </div>
+    );
+  }
+
+  // Dynamically build approvals from campaign list
+  const approvalsList: Approval[] = [];
+  campaignList.forEach((c) => {
+    if (c.status === 'Discount Pending') {
+      approvalsList.push({
+        id: `ap-disc-${c.id}`,
+        campaignId: c.id,
+        type: 'Discount',
+        requestedBy: c.owner || 'Sales Rep',
+        value: c.discountPercent || 0,
+        status: 'Pending',
+        note: c.discountReason || 'Discount request pending review.'
+      });
+    } else if (c.status === 'Client Signed') {
+      approvalsList.push({
+        id: `ap-cs-${c.id}`,
+        campaignId: c.id,
+        type: 'Countersign',
+        requestedBy: c.owner || 'Sales Rep',
+        value: campaignTotals(c).grandTotal,
+        status: 'Pending',
+        note: 'Order Sheet signed by client. Ready for countersigning.'
+      });
+    } else if (c.status === 'Countersigned') {
+      approvalsList.push({
+        id: `ap-pay-${c.id}`,
+        campaignId: c.id,
+        type: 'Payment',
+        requestedBy: c.owner || 'Sales Rep',
+        value: Math.round(campaignTotals(c).grandTotal * 0.5),
+        status: 'Pending',
+        note: 'Deposit payment receipt uploaded by client. Please verify.'
+      });
+    }
+  });
+
   const currentType = tabToType[activeTab];
 
-  // Filter approvals based on active tab AND only show pending ones
-  const filteredApprovals = approvals.filter(
+  const filteredApprovals = approvalsList.filter(
     (approval) => approval.type === currentType && approval.status === 'Pending'
   );
 
-  // Handle approve
-  const handleApprove = (approvalId: string) => {
-    // 1. Update the local state
-    setApprovals((prev) =>
-      prev.map((approval) =>
-        approval.id === approvalId
-          ? { ...approval, status: 'Approved' }
-          : approval
-      )
-    );
-
-    // 2. Find the approval in mockData and update it
-    const approval = mockApprovals.find((a) => a.id === approvalId);
-    if (!approval) return;
-    approval.status = 'Approved';
-
-    // 3. Find the campaign
-    const campaign = campaigns.find((c) => c.id === approval.campaignId);
+  const handleApprove = (approval: Approval) => {
+    const campaign = campaignList.find((c) => c.id === approval.campaignId);
     if (!campaign) return;
 
-    // 4. Handle workflow progression based on approval type
     if (approval.type === 'Discount') {
-      // Transition campaign status
-      campaign.status = 'Discount Approved';
-      
-      // Log audit events
-      auditEvents.push({
-        id: `ev-app-${Date.now()}-1`,
-        campaignId: campaign.id,
-        action: 'Discount Approved by Advertising Manager',
-        user: 'Mary Njeri',
-        role: 'adManager',
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      });
-
-      auditEvents.push({
-        id: `ev-app-${Date.now()}-2`,
-        campaignId: campaign.id,
-        action: 'Order Sheet Generated & Shared',
-        user: currentUser?.name || 'Grace Mwangi',
-        role: 'sales',
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      });
-
-      auditEvents.push({
-        id: `ev-app-${Date.now()}-3`,
-        campaignId: campaign.id,
-        action: 'Client Signed Order Sheet',
-        user: 'Peter Otieno',
-        role: 'sales',
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      });
-
-      // Shift to Client Signed (which triggers Awaiting Countersign)
-      campaign.status = 'Client Signed';
-
-      // Push a new Countersign approval request to mock data
-      const nextApproval = {
-        id: `ap-cs-${Date.now()}`,
-        campaignId: campaign.id,
-        type: 'Countersign' as const,
-        requestedBy: currentUser?.name || 'Grace Mwangi',
-        value: campaignTotals(campaign).grandTotal,
-        status: 'Pending' as const,
-        note: 'Order Sheet signed by client. Ready for countersigning.',
-      };
-      mockApprovals.push(nextApproval);
-
-      // Add to local state so the UI updates
-      setApprovals((prev) => [...prev, nextApproval]);
-
-      alert('Discount Approved!\nCampaign updated to Client Signed.\nCountersign request generated.');
-
+      reviewDiscount(campaign.id, 'approve', 'Discount Approved by Advertising Manager')
+        .then(() => {
+          alert('Discount Approved successfully!');
+          setUpdateCount(prev => prev + 1);
+        })
+        .catch((err) => {
+          alert(`Failed to approve discount: ${err.message || err}`);
+        });
     } else if (approval.type === 'Countersign') {
-      campaign.status = 'Countersigned';
-
-      auditEvents.push({
-        id: `ev-app-${Date.now()}-1`,
-        campaignId: campaign.id,
-        action: 'Order Countersigned by Advertising Manager',
-        user: 'Mary Njeri',
-        role: 'adManager',
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      });
-
-      auditEvents.push({
-        id: `ev-app-${Date.now()}-2`,
-        campaignId: campaign.id,
-        action: 'Deposit Invoice Issued',
-        user: 'Mary Njeri',
-        role: 'adManager',
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      });
-
-      auditEvents.push({
-        id: `ev-app-${Date.now()}-3`,
-        campaignId: campaign.id,
-        action: 'Client Paid Deposit (Verification Pending)',
-        user: 'Peter Otieno',
-        role: 'sales',
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      });
-
-      // Push a new Payment approval request to mock data
-      const nextApproval = {
-        id: `ap-pay-${Date.now()}`,
-        campaignId: campaign.id,
-        type: 'Payment' as const,
-        requestedBy: currentUser?.name || 'Grace Mwangi',
-        value: Math.round(campaignTotals(campaign).grandTotal * 0.5), // 50% deposit
-        status: 'Pending' as const,
-        note: 'Deposit payment receipt uploaded by client. Please verify.',
-      };
-      mockApprovals.push(nextApproval);
-
-      // Add to local state
-      setApprovals((prev) => [...prev, nextApproval]);
-
-      alert('Order Countersigned!\nDeposit invoice issued and client paid receipt.\nPayment verification request generated.');
-
+      countersignOrderSheet(campaign.id)
+        .then(() => {
+          alert('Order Countersigned successfully!');
+          setUpdateCount(prev => prev + 1);
+        })
+        .catch((err) => {
+          alert(`Failed to countersign: ${err.message || err}`);
+        });
     } else if (approval.type === 'Payment') {
-      campaign.status = 'Payment Confirmed';
-      campaign.paidDeposit = true;
-
-      auditEvents.push({
-        id: `ev-app-${Date.now()}-1`,
-        campaignId: campaign.id,
-        action: 'Payment Receipt Verified by Finance',
-        user: 'Mary Njeri',
-        role: 'adManager',
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      });
-
-      auditEvents.push({
-        id: `ev-app-${Date.now()}-2`,
-        campaignId: campaign.id,
-        action: 'Campaign Brief Unlocked',
-        user: 'Mary Njeri',
-        role: 'adManager',
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      });
-
-      // Shift campaign status to Brief Unlocked
-      campaign.status = 'Brief Unlocked';
-
-      alert('Payment Verified!\nCampaign deposit confirmed and Campaign Brief unlocked for digital scheduling.');
+      confirmPayment(campaign.id)
+        .then(() => {
+          alert('Payment Verified successfully!\nCampaign brief unlocked for operations.');
+          setUpdateCount(prev => prev + 1);
+        })
+        .catch((err) => {
+          alert(`Failed to verify payment: ${err.message || err}`);
+        });
     }
   };
 
-  // Handle reject
-  const handleReject = (approvalId: string) => {
-    // 1. Update local state
-    setApprovals((prev) =>
-      prev.map((approval) =>
-        approval.id === approvalId
-          ? { ...approval, status: 'Rejected' }
-          : approval
-      )
-    );
-
-    // 2. Find and update mock data
-    const approval = mockApprovals.find((a) => a.id === approvalId);
-    if (!approval) return;
-    approval.status = 'Rejected';
-
-    // 3. Find campaign
-    const campaign = campaigns.find((c) => c.id === approval.campaignId);
+  const handleReject = (approval: Approval) => {
+    const campaign = campaignList.find((c) => c.id === approval.campaignId);
     if (!campaign) return;
 
-    // 4. Handle rejection status
     if (approval.type === 'Discount') {
-      campaign.status = 'Brief Unlocked';
-      auditEvents.push({
-        id: `ev-rej-${Date.now()}`,
-        campaignId: campaign.id,
-        action: 'Discount Rejected by Advertising Manager',
-        user: 'Mary Njeri',
-        role: 'adManager',
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      });
-      alert('Discount request rejected.');
+      reviewDiscount(campaign.id, 'reject', 'Discount Rejected by Advertising Manager')
+        .then(() => {
+          alert('Discount request rejected.');
+          setUpdateCount(prev => prev + 1);
+        })
+        .catch((err) => {
+          alert(`Failed to reject discount: ${err.message || err}`);
+        });
     } else {
-      auditEvents.push({
-        id: `ev-rej-${Date.now()}`,
-        campaignId: campaign.id,
-        action: `${approval.type} Rejected by Advertising Manager`,
-        user: 'Mary Njeri',
-        role: 'adManager',
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      });
-      alert(`${approval.type} request rejected.`);
+      // For Countersign/Payment, reject them by reverting status back to draft or custom status
+      updateCampaign(campaign.id, { ...campaign, status: 'Draft' as any })
+        .then(() => {
+          alert(`${approval.type} request rejected. Campaign reverted to Draft.`);
+          setUpdateCount(prev => prev + 1);
+        })
+        .catch((err) => {
+          alert(`Failed to reject approval request: ${err.message || err}`);
+        });
     }
   };
 
@@ -272,7 +193,7 @@ export function ApprovalsPage() {
           </div>
         ) : (
           filteredApprovals.map((approval) => {
-            const campaign = campaigns.find((item) => item.id === approval.campaignId);
+            const campaign = campaignList.find((item) => item.id === approval.campaignId);
             const totals = campaign ? campaignTotals(campaign) : null;
             const Icon =
               approval.type === 'Discount'
@@ -332,11 +253,12 @@ export function ApprovalsPage() {
                           value={approval.value}
                           onChange={(e) => {
                             const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
-                            setApprovals(prev => prev.map(a => a.id === approval.id ? { ...a, value: val } : a));
-                            const originalApproval = mockApprovals.find(a => a.id === approval.id);
-                            if (originalApproval) originalApproval.value = val;
                             if (campaign) {
-                              campaign.discountPercent = val;
+                              updateCampaign(campaign.id, { ...campaign, discountPercent: val })
+                                .then(() => {
+                                  setUpdateCount(prev => prev + 1);
+                                })
+                                .catch(err => console.error(err));
                             }
                           }}
                         />
@@ -368,7 +290,7 @@ export function ApprovalsPage() {
                   <div className="flex gap-3">
                     <Button
                       className="flex-1"
-                      onClick={() => handleApprove(approval.id)}
+                      onClick={() => handleApprove(approval)}
                     >
                       <CheckCircle2 size={18} />
                       Approve
@@ -376,7 +298,7 @@ export function ApprovalsPage() {
                     <Button
                       variant="danger"
                       className="flex-1"
-                      onClick={() => handleReject(approval.id)}
+                      onClick={() => handleReject(approval)}
                     >
                       <XCircle size={18} />
                       Reject
