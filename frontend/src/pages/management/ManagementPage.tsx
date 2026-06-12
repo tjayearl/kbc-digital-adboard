@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { InputField, SelectField } from '../../components/ui/Field';
 import { money, rateCard as mockRateCard, usersList as mockUsers, productCatalog, type Role, type RateCardItem, type UserItem, type ProductCategory } from '../../data/mockData';
+import { createUser, updateUser, deleteUser } from '../../services/api';
 
 const categories: ProductCategory[] = [
   'Social Media',
@@ -156,60 +157,80 @@ export function ManagementPage() {
     setShowUserModal(true);
   };
 
-  const handleSubmitUser = (e: React.FormEvent) => {
+  const handleSubmitUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingUserItem) {
-      // Edit
-      const updatedUsers = users.map((u) => {
-        if (u.id === editingUserItem.id) {
-          const original = mockUsers.find(x => x.id === u.id);
-          if (original) {
-            original.name = userName;
-            original.email = userEmail;
-            original.role = userRole;
+    try {
+      if (editingUserItem) {
+        // Edit in backend
+        await updateUser(editingUserItem.id, {
+          name: userName,
+          role: userRole,
+        });
+        
+        const updatedUsers = users.map((u) => {
+          if (u.id === editingUserItem.id) {
+            return { ...u, name: userName, role: userRole };
           }
-          return { ...u, name: userName, email: userEmail, role: userRole };
+          return u;
+        });
+        setUsers(updatedUsers);
+        alert('User details updated in Firebase successfully.');
+      } else {
+        // Register in backend
+        const res = await createUser({
+          name: userName,
+          email: userEmail,
+          role: userRole,
+          password: 'User1234' // Default password for new accounts
+        });
+        
+        const newUser: UserItem = {
+          id: res.uid,
+          name: userName,
+          email: userEmail,
+          role: userRole,
+          status: 'Active',
+        };
+        setUsers([...users, newUser]);
+        alert('User registered in Firebase successfully. Default password is User1234.');
+      }
+      setShowUserModal(false);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Failed to save user: ${err.message || err}`);
+    }
+  };
+
+  const handleToggleSuspendUser = async (id: string) => {
+    const userToToggle = users.find(u => u.id === id);
+    if (!userToToggle) return;
+    const newStatus: 'Active' | 'Suspended' = userToToggle.status === 'Active' ? 'Suspended' : 'Active';
+    
+    try {
+      await updateUser(id, { active: newStatus === 'Active' });
+      const updatedUsers = users.map((u) => {
+        if (u.id === id) {
+          return { ...u, status: newStatus };
         }
         return u;
       });
       setUsers(updatedUsers);
-    } else {
-      // Register
-      const newUser: UserItem = {
-        id: `usr-${Date.now()}`,
-        name: userName,
-        email: userEmail,
-        role: userRole,
-        status: 'Active',
-      };
-      mockUsers.push(newUser);
-      setUsers([...mockUsers]);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Failed to update user status: ${err.message || err}`);
     }
-    setShowUserModal(false);
   };
 
-  const handleToggleSuspendUser = (id: string) => {
-    const updatedUsers = users.map((u) => {
-      if (u.id === id) {
-        const newStatus: 'Active' | 'Suspended' = u.status === 'Active' ? 'Suspended' : 'Active';
-        const original = mockUsers.find(x => x.id === u.id);
-        if (original) {
-          original.status = newStatus;
-        }
-        return { ...u, status: newStatus };
+  const handleDeleteUser = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this user from Firebase Auth and Firestore?')) {
+      try {
+        await deleteUser(id);
+        setUsers(users.filter(u => u.id !== id));
+        alert('User successfully deleted from Firebase.');
+      } catch (err: any) {
+        console.error(err);
+        alert(`Failed to delete user: ${err.message || err}`);
       }
-      return u;
-    });
-    setUsers(updatedUsers);
-  };
-
-  const handleDeleteUser = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      const idx = mockUsers.findIndex((user) => user.id === id);
-      if (idx !== -1) {
-        mockUsers.splice(idx, 1);
-      }
-      setUsers(users.filter(u => u.id !== id));
     }
   };
 

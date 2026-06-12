@@ -7,7 +7,7 @@ import {
   type Approval
 } from '../data/mockData';
 
-const BASE_URL = 'https://kbc-digital-adboard.onrender.com/api/v1';
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://kbc-digital-adboard.onrender.com/api/v1';
 
 // Dynamic rate card cache
 let cachedRateCard: any[] = [];
@@ -716,5 +716,77 @@ export async function getChangeOrders(campaignId: string): Promise<any[]> {
   } catch (error) {
     console.error(`Failed to fetch change orders for campaign ${campaignId}:`, error);
     return [];
+  }
+}
+
+export async function getUsers(): Promise<any[]> {
+  try {
+    const res = await fetch(`${BASE_URL}/users/`, {
+      headers: await getAuthHeaders()
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to fetch users:', error);
+    throw error;
+  }
+}
+
+export async function createUser(userData: { name: string; email: string; role: string; phone?: string; password?: string }): Promise<any> {
+  try {
+    const res = await fetch(`${BASE_URL}/users/`, {
+      method: 'POST',
+      headers: await getAuthHeaders(),
+      body: JSON.stringify({
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        phone: userData.phone || '',
+        password: userData.password || 'User1234'
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to create user:', error);
+    throw error;
+  }
+}
+
+export async function updateUser(uid: string, userData: any): Promise<any> {
+  try {
+    const res = await fetch(`${BASE_URL}/users/${uid}`, {
+      method: 'PATCH',
+      headers: await getAuthHeaders(),
+      body: JSON.stringify(userData)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to update user:', error);
+    throw error;
+  }
+}
+
+export async function deleteUser(uid: string): Promise<any> {
+  try {
+    const res = await fetch(`${BASE_URL}/users/${uid}`, {
+      method: 'DELETE',
+      headers: await getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to delete user:', error);
+    throw error;
   }
 }

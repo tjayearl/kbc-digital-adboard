@@ -55,25 +55,19 @@ export default function Login() {
         setMessage(`Welcome back, ${user.email}. No role assigned. Contact admin.`);
       }
 
-      // Role-based redirect - CORRECT PATHS MATCHING APP.TSX
+      // Instead of forcing a hard refresh via window.location.href, we change the URL path
+      // client-side and let App.tsx handle mounting the router at this new path.
       let redirectUrl = "/";
-
       if (role === "adManager") {
         redirectUrl = "/approvals";
       } else if (role === "digitalOps") {
         redirectUrl = "/operations";
-      } else if (role === "sales") {
-        redirectUrl = "/";
-      } else if (role === "admin") {
-        redirectUrl = "/";
-      } else {
-        redirectUrl = "/";
       }
 
-      // Redirect after short delay
-      setTimeout(() => {
-        window.location.href = redirectUrl;
-      }, 500);
+      const currentPath = window.location.pathname;
+      if (currentPath !== redirectUrl) {
+        window.history.replaceState({}, "", redirectUrl);
+      }
 
     } catch (err) {
       console.error(err);

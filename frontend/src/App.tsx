@@ -14,11 +14,11 @@ import { OperationsPage } from './pages/operations/OperationsPage';
 import { OrdersPage } from './pages/orders/OrdersPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import Login from "./pages/auth/Login";
-import { fetchAndCacheRateCard } from './services/api';
+import { fetchAndCacheRateCard, getUsers } from './services/api';
 
 export default function App() {
   const [users, setUsers] = useState<UserItem[]>(usersList);
-  const [currentUserId, setCurrentUserId] = useState<string>('usr-1');
+  const [currentUserId, setCurrentUserId] = useState<string>('usr-5');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -26,21 +26,22 @@ export default function App() {
   const role = currentUser.role;
 
   useEffect(() => {
-    fetchAndCacheRateCard().catch(console.error);
-  }, []);
-
-  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       
       if (firebaseUser) {
+        // Pre-fetch rate card now that the user is authenticated
+        fetchAndCacheRateCard().catch(console.error);
+
         const checkUser = async () => {
           const matchingUser = usersList.find(
             (u) => u.email.toLowerCase() === firebaseUser.email?.toLowerCase()
           );
           
+          let userRole: Role = 'sales';
           if (matchingUser) {
             setCurrentUserId(matchingUser.id);
+            userRole = matchingUser.role;
           } else {
             const tokenResult = await firebaseUser.getIdTokenResult();
             const roleClaim = tokenResult.claims.role as Role | undefined;
@@ -59,8 +60,40 @@ export default function App() {
                 return [...prev, tempUser];
               });
               setCurrentUserId(tempUser.id);
+              userRole = roleClaim;
             }
           }
+
+          // Client-side role-based redirect without full page refresh
+          const currentPath = window.location.pathname;
+          if (currentPath === '/' || currentPath === '/login') {
+            let targetPath = '/';
+            if (userRole === 'adManager') {
+              targetPath = '/approvals';
+            } else if (userRole === 'digitalOps') {
+              targetPath = '/operations';
+            }
+            if (currentPath !== targetPath) {
+              window.history.replaceState({}, '', targetPath);
+            }
+          }
+
+          if (userRole === 'admin') {
+            try {
+              const backendUsers = await getUsers();
+              const mappedUsers: UserItem[] = backendUsers.map((u: any) => ({
+                id: u.uid || u.id,
+                name: u.name,
+                email: u.email,
+                role: u.role,
+                status: u.active === false ? 'Suspended' : 'Active'
+              }));
+              setUsers(mappedUsers);
+            } catch (e) {
+              console.error('Failed to fetch real users from backend:', e);
+            }
+          }
+          
           setLoading(false);
         };
         checkUser();

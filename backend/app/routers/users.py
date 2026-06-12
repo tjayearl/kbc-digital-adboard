@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.core.security import require_roles
 from app.core.firebase import firebase_auth, db
 from app.models.user import CreateUserRequest, UpdateUserRequest
+from app.core.config import settings
 from datetime import datetime, timezone
 
 router = APIRouter()
@@ -18,6 +19,25 @@ async def create_user(request: CreateUserRequest, user=Depends(require_roles(["a
             "role": request.role, "phone": request.phone or "", "active": True,
             "createdAt": datetime.now(timezone.utc).isoformat()
         })
+
+        # Send password reset (activation) email to user via Firebase Auth REST API
+        try:
+            import requests
+            api_key = settings.FIREBASE_WEB_API_KEY
+            if api_key:
+                url = f"https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key={api_key}"
+                payload = {
+                    "requestType": "PASSWORD_RESET",
+                    "email": request.email
+                }
+                res = requests.post(url, json=payload)
+                if res.status_code != 200:
+                    print(f"Warning: Failed to send activation email: {res.text}")
+            else:
+                print("Warning: FIREBASE_WEB_API_KEY not configured, cannot send activation email.")
+        except Exception as email_err:
+            print(f"Warning: Error sending activation email: {email_err}")
+
         return {"message": "User created", "uid": firebase_user.uid}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -36,3 +56,19 @@ async def update_user(uid: str, request: UpdateUserRequest, user=Depends(require
     if "role" in update_data:
         firebase_auth.set_custom_user_claims(uid, {"role": update_data["role"]})
     return {"message": "User updated"}
+
+@router.delete("/{uid}")
+async def delete_user(uid: str, user=Depends(require_roles(["admin"]))):
+    try:
+        # Delete from Firebase Auth
+        try:
+            firebase_auth.delete_user(uid)
+        except Exception as e:
+            # If user not found in Auth, just print warning and continue to database deletion
+            print(f"Warning: User {uid} not found in Firebase Auth: {e}")
+        
+        # Delete from Firestore
+        db.collection("users").document(uid).delete()
+        return {"message": "User deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -420,9 +420,5 @@ export type UserItem = {
 };
 
 export const usersList: UserItem[] = [
-  { id: 'usr-1', name: 'Grace Mwangi', email: 'grace@kbc.example', role: 'sales', status: 'Active' },
-  { id: 'usr-2', name: 'Daniel Kariuki', email: 'daniel@kbc.example', role: 'sales', status: 'Active' },
-  { id: 'usr-3', name: 'Mary Njeri', email: 'mary@kbc.example', role: 'adManager', status: 'Active' },
-  { id: 'usr-4', name: 'James Ochieng', email: 'james@kbc.example', role: 'digitalOps', status: 'Active' },
-  { id: 'usr-5', name: 'System Admin', email: 'admin@kbc.example', role: 'admin', status: 'Active' },
+  { id: 'usr-5', name: 'System Admin', email: 'admin@kbc.com', role: 'admin', status: 'Active' },
 ];
