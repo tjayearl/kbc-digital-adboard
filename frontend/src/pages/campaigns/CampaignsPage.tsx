@@ -67,8 +67,13 @@ export function CampaignsPage() {
           <h2 className="text-2xl font-bold text-ink">Campaigns</h2>
           <p className="mt-1 text-sm text-slate-500">Search, sort, and open every digital advertising order.</p>
         </div>
-        <Link to="/campaigns/new">
-          <Button className="w-full sm:w-auto">New Campaign</Button>
+        <Link to={role === 'sales' ? "/campaigns/new" : "#"}>
+          <Button 
+            className="w-full sm:w-auto" 
+            disabled={role !== 'sales'}
+          >
+            New Campaign
+          </Button>
         </Link>
       </div>
 
