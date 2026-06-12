@@ -790,3 +790,20 @@ export async function deleteUser(uid: string): Promise<any> {
     throw error;
   }
 }
+
+export async function deleteRateCardItem(id: string): Promise<any> {
+  try {
+    const res = await fetch(`${BASE_URL}/rate-card/${id}`, {
+      method: 'DELETE',
+      headers: await getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error(`Failed to delete rate card item ${id}:`, error);
+    throw error;
+  }
+}

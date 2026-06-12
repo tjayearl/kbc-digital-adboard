@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { InputField, SelectField } from '../../components/ui/Field';
 import { money, rateCard as mockRateCard, usersList as mockUsers, productCatalog, type Role, type RateCardItem, type UserItem, type ProductCategory } from '../../data/mockData';
-import { createUser, updateUser, deleteUser } from '../../services/api';
+import { createUser, updateUser, deleteUser, deleteRateCardItem } from '../../services/api';
 
 const categories: ProductCategory[] = [
   'Social Media',
@@ -137,6 +137,33 @@ export function ManagementPage() {
       item.status = item.status === 'Active' ? 'Archived' : 'Active';
       setRateItems([...mockRateCard]);
       alert(`Rate item status changed to ${item.status}.`);
+    }
+  };
+
+  const handleDeleteRateItem = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this rate card item from Firestore?')) {
+      try {
+        await deleteRateCardItem(id);
+        
+        // Remove from local mock list so frontend updates
+        const idx = mockRateCard.findIndex((r) => r.id === id);
+        if (idx !== -1) {
+          mockRateCard.splice(idx, 1);
+        }
+        
+        // Also remove from productCatalog if it exists there
+        const catalogId = id.startsWith('rc-') ? id.replace('rc-', '') : id;
+        const catalogIdx = productCatalog.findIndex((p) => p.id === catalogId);
+        if (catalogIdx !== -1) {
+          productCatalog.splice(catalogIdx, 1);
+        }
+        
+        setRateItems([...mockRateCard]);
+        alert('Rate card item successfully deleted from Firestore.');
+      } catch (err: any) {
+        console.error(err);
+        alert(`Failed to delete rate item: ${err.message || err}`);
+      }
     }
   };
 
@@ -312,6 +339,9 @@ export function ManagementPage() {
                         <Button variant="secondary" className="h-9 px-3" onClick={() => handleToggleArchiveRate(item.id)} aria-label={`Archive ${item.name}`}>
                           <Archive size={15} /> {item.status === 'Active' ? 'Archive' : 'Activate'}
                         </Button>
+                        <Button variant="danger" className="h-9 px-3" onClick={() => handleDeleteRateItem(item.id)} aria-label={`Delete ${item.name}`}>
+                          <Trash2 size={15} /> Delete
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -332,6 +362,9 @@ export function ManagementPage() {
                   <Button variant="secondary" className="flex-1" onClick={() => handleOpenEditRateModal(item)}><Edit3 size={15} /> Edit</Button>
                   <Button variant="secondary" className="flex-1" onClick={() => handleToggleArchiveRate(item.id)}>
                     <Archive size={15} /> {item.status === 'Active' ? 'Archive' : 'Activate'}
+                  </Button>
+                  <Button variant="danger" className="flex-1" onClick={() => handleDeleteRateItem(item.id)}>
+                    <Trash2 size={15} /> Delete
                   </Button>
                 </div>
               </article>

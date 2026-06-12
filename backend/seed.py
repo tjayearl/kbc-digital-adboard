@@ -17,6 +17,7 @@ except Exception as e:
 try:
     print("\n--- 2. Seeding Rate Card ---")
     import seed_rate_card
+    seed_rate_card.seed_rate_card()
 except Exception as e:
     print(f"Error running seed_rate_card: {e}")
 
