@@ -45,23 +45,21 @@ export default function App() {
           } else {
             const tokenResult = await firebaseUser.getIdTokenResult();
             const roleClaim = tokenResult.claims.role as Role | undefined;
-            if (roleClaim) {
-              const tempUser: UserItem = {
-                id: `usr-fb-${firebaseUser.uid}`,
-                name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Authenticated User',
-                email: firebaseUser.email || '',
-                role: roleClaim,
-                status: 'Active'
-              };
-              setUsers(prev => {
-                if (prev.some(u => u.email.toLowerCase() === tempUser.email.toLowerCase())) {
-                  return prev;
-                }
-                return [...prev, tempUser];
-              });
-              setCurrentUserId(tempUser.id);
-              userRole = roleClaim;
-            }
+            const tempUser: UserItem = {
+              id: `usr-fb-${firebaseUser.uid}`,
+              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Authenticated User',
+              email: firebaseUser.email || '',
+              role: roleClaim || 'sales',
+              status: 'Active'
+            };
+            setUsers(prev => {
+              if (prev.some(u => u.email.toLowerCase() === tempUser.email.toLowerCase())) {
+                return prev;
+              }
+              return [...prev, tempUser];
+            });
+            setCurrentUserId(tempUser.id);
+            userRole = roleClaim || 'sales';
           }
 
           // Client-side role-based redirect without full page refresh
