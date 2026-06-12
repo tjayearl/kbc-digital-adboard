@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { InputField, SelectField } from '../../components/ui/Field';
 import { money, rateCard as mockRateCard, usersList as mockUsers, productCatalog, type Role, type RateCardItem, type UserItem, type ProductCategory } from '../../data/mockData';
-import { createUser, updateUser, deleteUser } from '../../services/api';
+import { createUser, updateUser, deleteUser, deleteRateCardItem } from '../../services/api';
 
 const categories: ProductCategory[] = [
   'Social Media',
@@ -137,6 +137,33 @@ export function ManagementPage() {
       item.status = item.status === 'Active' ? 'Archived' : 'Active';
       setRateItems([...mockRateCard]);
       alert(`Rate item status changed to ${item.status}.`);
+    }
+  };
+
+  const handleDeleteRateItem = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this rate card item from Firestore?')) {
+      try {
+        await deleteRateCardItem(id);
+        
+        // Remove from local mock list so frontend updates
+        const idx = mockRateCard.findIndex((r) => r.id === id);
+        if (idx !== -1) {
+          mockRateCard.splice(idx, 1);
+        }
+        
+        // Also remove from productCatalog if it exists there
+        const catalogId = id.startsWith('rc-') ? id.replace('rc-', '') : id;
+        const catalogIdx = productCatalog.findIndex((p) => p.id === catalogId);
+        if (catalogIdx !== -1) {
+          productCatalog.splice(catalogIdx, 1);
+        }
+        
+        setRateItems([...mockRateCard]);
+        alert('Rate card item successfully deleted from Firestore.');
+      } catch (err: any) {
+        console.error(err);
+        alert(`Failed to delete rate item: ${err.message || err}`);
+      }
     }
   };
 
@@ -286,32 +313,55 @@ export function ManagementPage() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-100 bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                  <th className="px-5 py-3">Product Name</th>
-                  <th className="px-5 py-3">Category</th>
-                  <th className="px-5 py-3">Unit</th>
-                  <th className="px-5 py-3">Unit Price</th>
-                  <th className="px-5 py-3">Version</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
+                  <th className="px-3 py-3 w-[30%]">Product Name</th>
+                  <th className="px-3 py-3 w-[18%]">Category</th>
+                  <th className="px-3 py-3 w-[12%]">Unit</th>
+                  <th className="px-3 py-3 w-[15%]">Unit Price</th>
+                  <th className="px-3 py-3 w-[8%]">Version</th>
+                  <th className="px-3 py-3 w-[8%]">Status</th>
+                  <th className="px-3 py-3 text-right w-[9%]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {rateItems.map((item) => (
                   <tr key={item.id} className={item.status === 'Archived' ? 'opacity-60 bg-slate-50/55' : ''}>
-                    <td className="px-5 py-4 font-bold text-ink">{item.name}</td>
-                    <td className="px-5 py-4"><Badge tone="neutral">{item.category}</Badge></td>
-                    <td className="px-5 py-4 text-slate-500">{item.unit}</td>
-                    <td className="px-5 py-4 font-semibold text-ink">{money.format(item.unitPrice)}</td>
-                    <td className="px-5 py-4 text-slate-500">{item.version}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-3.5 font-bold text-ink break-words">{item.name}</td>
+                    <td className="px-3 py-3.5"><Badge tone="neutral" className="whitespace-normal text-left">{item.category}</Badge></td>
+                    <td className="px-3 py-3.5 text-slate-500">{item.unit}</td>
+                    <td className="px-3 py-3.5 font-semibold text-ink">{money.format(item.unitPrice)}</td>
+                    <td className="px-3 py-3.5 text-slate-500">{item.version}</td>
+                    <td className="px-3 py-3.5">
                       <Badge tone={item.status === 'Active' ? 'teal' : 'neutral'}>{item.status}</Badge>
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="secondary" className="h-9 px-3" onClick={() => handleOpenEditRateModal(item)} aria-label={`Edit ${item.name}`}><Edit3 size={15} /> Edit</Button>
-                        <Button variant="secondary" className="h-9 px-3" onClick={() => handleToggleArchiveRate(item.id)} aria-label={`Archive ${item.name}`}>
-                          <Archive size={15} /> {item.status === 'Active' ? 'Archive' : 'Activate'}
-                        </Button>
+                    <td className="px-3 py-3.5">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditRateModal(item)}
+                          className="h-8 w-8 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-navy transition shadow-sm"
+                          aria-label={`Edit ${item.name}`}
+                          title="Edit"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleArchiveRate(item.id)}
+                          className="h-8 w-8 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-navy transition shadow-sm"
+                          aria-label={`Archive ${item.name}`}
+                          title={item.status === 'Active' ? 'Archive' : 'Activate'}
+                        >
+                          <Archive size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteRateItem(item.id)}
+                          className="h-8 w-8 flex items-center justify-center rounded-lg bg-danger text-white hover:bg-[#921616] transition shadow-sm"
+                          aria-label={`Delete ${item.name}`}
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -333,6 +383,9 @@ export function ManagementPage() {
                   <Button variant="secondary" className="flex-1" onClick={() => handleToggleArchiveRate(item.id)}>
                     <Archive size={15} /> {item.status === 'Active' ? 'Archive' : 'Activate'}
                   </Button>
+                  <Button variant="danger" className="flex-1" onClick={() => handleDeleteRateItem(item.id)}>
+                    <Trash2 size={15} /> Delete
+                  </Button>
                 </div>
               </article>
             ))}
@@ -350,33 +403,52 @@ export function ManagementPage() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-100 bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                  <th className="px-5 py-3">Full Name</th>
-                  <th className="px-5 py-3">Email Address</th>
-                  <th className="px-5 py-3">Access Role</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
+                  <th className="px-3 py-3 w-[25%]">Full Name</th>
+                  <th className="px-3 py-3 w-[35%]">Email Address</th>
+                  <th className="px-3 py-3 w-[18%]">Access Role</th>
+                  <th className="px-3 py-3 w-[12%]">Status</th>
+                  <th className="px-3 py-3 text-right w-[10%]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {users.map((item) => (
                   <tr key={item.id} className={item.status === 'Suspended' ? 'opacity-60 bg-slate-50/55' : ''}>
-                    <td className="px-5 py-4 font-bold text-ink">{item.name}</td>
-                    <td className="px-5 py-4 text-slate-600">{item.email}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-3.5 font-bold text-ink">{item.name}</td>
+                    <td className="px-3 py-3.5 text-slate-600 break-all">{item.email}</td>
+                    <td className="px-3 py-3.5">
                       <Badge tone={item.role === 'admin' ? 'gold' : item.role === 'adManager' ? 'navy' : 'teal'}>
                         {item.role}
                       </Badge>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-3.5">
                       <Badge tone={item.status === 'Active' ? 'teal' : 'danger'}>{item.status}</Badge>
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="secondary" className="h-9 px-3" onClick={() => handleOpenEditUserModal(item)}><Edit3 size={15} /> Edit</Button>
-                        <Button variant="secondary" className="h-9 px-3" onClick={() => handleToggleSuspendUser(item.id)}>
-                          {item.status === 'Active' ? 'Suspend' : 'Activate'}
-                        </Button>
-                        <Button variant="danger" className="h-9 px-3" onClick={() => handleDeleteUser(item.id)}><Trash2 size={15} /> Delete</Button>
+                    <td className="px-3 py-3.5">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditUserModal(item)}
+                          className="h-8 w-8 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-navy transition shadow-sm"
+                          title="Edit"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSuspendUser(item.id)}
+                          className="h-8 w-8 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-navy transition shadow-sm"
+                          title={item.status === 'Active' ? 'Suspend' : 'Activate'}
+                        >
+                          {item.status === 'Active' ? <ShieldAlert size={14} /> : <ShieldCheck size={14} />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteUser(item.id)}
+                          className="h-8 w-8 flex items-center justify-center rounded-lg bg-danger text-white hover:bg-[#921616] transition shadow-sm"
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </td>
                   </tr>
