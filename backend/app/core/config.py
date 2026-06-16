@@ -12,7 +12,9 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "https://kbc-digital-adboard.firebaseapp.com",
         "https://kbc-digital-adboard.web.app",
-        "https://kbc-digital-adboard.onrender.com"
+        "https://kbc-digital-adboard.onrender.com",
+        "https://kbc-digital-adboard.vercel.app",
+        "https://kbc-digital-adboard-frontend.vercel.app"
     ]
     SECRET_KEY: str = "your-secret-key"
     FIREBASE_WEB_API_KEY: str = "AIzaSyBUw-wWwidO9q-z35O0Z8ddcjBcMGtsMs8"

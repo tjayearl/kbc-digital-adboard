@@ -450,6 +450,7 @@ export function ManagementPage() {
                           <Trash2 size={14} />
                         </button>
                       </div>
+                       
                     </td>
                   </tr>
                 ))}

@@ -22,8 +22,8 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const currentUser = users.find((u) => u.id === currentUserId) || users[0];
-  const role = currentUser.role;
+  const currentUser = users.find((u) => u.email.toLowerCase() === user?.email?.toLowerCase()) || users.find((u) => u.id === currentUserId) || users[0];
+  const role = currentUser?.role || 'sales';
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -87,6 +87,14 @@ export default function App() {
                 status: u.active === false ? 'Suspended' : 'Active'
               }));
               setUsers(mappedUsers);
+
+              // Sync currentUserId with the backend user list to avoid mismatch
+              const backendMe = mappedUsers.find(
+                (u) => u.email.toLowerCase() === firebaseUser.email?.toLowerCase()
+              );
+              if (backendMe) {
+                setCurrentUserId(backendMe.id);
+              }
             } catch (e) {
               console.error('Failed to fetch real users from backend:', e);
             }
