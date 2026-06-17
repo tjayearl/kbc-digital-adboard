@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, CalendarDays, CheckSquare, Clock3, UploadCloud, FileText } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
@@ -27,6 +27,9 @@ export function OperationsPage() {
     id: '1',
     name: 'Summer Sale Campaign'
   });
+
+  // Reference to the hidden file input
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleValidationToggle = (item: keyof typeof validationChecked) => {
     setValidationChecked(prev => ({
@@ -84,6 +87,10 @@ export function OperationsPage() {
       setPodUploaded(true);
       alert(`POD uploaded successfully: ${file.name}`);
     }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
   };
 
   const handleGenerateReport = () => {
@@ -192,21 +199,20 @@ export function OperationsPage() {
             <input
               type="file"
               id="pod-upload"
+              ref={fileInputRef}
               className="hidden"
               accept="image/jpeg,image/png,image/jpg,application/pdf"
               onChange={handlePODUpload}
               disabled={!allValidationsChecked}
             />
-            <label htmlFor="pod-upload">
-              <Button 
-                variant="secondary" 
-                disabled={!allValidationsChecked}
-                onClick={() => {}}
-              >
-                <UploadCloud size={18} className="mr-2" />
-                {podUploaded ? 'Replace POD' : 'Upload POD'}
-              </Button>
-            </label>
+            <Button 
+              variant="secondary" 
+              disabled={!allValidationsChecked}
+              onClick={handleUploadClick}
+            >
+              <UploadCloud size={18} className="mr-2" />
+              {podUploaded ? 'Replace POD' : 'Upload POD'}
+            </Button>
             {!allValidationsChecked && (
               <p className="text-sm text-slate-500">Complete material validation first</p>
             )}
