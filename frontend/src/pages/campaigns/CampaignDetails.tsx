@@ -499,7 +499,7 @@ export function CampaignDetails() {
                   <Button onClick={handleSubmitForApproval}>Submit for Approval</Button>
                 </>
               )}
-              {['Discount Approved', 'Order Generated', 'Client Signed', 'Countersigned', 'Payment Confirmed', 'Brief Unlocked'].includes(campaign.status) && (
+              {['Countersigned', 'Payment Confirmed', 'Brief Unlocked'].includes(campaign.status) && (
                 <Button variant="secondary" onClick={() => setShowCoModal(true)}>Raise DAB-CO</Button>
               )}
               {campaign.status === 'Discount Approved' && (

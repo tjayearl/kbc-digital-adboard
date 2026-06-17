@@ -93,6 +93,13 @@ async def update_campaign(campaign_id: str, request: CreateCampaignRequest, user
     return {"message": "Campaign updated"}
 
 @router.delete("/{campaign_id}")
-async def delete_campaign(campaign_id: str, user=Depends(require_roles(["admin"]))):
-    db.collection("campaigns").document(campaign_id).delete()
+async def delete_campaign(campaign_id: str, user=Depends(require_roles(["sales", "admin"]))):
+    ref = db.collection("campaigns").document(campaign_id)
+    doc = ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    campaign = doc.to_dict()
+    if user.get("role") == "sales" and campaign.get("createdBy") != user["uid"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    ref.delete()
     return {"message": "Campaign deleted"}
