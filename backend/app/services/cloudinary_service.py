@@ -13,7 +13,7 @@ async def upload_pdf(pdf_bytes: bytes, public_id: str) -> str:
     result = cloudinary.uploader.upload(
         io.BytesIO(pdf_bytes),
         public_id=public_id,
-        resource_type="raw",
+        resource_type="auto",
         folder="dab/order-sheets",
         overwrite=True
     )
