@@ -236,7 +236,7 @@ export function mapFrontendCampaignToBackend(c: any) {
     percentage: discountPercent,
     approvedBy: (c as any).discount?.approvedBy || null,
     approvedAt: (c as any).discount?.approvedAt || null,
-    status: (c as any).discount?.status || 'pending',
+    status: discountPercent > 0 ? ((c as any).discount?.status || 'pending') : 'approved',
     reason: c.discountReason || (c as any).discount?.reason || ''
   };
 
