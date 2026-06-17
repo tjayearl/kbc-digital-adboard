@@ -2,8 +2,10 @@ export type Role = 'sales' | 'adManager' | 'digitalOps' | 'admin';
 
 export type CampaignStatus =
   | 'Draft'
+  | 'Campaign Configured'
   | 'Discount Pending'
   | 'Discount Approved'
+  | 'Discount Rejected'
   | 'Order Generated'
   | 'Client Signed'
   | 'Countersigned'

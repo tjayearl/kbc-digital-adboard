@@ -331,7 +331,7 @@ export function mapFrontendCampaignToBackend(c: any) {
     dec2: c.dec2 || false,
     dec3: c.dec3 || false,
     reportFile: c.reportFile,
-    status: c.status ? (c.status === 'Discount Pending' ? 'discountPending' : c.status === 'Draft' ? 'draft' : c.status === 'Discount Approved' ? 'discountApproved' : c.status === 'Order Generated' ? 'orderSheetGenerated' : c.status) : undefined,
+    status: c.status ? (c.status === 'Campaign Configured' ? 'campaignConfigured' : c.status === 'Discount Pending' ? 'discountPending' : c.status === 'Draft' ? 'draft' : c.status === 'Discount Approved' ? 'discountApproved' : c.status === 'Discount Rejected' ? 'discountRejected' : c.status === 'Order Generated' ? 'orderSheetGenerated' : c.status) : undefined,
     orderSheetPdfUrl: c.orderSheetPdfUrl || undefined
   };
 
@@ -342,8 +342,10 @@ export function mapBackendCampaignToFrontend(bc: any): Campaign {
   // Map backend status to frontend CampaignStatus
   const statusMap: Record<string, string> = {
     draft: 'Draft',
+    campaignConfigured: 'Campaign Configured',
     discountPending: 'Discount Pending',
     discountApproved: 'Discount Approved',
+    discountRejected: 'Discount Rejected',
     orderSheetGenerated: 'Order Generated',
     clientSigned: 'Client Signed',
     adManagerCountersigned: 'Countersigned',

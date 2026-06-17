@@ -34,7 +34,7 @@ async def get_pipeline(user=Depends(require_roles(["admin", "adManager"]))):
     pipeline = [{"id": c.id, **c.to_dict()} for c in campaigns]
     total_booked = sum(
         c.get("totals", {}).get("grandTotal", 0) for c in pipeline
-        if c.get("status") not in ["draft", "discountPending"]
+        if c.get("status") not in ["draft", "campaignConfigured", "discountPending", "discountRejected"]
     )
     total_discounts = sum(
         c.get("totals", {}).get("discountValue", 0) for c in pipeline
@@ -80,7 +80,7 @@ async def revenue_by_rep(user=Depends(require_roles(["admin", "adManager"]))):
     rep_revenue = {}
     for c in campaigns:
         data = c.to_dict()
-        if data.get("status") not in ["draft", "discountPending"]:
+        if data.get("status") not in ["draft", "campaignConfigured", "discountPending", "discountRejected"]:
             rep = data.get("createdBy", "unknown")
             total = data.get("totals", {}).get("grandTotal", 0)
             rep_revenue[rep] = rep_revenue.get(rep, 0) + total
