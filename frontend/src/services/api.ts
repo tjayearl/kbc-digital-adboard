@@ -330,7 +330,9 @@ export function mapFrontendCampaignToBackend(c: any) {
     dec1: c.dec1 || false,
     dec2: c.dec2 || false,
     dec3: c.dec3 || false,
-    reportFile: c.reportFile
+    reportFile: c.reportFile,
+    status: c.status ? (c.status === 'Discount Pending' ? 'discountPending' : c.status === 'Draft' ? 'draft' : c.status === 'Discount Approved' ? 'discountApproved' : c.status === 'Order Generated' ? 'orderSheetGenerated' : c.status) : undefined,
+    orderSheetPdfUrl: c.orderSheetPdfUrl || undefined
   };
 
   return payload;
@@ -387,6 +389,7 @@ export function mapBackendCampaignToFrontend(bc: any): Campaign {
     discountReason: bc.discount?.reason || bc.discountReason || '',
     paidDeposit: bc.payment?.confirmed || bc.paidDeposit || false,
     reportFile: bc.reportFile || undefined,
+    orderSheetPdfUrl: bc.orderSheetPdfUrl || '',
     
     // Wizard configurations
     bookingType: bc.bookingType || '',

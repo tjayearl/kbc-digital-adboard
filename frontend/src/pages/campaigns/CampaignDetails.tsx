@@ -6,7 +6,7 @@ import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { campaignTotals, lineTotal, money, productCatalog, rateCard, type Role, type Campaign, type AuditEvent } from '../../data/mockData';
 import { OrderSheetContent } from '../../components/campaigns/OrderSheetContent';
 import { FileText, Download, Upload, Trash2 } from 'lucide-react';
-import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder } from '../../services/api';
+import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet } from '../../services/api';
 
 const tabs = ['Overview', 'Pricing', 'Order Sheet', 'Gate Checks', 'Audit Log'];
 
@@ -23,6 +23,11 @@ export function CampaignDetails() {
   const [coQuantity, setCoQuantity] = useState(1);
   const [coScope, setCoScope] = useState('');
   const [updateCount, setUpdateCount] = useState(0);
+
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [discountPercent, setDiscountPercent] = useState(0);
+  const [discountReason, setDiscountReason] = useState('');
+  const [generating, setGenerating] = useState(false);
 
   const navigate = useNavigate();
 
@@ -134,41 +139,92 @@ export function CampaignDetails() {
 
   const handleDownloadPDF = () => {
     if (!campaign) return;
-    alert(`Downloading PDF for ${campaign.dabRef}...`);
-    const docText = `KBC Digital AdBoard Order Sheet - ${campaign.dabRef}\n` +
-      `==================================================\n` +
-      `Client Company: ${campaign.clientCompany}\n` +
-      `Client Contact: ${campaign.clientName}\n` +
-      `Campaign Name: ${campaign.name}\n` +
-      `Start Date: ${campaign.startDate}\n` +
-      `End Date: ${campaign.endDate}\n` +
-      `--------------------------------------------------\n` +
-      `Products Ordered:\n` +
-      campaign.products.map(p => ` - ${p.name}: ${p.quantity} ${p.unit} @ ${money.format(p.unitPrice)}`).join('\n') +
-      `\n--------------------------------------------------\n` +
-      `Subtotal: ${money.format(campaignTotals(campaign).subtotal)}\n` +
-      `VAT (16%): ${money.format(campaignTotals(campaign).vat)}\n` +
-      `Grand Total: ${money.format(campaignTotals(campaign).grandTotal)}\n`;
-    
-    const blob = new Blob([docText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${campaign.dabRef}_Order_Sheet.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
+    if (campaign.orderSheetPdfUrl) {
+      const link = document.createElement('a');
+      link.href = campaign.orderSheetPdfUrl;
+      link.target = '_blank';
+      link.download = `${campaign.dabRef}_Order_Sheet.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      alert("Order Sheet PDF has not been generated yet.");
+    }
   };
 
   const handlePrintPDF = () => {
-    window.print();
+    if (!campaign) return;
+    if (campaign.orderSheetPdfUrl) {
+      window.open(campaign.orderSheetPdfUrl, '_blank');
+    } else {
+      window.print();
+    }
   };
 
-  const handleSharePDF = () => {
+  const handleSharePDF = async () => {
     if (!campaign) return;
-    const email = prompt("Enter email address to share the Order Sheet PDF with:", campaign.clientEmail);
-    if (email) {
-      alert(`Order Sheet PDF for ${campaign.dabRef} shared successfully with ${email}!`);
+    const shareData = {
+      title: `KBC Digital AdBoard Order Sheet - ${campaign.dabRef}`,
+      text: `Please review the order sheet for campaign: ${campaign.name}`,
+      url: campaign.orderSheetPdfUrl || window.location.href,
+    };
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error("Error sharing:", err);
+      }
+    } else {
+      const email = prompt("Enter email address to share the Order Sheet PDF with:", campaign.clientEmail);
+      if (email) {
+        window.location.href = `mailto:${email}?subject=KBC Digital AdBoard Order Sheet - ${campaign.dabRef}&body=Hi,%0D%0A%0D%0APlease find the Order Sheet for the campaign "${campaign.name}" here: ${campaign.orderSheetPdfUrl || ''}%0D%0A%0D%0ABest regards.`;
+      }
     }
+  };
+
+  const handleGenerateOrderSheet = () => {
+    if (!campaign) return;
+    setGenerating(true);
+    generateOrderSheet(campaign.id)
+      .then((res) => {
+        alert("Order Sheet PDF generated successfully!");
+        setUpdateCount(prev => prev + 1);
+        setActiveTab('Order Sheet');
+      })
+      .catch((err) => {
+        console.error(err);
+        alert(`Failed to generate Order Sheet: ${err.message || err}`);
+      })
+      .finally(() => {
+        setGenerating(false);
+      });
+  };
+
+  const handleRequestDiscount = () => {
+    if (!campaign) return;
+    requestDiscount(campaign.id, discountPercent, discountReason)
+      .then(() => {
+        alert("Discount request submitted successfully!");
+        setShowDiscountModal(false);
+        setUpdateCount(prev => prev + 1);
+      })
+      .catch((err) => {
+        console.error(err);
+        alert(`Failed to request discount: ${err.message || err}`);
+      });
+  };
+
+  const handleSubmitForApproval = () => {
+    if (!campaign) return;
+    updateCampaign(campaign.id, { ...campaign, status: 'Discount Pending' })
+      .then(() => {
+        alert("Campaign submitted for approval successfully!");
+        setUpdateCount(prev => prev + 1);
+      })
+      .catch((err) => {
+        console.error(err);
+        alert(`Failed to submit campaign for approval: ${err.message || err}`);
+      });
   };
 
   if (loading) {
@@ -334,7 +390,10 @@ export function CampaignDetails() {
           </div>
         );
 
-      case 'Order Sheet':
+      case 'Order Sheet': {
+        const isApproved = campaign.status === 'Discount Approved';
+        const isGenerated = !!campaign.orderSheetPdfUrl || ['Order Generated', 'Client Signed', 'Countersigned', 'Payment Confirmed', 'Brief Unlocked'].includes(campaign.status);
+
         return (
           <div className="space-y-6">
             <Card>
@@ -345,17 +404,34 @@ export function CampaignDetails() {
 
             <Card>
               <CardHeader>
-                <h3 className="text-lg font-bold text-ink">Locked PDF actions</h3>
+                <h3 className="text-lg font-bold text-ink">Order Sheet PDF Actions</h3>
                 <p className="mt-1 text-sm text-slate-500">{campaign.dabRef}</p>
               </CardHeader>
-              <CardBody className="flex flex-col gap-3 sm:flex-row">
-                <Button className="w-full sm:w-auto" onClick={handleDownloadPDF}>Download PDF</Button>
-                <Button variant="secondary" className="w-full sm:w-auto" onClick={handlePrintPDF}>Print PDF</Button>
-                <Button variant="secondary" className="w-full sm:w-auto" onClick={handleSharePDF}>Share PDF</Button>
+              <CardBody className="flex flex-col gap-3 sm:flex-row items-center">
+                {isGenerated ? (
+                  <>
+                    <Button className="w-full sm:w-auto" onClick={handleDownloadPDF}>Download PDF</Button>
+                    <Button variant="secondary" className="w-full sm:w-auto" onClick={handlePrintPDF}>Print PDF</Button>
+                    <Button variant="secondary" className="w-full sm:w-auto" onClick={handleSharePDF}>Share PDF</Button>
+                  </>
+                ) : isApproved ? (
+                  <Button 
+                    className="w-full sm:w-auto" 
+                    onClick={handleGenerateOrderSheet}
+                    disabled={generating}
+                  >
+                    {generating ? 'Generating PDF...' : 'Generate Order Sheet PDF'}
+                  </Button>
+                ) : (
+                  <p className="text-sm text-amber-600 font-semibold">
+                    The campaign must be approved by the Advertising Manager before the Order Sheet PDF can be generated. Current status: {campaign.status}.
+                  </p>
+                )}
               </CardBody>
             </Card>
           </div>
         );
+      }
 
       case 'Gate Checks':
         return (
@@ -413,8 +489,18 @@ export function CampaignDetails() {
                 <Button variant="secondary">Edit Campaign</Button>
               </Link>
               <Button variant="danger" onClick={handleDeleteCampaign}>Delete</Button>
-              <Button variant="secondary" onClick={() => setShowCoModal(true)}>Raise DAB-CO</Button>
-              <Button onClick={() => setActiveTab('Order Sheet')}>Generate Order Sheet</Button>
+              {campaign.status === 'Draft' && (
+                <>
+                  <Button variant="secondary" onClick={() => setShowDiscountModal(true)}>Request Discount</Button>
+                  <Button onClick={handleSubmitForApproval}>Submit for Approval</Button>
+                </>
+              )}
+              {['Discount Approved', 'Order Generated', 'Client Signed', 'Countersigned', 'Payment Confirmed', 'Brief Unlocked'].includes(campaign.status) && (
+                <Button variant="secondary" onClick={() => setShowCoModal(true)}>Raise DAB-CO</Button>
+              )}
+              {campaign.status === 'Discount Approved' && (
+                <Button onClick={() => setActiveTab('Order Sheet')}>Generate Order Sheet</Button>
+              )}
             </>
           )}
         </div>
@@ -550,6 +636,56 @@ export function CampaignDetails() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showDiscountModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-xl flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
+              <h3 className="text-lg font-bold text-ink">Request Discount</h3>
+              <button
+                type="button"
+                onClick={() => setShowDiscountModal(false)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="my-4 space-y-4 overflow-y-auto pr-1">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700">Discount Percentage (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  className="mt-1 min-h-12 w-full rounded-lg border border-slate-200 px-3 text-sm focus:border-gold focus:ring-2 focus:ring-gold/20"
+                  placeholder="e.g. 10"
+                  value={discountPercent}
+                  onChange={(e) => setDiscountPercent(parseFloat(e.target.value) || 0)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700">Reason for Discount</label>
+                <textarea
+                  rows={4}
+                  className="mt-1 w-full rounded-lg border border-slate-200 p-3 text-sm focus:border-gold focus:ring-2 focus:ring-gold/20"
+                  placeholder="Provide justification for the requested discount..."
+                  value={discountReason}
+                  onChange={(e) => setDiscountReason(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 shrink-0">
+              <Button variant="secondary" onClick={() => setShowDiscountModal(false)}>Cancel</Button>
+              <Button onClick={handleRequestDiscount} disabled={discountPercent <= 0 || !discountReason}>
+                Submit Request
+              </Button>
+            </div>
           </div>
         </div>
       )}

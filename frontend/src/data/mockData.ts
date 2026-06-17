@@ -53,6 +53,7 @@ export type Campaign = {
   discountReason?: string;
   paidDeposit: boolean;
   reportFile?: string;
+  orderSheetPdfUrl?: string;
   // Wizard configuration state properties
   kraPin?: string;
   bookingType?: string;

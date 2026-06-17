@@ -69,6 +69,7 @@ class CreateCampaignRequest(BaseModel):
     discount: Discount
     totals: Totals
     bookingType: Optional[str] = None
+    status: Optional[str] = None
 
 class UpdateCampaignStatusRequest(BaseModel):
     status: CampaignStatus

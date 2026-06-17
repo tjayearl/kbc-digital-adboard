@@ -16,8 +16,8 @@ async def generate_order_sheet(campaign_id: str, user=Depends(require_roles(["sa
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Campaign not found")
     campaign = doc.to_dict()
-    if campaign.get("status") not in ["draft", "discountApproved"]:
-        raise HTTPException(status_code=400, detail="Campaign must be in draft or discountApproved status")
+    if campaign.get("status") not in ["discountApproved"]:
+        raise HTTPException(status_code=400, detail="Campaign must be approved before generating Order Sheet")
     if campaign.get("discount", {}).get("status") == "pending":
         raise HTTPException(status_code=400, detail="Cannot generate Order Sheet while discount is pending")
     

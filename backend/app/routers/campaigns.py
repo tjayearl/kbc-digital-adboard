@@ -25,11 +25,11 @@ async def create_campaign(request: CreateCampaignRequest, user=Depends(require_r
         **request.dict(),
         "totals": {"subtotal": subtotal, "vatAmount": vat, "grandTotal": grand_total,
                    "discountValue": request.totals.discountValue},
-        "status": "draft", "createdBy": user["uid"], "createdAt": now, "updatedAt": now,
+        "status": request.status or "draft", "createdBy": user["uid"], "createdAt": now, "updatedAt": now,
     }
     ref = db.collection("campaigns").add(campaign_data)
     campaign_id = ref[1].id
-    await log_action(campaign_id, "CAMPAIGN_CREATED", user["uid"], user.get("role", ""), "Campaign created in draft")
+    await log_action(campaign_id, "CAMPAIGN_CREATED", user["uid"], user.get("role", ""), f"Campaign created in status {request.status or 'draft'}")
     return {"message": "Campaign created", "campaignId": campaign_id}
 
 @router.get("/")
@@ -84,11 +84,12 @@ async def update_campaign(campaign_id: str, request: CreateCampaignRequest, user
         **request.dict(),
         "totals": {"subtotal": subtotal, "vatAmount": vat, "grandTotal": grand_total,
                    "discountValue": request.totals.discountValue},
+        "status": request.status or campaign.get("status", "draft"),
         "updatedAt": now,
     }
     
     ref.update(campaign_data)
-    await log_action(campaign_id, "CAMPAIGN_UPDATED", user["uid"], user.get("role", ""), "Campaign details updated")
+    await log_action(campaign_id, "CAMPAIGN_UPDATED", user["uid"], user.get("role", ""), f"Campaign details updated. Status: {request.status or campaign.get('status')}")
     return {"message": "Campaign updated"}
 
 @router.delete("/{campaign_id}")

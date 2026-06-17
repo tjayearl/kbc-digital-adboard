@@ -66,39 +66,47 @@ export function OrdersPage() {
   };
 
   const handleDownloadPDF = () => {
-    alert(`Downloading PDF for ${campaign.dabRef}...`);
-    const docText = `KBC Digital AdBoard Order Sheet - ${campaign.dabRef}\n` +
-      `==================================================\n` +
-      `Client Company: ${campaign.clientCompany}\n` +
-      `Client Contact: ${campaign.clientName}\n` +
-      `Campaign Name: ${campaign.name}\n` +
-      `Start Date: ${campaign.startDate}\n` +
-      `End Date: ${campaign.endDate}\n` +
-      `--------------------------------------------------\n` +
-      `Products Ordered:\n` +
-      campaign.products.map(p => ` - ${p.name}: ${p.quantity} ${p.unit} @ ${money.format(p.unitPrice)}`).join('\n') +
-      `\n--------------------------------------------------\n` +
-      `Subtotal: ${money.format(campaignTotals(campaign).subtotal)}\n` +
-      `VAT (16%): ${money.format(campaignTotals(campaign).vat)}\n` +
-      `Grand Total: ${money.format(campaignTotals(campaign).grandTotal)}\n`;
-    
-    const blob = new Blob([docText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${campaign.dabRef}_Order_Sheet.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
+    if (!campaign) return;
+    if (campaign.orderSheetPdfUrl) {
+      const link = document.createElement('a');
+      link.href = campaign.orderSheetPdfUrl;
+      link.target = '_blank';
+      link.download = `${campaign.dabRef}_Order_Sheet.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      alert("Order Sheet PDF has not been generated yet.");
+    }
   };
 
   const handlePrintPDF = () => {
-    window.print();
+    if (!campaign) return;
+    if (campaign.orderSheetPdfUrl) {
+      window.open(campaign.orderSheetPdfUrl, '_blank');
+    } else {
+      window.print();
+    }
   };
 
-  const handleSharePDF = () => {
-    const email = prompt("Enter email address to share the Order Sheet PDF with:", campaign.clientEmail);
-    if (email) {
-      alert(`Order Sheet PDF for ${campaign.dabRef} shared successfully with ${email}!`);
+  const handleSharePDF = async () => {
+    if (!campaign) return;
+    const shareData = {
+      title: `KBC Digital AdBoard Order Sheet - ${campaign.dabRef}`,
+      text: `Please review the order sheet for campaign: ${campaign.name}`,
+      url: campaign.orderSheetPdfUrl || window.location.href,
+    };
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error("Error sharing:", err);
+      }
+    } else {
+      const email = prompt("Enter email address to share the Order Sheet PDF with:", campaign.clientEmail);
+      if (email) {
+        window.location.href = `mailto:${email}?subject=KBC Digital AdBoard Order Sheet - ${campaign.dabRef}&body=Hi,%0D%0A%0D%0APlease find the Order Sheet for the campaign "${campaign.name}" here: ${campaign.orderSheetPdfUrl || ''}%0D%0A%0D%0ABest regards.`;
+      }
     }
   };
 
@@ -141,18 +149,28 @@ export function OrdersPage() {
           <p className="mt-1 text-sm text-slate-500">{campaign.dabRef}</p>
         </CardHeader>
         <CardBody className="grid gap-3 sm:grid-cols-3">
-          <Button onClick={handleDownloadPDF}>
-            <Download size={18} />
-            Download PDF
-          </Button>
-          <Button variant="secondary" onClick={handlePrintPDF}>
-            <Printer size={18} />
-            Print PDF
-          </Button>
-          <Button variant="secondary" onClick={handleSharePDF}>
-            <Share2 size={18} />
-            Share PDF
-          </Button>
+          {campaign.orderSheetPdfUrl ? (
+            <>
+              <Button onClick={handleDownloadPDF}>
+                <Download size={18} />
+                Download PDF
+              </Button>
+              <Button variant="secondary" onClick={handlePrintPDF}>
+                <Printer size={18} />
+                Print PDF
+              </Button>
+              <Button variant="secondary" onClick={handleSharePDF}>
+                <Share2 size={18} />
+                Share PDF
+              </Button>
+            </>
+          ) : (
+            <div className="col-span-3 text-center py-4 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-sm font-semibold text-amber-800">
+                Order Sheet PDF has not been generated yet for this campaign.
+              </p>
+            </div>
+          )}
         </CardBody>
       </Card>
     </div>

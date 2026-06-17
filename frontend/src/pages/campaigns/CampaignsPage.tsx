@@ -39,7 +39,12 @@ export function CampaignsPage() {
     const query = searchQuery.trim().toLowerCase();
     let list = campaignList;
     if (role === 'sales') {
-      list = campaignList.filter((c) => c.owner === currentUser?.name || c.owner === `usr-fb-${currentUser?.id}` || c.owner === currentUser?.email);
+      list = campaignList.filter((c) => 
+        c.owner === currentUser?.name || 
+        c.owner === currentUser?.id || 
+        c.owner === currentUser?.id?.replace('usr-fb-', '') || 
+        c.owner === currentUser?.email
+      );
     } else if (role === 'digitalOps') {
       list = campaignList.filter((c) => c.status === 'Brief Unlocked');
     }
