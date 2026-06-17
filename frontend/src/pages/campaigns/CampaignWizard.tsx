@@ -136,6 +136,8 @@ export function CampaignWizard() {
   const [dec1, setDec1] = useState(false);
   const [dec2, setDec2] = useState(false);
   const [dec3, setDec3] = useState(false);
+  const [discountPercent, setDiscountPercent] = useState<number>(0);
+  const [discountReason, setDiscountReason] = useState<string>('');
 
   // Load existing campaign data if in edit mode
   useEffect(() => {
@@ -210,6 +212,8 @@ export function CampaignWizard() {
           setDec1(existing.dec1 || false);
           setDec2(existing.dec2 || false);
           setDec3(existing.dec3 || false);
+          setDiscountPercent(existing.discountPercent || 0);
+          setDiscountReason(existing.discountReason || '');
         })
         .catch((err) => {
           console.error(err);
@@ -419,9 +423,9 @@ export function CampaignWizard() {
   const totals = useMemo(() => {
     return campaignTotals({
       products: selectedProducts,
-      discountPercent: 0,
+      discountPercent: discountPercent,
     } as any);
-  }, [selectedProducts]);
+  }, [selectedProducts, discountPercent]);
 
   const groupedProducts = useMemo(
     () =>
@@ -460,6 +464,9 @@ export function CampaignWizard() {
     if (selectedProducts.length === 0) {
       missing.push('At least one product must be selected in the Product Configurator');
     }
+    if (discountPercent > 0 && !discountReason.trim()) {
+      missing.push('Reason for discount request (required when discount percentage is greater than 0%)');
+    }
 
     if (missing.length > 0) {
       alert(`Please fill in all required fields before submitting:\n- ${missing.join('\n- ')}`);
@@ -483,8 +490,9 @@ export function CampaignWizard() {
         startDate: startDate,
         endDate: endDate,
         owner: currentUser?.name || 'Grace Mwangi',
-        status: 'Discount Approved' as const,
-        discountPercent: 0,
+        status: (discountPercent > 0 ? 'Discount Pending' : 'Discount Approved') as any,
+        discountPercent: discountPercent,
+        discountReason: discountReason,
         paidDeposit: false,
         products: selectedProducts,
         // Wizard states
@@ -576,8 +584,9 @@ export function CampaignWizard() {
       startDate: startDate,
       endDate: endDate,
       owner: currentUser?.name || 'Grace Mwangi',
-      status: 'Discount Approved' as const,
-      discountPercent: 0,
+      status: (discountPercent > 0 ? 'Discount Pending' : 'Discount Approved') as any,
+      discountPercent: discountPercent,
+      discountReason: discountReason,
       paidDeposit: false,
       products: selectedProducts,
       // Wizard states
@@ -667,7 +676,8 @@ export function CampaignWizard() {
         endDate: endDate,
         owner: currentUser?.name || 'Grace Mwangi',
         status: 'Draft' as const,
-        discountPercent: 0,
+        discountPercent: discountPercent,
+        discountReason: discountReason,
         paidDeposit: false,
         products: selectedProducts,
         // Wizard states
@@ -759,7 +769,8 @@ export function CampaignWizard() {
       endDate: endDate,
       owner: currentUser?.name || 'Grace Mwangi',
       status: 'Draft' as const,
-      discountPercent: 0,
+      discountPercent: discountPercent,
+      discountReason: discountReason,
       paidDeposit: false,
       products: selectedProducts,
       // Wizard states
@@ -1911,6 +1922,34 @@ export function CampaignWizard() {
           <h3 className="text-lg font-bold text-ink">5. Declaration and order handoff</h3>
         </CardHeader>
         <CardBody className="space-y-4">
+          <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-4 space-y-4 mb-6">
+            <h4 className="text-sm font-bold text-ink">Discount Request (Optional)</h4>
+            <p className="text-xs text-slate-500">Salespersons can request a discount on behalf of the client. This will require Ad Manager / Finance approval. If 0%, the discount is auto-approved.</p>
+            <div className="grid gap-4 md:grid-cols-3 items-start">
+              <InputField
+                label="Requested Discount (%)"
+                type="number"
+                min="0"
+                max="100"
+                value={discountPercent || ''}
+                onChange={(e) => {
+                  const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                  setDiscountPercent(val);
+                }}
+                placeholder="e.g. 10"
+              />
+              <div className="md:col-span-2">
+                <TextareaField
+                  label="Reason for discount request"
+                  value={discountReason}
+                  onChange={(e) => setDiscountReason(e.target.value)}
+                  placeholder="e.g. Volume discount for high budget campaign, strategic partner account..."
+                  hint={discountPercent > 0 ? "Reason is required when discount is requested" : "Optional"}
+                />
+              </div>
+            </div>
+          </div>
+
           <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-4 text-sm font-semibold text-slate-700">
             <input type="checkbox" className="mt-0.5 h-5 w-5 rounded border-slate-300 text-navy focus:ring-gold" checked={dec1} onChange={(e) => setDec1(e.target.checked)} />
             <span>Information provided is accurate and authorised by the organisation.</span>

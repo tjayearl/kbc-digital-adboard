@@ -68,13 +68,31 @@ export function OrdersPage() {
   const handleDownloadPDF = () => {
     if (!campaign) return;
     if (campaign.orderSheetPdfUrl) {
-      const link = document.createElement('a');
-      link.href = campaign.orderSheetPdfUrl;
-      link.target = '_blank';
-      link.download = `${campaign.dabRef}_Order_Sheet.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      fetch(campaign.orderSheetPdfUrl)
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.blob();
+        })
+        .then(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = `${campaign.dabRef}_Order_Sheet.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        })
+        .catch(err => {
+          console.error("Failed to download PDF directly:", err);
+          const link = document.createElement('a');
+          link.href = campaign.orderSheetPdfUrl!;
+          link.target = '_blank';
+          link.download = `${campaign.dabRef}_Order_Sheet.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
     } else {
       alert("Order Sheet PDF has not been generated yet.");
     }

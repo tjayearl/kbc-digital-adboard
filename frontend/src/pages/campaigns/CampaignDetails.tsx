@@ -140,13 +140,31 @@ export function CampaignDetails() {
   const handleDownloadPDF = () => {
     if (!campaign) return;
     if (campaign.orderSheetPdfUrl) {
-      const link = document.createElement('a');
-      link.href = campaign.orderSheetPdfUrl;
-      link.target = '_blank';
-      link.download = `${campaign.dabRef}_Order_Sheet.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      fetch(campaign.orderSheetPdfUrl)
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.blob();
+        })
+        .then(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = `${campaign.dabRef}_Order_Sheet.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        })
+        .catch(err => {
+          console.error("Failed to download PDF directly:", err);
+          const link = document.createElement('a');
+          link.href = campaign.orderSheetPdfUrl!;
+          link.target = '_blank';
+          link.download = `${campaign.dabRef}_Order_Sheet.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
     } else {
       alert("Order Sheet PDF has not been generated yet.");
     }
@@ -187,9 +205,30 @@ export function CampaignDetails() {
     setGenerating(true);
     generateOrderSheet(campaign.id)
       .then((res) => {
-        alert("Order Sheet PDF generated successfully!");
+        alert("Order Sheet PDF generated successfully! Starting download...");
         setUpdateCount(prev => prev + 1);
-        setActiveTab('Order Sheet');
+        
+        if (res.pdfUrl) {
+          fetch(res.pdfUrl)
+            .then(fetchRes => {
+              if (!fetchRes.ok) throw new Error(`HTTP error! status: ${fetchRes.status}`);
+              return fetchRes.blob();
+            })
+            .then(blob => {
+              const blobUrl = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = blobUrl;
+              link.download = `${res.dabRef || campaign.dabRef}_Order_Sheet.pdf`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(blobUrl);
+            })
+            .catch(err => {
+              console.error("Failed to download PDF directly:", err);
+              window.open(res.pdfUrl, '_blank');
+            });
+        }
       })
       .catch((err) => {
         console.error(err);
