@@ -216,14 +216,18 @@ export function CampaignDetails() {
 
   const handleSubmitForApproval = () => {
     if (!campaign) return;
-    updateCampaign(campaign.id, { ...campaign, status: 'Discount Pending' })
+    const targetStatus = (campaign.discountPercent || 0) > 0 ? 'Discount Pending' : 'Discount Approved';
+    updateCampaign(campaign.id, { ...campaign, status: targetStatus })
       .then(() => {
-        alert("Campaign submitted for approval successfully!");
+        alert(targetStatus === 'Discount Pending' 
+          ? "Campaign submitted for discount approval successfully!" 
+          : "Campaign finalized successfully! You can now generate the Order Sheet."
+        );
         setUpdateCount(prev => prev + 1);
       })
       .catch((err) => {
         console.error(err);
-        alert(`Failed to submit campaign for approval: ${err.message || err}`);
+        alert(`Failed to submit campaign: ${err.message || err}`);
       });
   };
 
