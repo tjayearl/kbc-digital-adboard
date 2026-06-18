@@ -25,6 +25,24 @@ async def generate_order_sheet(campaign_id: str, user=Depends(require_roles(["sa
     campaign["dabRef"] = dab_ref
     pdf_bytes = generate_order_sheet_pdf(campaign)
     pdf_url = await upload_pdf(pdf_bytes, f"{dab_ref}")
+
+        # 🔥 ADD THIS: Generate and save Airtime Serial to Firestore
+    import uuid
+    airtime_serial = f"ATO-2026-{str(uuid.uuid4())[:8].upper()}"
+    
+    # Save to airtimeOrders collection
+    airtime_ref = db.collection("airtimeOrders").document()
+    airtime_ref.set({
+        "serial": airtime_serial,
+        "loadedBy": user["uid"],
+        "loadedAt": datetime.now(timezone.utc).isoformat(),
+        "matched": False,
+        "matchedAt": None,
+        "campaignId": campaign_id
+    })
+    
+    # Also save to campaign
+    campaign["airtimeSerial"] = airtime_serial
     
     now = datetime.now(timezone.utc).isoformat()
     ref.update({"dabRef": dab_ref, "orderSheetPdfUrl": pdf_url, "status": "orderSheetGenerated", "updatedAt": now})

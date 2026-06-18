@@ -63,6 +63,38 @@ const fallbackRateCard = [
   {"id": "rc-app-vid15", "category": "Mobile App Advertising", "name": "App Video Advert 15 Seconds", "platform": "KBC App", "unit": "per video per month", "unitPrice": 275000}
 ];
 
+// ============================================================
+// 🆕 FRONTEND TO BACKEND STATUS MAPPING (FIX)
+// ============================================================
+const FRONTEND_TO_BACKEND_STATUS: Record<string, string> = {
+  'Draft': 'draft',
+  'Campaign Configured': 'campaignConfigured',
+  'Discount Pending': 'discountPending',
+  'Discount Approved': 'discountApproved',
+  'Discount Rejected': 'discountRejected',
+  'Order Generated': 'orderSheetGenerated',
+  'Client Signed': 'clientSigned',
+  'Countersigned': 'adManagerCountersigned',
+  'Payment Confirmed': 'paymentConfirmed',
+  'Brief Unlocked': 'briefUnlocked',
+};
+
+// ============================================================
+// BACKEND TO FRONTEND STATUS MAPPING
+// ============================================================
+const BACKEND_TO_FRONTEND_STATUS: Record<string, string> = {
+  draft: 'Draft',
+  campaignConfigured: 'Campaign Configured',
+  discountPending: 'Discount Pending',
+  discountApproved: 'Discount Approved',
+  discountRejected: 'Discount Rejected',
+  orderSheetGenerated: 'Order Generated',
+  clientSigned: 'Client Signed',
+  adManagerCountersigned: 'Countersigned',
+  paymentConfirmed: 'Payment Confirmed',
+  briefUnlocked: 'Brief Unlocked',
+};
+
 export function matchFrontendProductToBackend(p: any, rateCardItems: any[]): any {
   const items = rateCardItems && rateCardItems.length > 0 ? rateCardItems : fallbackRateCard;
 
@@ -158,7 +190,6 @@ export function mapBackendRateCardToFrontendCatalog(item: any): ProductCatalogIt
 
   const category = categoryMap[item.category] || 'Social Media';
 
-  // Map description and fields dynamically or using default placeholders
   let fields: string[] = [];
   if (category === 'Social Media') {
     fields = ['Platforms', 'Start date', 'End date', 'Posts per day', 'Language', 'Boosting option'];
@@ -239,6 +270,9 @@ export function mapFrontendCampaignToBackend(c: any) {
     status: discountPercent > 0 ? ((c as any).discount?.status || 'pending') : 'approved',
     reason: c.discountReason || (c as any).discount?.reason || ''
   };
+
+  // 🆕 FIX: Map frontend status to backend status
+  const backendStatus = c.status ? FRONTEND_TO_BACKEND_STATUS[c.status] || c.status : undefined;
 
   const payload = {
     client: {
@@ -331,7 +365,7 @@ export function mapFrontendCampaignToBackend(c: any) {
     dec2: c.dec2 || false,
     dec3: c.dec3 || false,
     reportFile: c.reportFile,
-    status: c.status ? (c.status === 'Campaign Configured' ? 'campaignConfigured' : c.status === 'Discount Pending' ? 'discountPending' : c.status === 'Draft' ? 'draft' : c.status === 'Discount Approved' ? 'discountApproved' : c.status === 'Discount Rejected' ? 'discountRejected' : c.status === 'Order Generated' ? 'orderSheetGenerated' : c.status) : undefined,
+    status: backendStatus, // 🆕 FIX: Use mapped status
     orderSheetPdfUrl: c.orderSheetPdfUrl || undefined
   };
 
@@ -339,25 +373,8 @@ export function mapFrontendCampaignToBackend(c: any) {
 }
 
 export function mapBackendCampaignToFrontend(bc: any): Campaign {
-  // Map backend status to frontend CampaignStatus
-  const statusMap: Record<string, string> = {
-    draft: 'Draft',
-    campaignConfigured: 'Campaign Configured',
-    discountPending: 'Discount Pending',
-    discountApproved: 'Discount Approved',
-    discountRejected: 'Discount Rejected',
-    orderSheetGenerated: 'Order Generated',
-    clientSigned: 'Client Signed',
-    adManagerCountersigned: 'Countersigned',
-    paymentConfirmed: 'Payment Confirmed',
-    briefUnlocked: 'Brief Unlocked',
-    inExecution: 'Brief Unlocked',
-    delivered: 'Brief Unlocked',
-    reported: 'Brief Unlocked',
-    closed: 'Brief Unlocked',
-  };
-
-  const status = statusMap[bc.status] || bc.status || 'Draft';
+  // 🆕 FIX: Use the mapping
+  const status = bc.status ? BACKEND_TO_FRONTEND_STATUS[bc.status] || bc.status : 'Draft';
 
   const products = (bc.lineItems || []).map((item: any) => {
     return {
@@ -608,13 +625,14 @@ export async function generateOrderSheet(campaignId: string): Promise<{ message:
   }
 }
 
+// 🆕 FIX: Upload signed sheet and update status
 export async function uploadSignedSheet(campaignId: string, airtimeOrderSerial: string, file: File): Promise<any> {
   try {
     const formData = new FormData();
     formData.append('airtimeOrderSerial', airtimeOrderSerial);
     formData.append('file', file);
 
-    const headers = await getAuthHeaders(true); // multipart
+    const headers = await getAuthHeaders(true);
     const res = await fetch(`${BASE_URL}/order-sheet/${campaignId}/upload-signed`, {
       method: 'POST',
       headers,
@@ -624,13 +642,22 @@ export async function uploadSignedSheet(campaignId: string, airtimeOrderSerial: 
       const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
       throw new Error(err.detail || `HTTP ${res.status}`);
     }
-    return await res.json();
+    
+    const result = await res.json();
+    
+    // 🆕 After successful upload, update the campaign status to 'Client Signed'
+    await updateCampaign(campaignId, { 
+      status: 'Client Signed' 
+    } as any);
+    
+    return result;
   } catch (error) {
     console.error(`Failed to upload signed sheet for ${campaignId}:`, error);
     throw error;
   }
 }
 
+// 🆕 FIX: Countersign order sheet (backend should handle status update)
 export async function countersignOrderSheet(campaignId: string): Promise<any> {
   try {
     const res = await fetch(`${BASE_URL}/order-sheet/${campaignId}/countersign`, {
@@ -641,13 +668,22 @@ export async function countersignOrderSheet(campaignId: string): Promise<any> {
       const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
       throw new Error(err.detail || `HTTP ${res.status}`);
     }
-    return await res.json();
+    const result = await res.json();
+    
+    // 🆕 Ensure status is updated to 'Countersigned' on frontend
+    // (Backend should already do this, but just to be safe)
+    await updateCampaign(campaignId, { 
+      status: 'Countersigned' 
+    } as any);
+    
+    return result;
   } catch (error) {
     console.error(`Failed to countersign order sheet for ${campaignId}:`, error);
     throw error;
   }
 }
 
+// 🆕 FIX: Confirm payment (backend should handle status update)
 export async function confirmPayment(campaignId: string): Promise<any> {
   try {
     const res = await fetch(`${BASE_URL}/order-sheet/${campaignId}/confirm-payment`, {
@@ -658,7 +694,15 @@ export async function confirmPayment(campaignId: string): Promise<any> {
       const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
       throw new Error(err.detail || `HTTP ${res.status}`);
     }
-    return await res.json();
+    const result = await res.json();
+    
+    // 🆕 Ensure status is updated to 'Payment Confirmed' on frontend
+    // (Backend should already do this, but just to be safe)
+    await updateCampaign(campaignId, { 
+      status: 'Payment Confirmed' 
+    } as any);
+    
+    return result;
   } catch (error) {
     console.error(`Failed to confirm payment for ${campaignId}:`, error);
     throw error;
@@ -671,7 +715,7 @@ export async function uploadPod(campaignId: string, file: File, note = ''): Prom
     formData.append('file', file);
     formData.append('note', note);
 
-    const headers = await getAuthHeaders(true); // multipart
+    const headers = await getAuthHeaders(true);
     const res = await fetch(`${BASE_URL}/execution/${campaignId}/pod`, {
       method: 'POST',
       headers,
@@ -684,6 +728,26 @@ export async function uploadPod(campaignId: string, file: File, note = ''): Prom
     return await res.json();
   } catch (error) {
     console.error(`Failed to upload POD for ${campaignId}:`, error);
+    throw error;
+  }
+}
+// ============================================================
+// DIGITAL OPS - GENERATE REPORT
+// ============================================================
+
+export async function generateReport(campaignId: string): Promise<{ reportId: string; message: string; reportUrl?: string }> {
+  try {
+    const res = await fetch(`${BASE_URL}/execution/${campaignId}/report`, {
+      method: 'POST',
+      headers: await getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error(`Failed to generate report for ${campaignId}:`, error);
     throw error;
   }
 }
