@@ -625,7 +625,6 @@ export async function generateOrderSheet(campaignId: string): Promise<{ message:
   }
 }
 
-<<<<<<< HEAD
 export async function downloadOrderSheetPdf(campaignId: string): Promise<Blob> {
   try {
     const res = await fetch(`${BASE_URL}/order-sheet/${campaignId}/download`, {
@@ -642,9 +641,6 @@ export async function downloadOrderSheetPdf(campaignId: string): Promise<Blob> {
   }
 }
 
-=======
-// 🆕 FIX: Upload signed sheet and update status
->>>>>>> 3f5d0f6ae4c9820cf5fd61828662a4b746a2d3e6
 export async function uploadSignedSheet(campaignId: string, airtimeOrderSerial: string, file: File): Promise<any> {
   try {
     const formData = new FormData();
