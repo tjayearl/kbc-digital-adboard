@@ -608,6 +608,22 @@ export async function generateOrderSheet(campaignId: string): Promise<{ message:
   }
 }
 
+export async function downloadOrderSheetPdf(campaignId: string): Promise<Blob> {
+  try {
+    const res = await fetch(`${BASE_URL}/order-sheet/${campaignId}/download`, {
+      headers: await getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.blob();
+  } catch (error) {
+    console.error(`Failed to download order sheet PDF for ${campaignId}:`, error);
+    throw error;
+  }
+}
+
 export async function uploadSignedSheet(campaignId: string, airtimeOrderSerial: string, file: File): Promise<any> {
   try {
     const formData = new FormData();
