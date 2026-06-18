@@ -10,7 +10,12 @@ export type CampaignStatus =
   | 'Client Signed'
   | 'Countersigned'
   | 'Payment Confirmed'
-  | 'Brief Unlocked';
+  | 'Brief Unlocked'
+  | 'Ready for Execution'
+  | 'Scheduled'
+  | 'Live'
+  | 'POD_UPLOADED'
+  | 'Delivered';
 
 export type ProductCategory =
   | 'Social Media'
