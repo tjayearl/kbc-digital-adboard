@@ -25,11 +25,11 @@ async def create_campaign(request: CreateCampaignRequest, user=Depends(require_r
         **request.dict(),
         "totals": {"subtotal": subtotal, "vatAmount": vat, "grandTotal": grand_total,
                    "discountValue": request.totals.discountValue},
-        "status": request.status or "draft", "createdBy": user["uid"], "createdAt": now, "updatedAt": now,
+        "status": request.status or "campaignConfigured", "createdBy": user["uid"], "createdAt": now, "updatedAt": now,
     }
     ref = db.collection("campaigns").add(campaign_data)
     campaign_id = ref[1].id
-    await log_action(campaign_id, "CAMPAIGN_CREATED", user["uid"], user.get("role", ""), f"Campaign created in status {request.status or 'draft'}")
+    await log_action(campaign_id, "CAMPAIGN_CREATED", user["uid"], user.get("role", ""), f"Campaign created in status {request.status or 'campaignConfigured'}")
     return {"message": "Campaign created", "campaignId": campaign_id}
 
 @router.get("/")

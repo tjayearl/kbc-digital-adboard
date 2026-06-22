@@ -2,13 +2,20 @@ export type Role = 'sales' | 'adManager' | 'digitalOps' | 'admin';
 
 export type CampaignStatus =
   | 'Draft'
+  | 'Campaign Configured'
   | 'Discount Pending'
   | 'Discount Approved'
+  | 'Discount Rejected'
   | 'Order Generated'
   | 'Client Signed'
   | 'Countersigned'
   | 'Payment Confirmed'
-  | 'Brief Unlocked';
+  | 'Brief Unlocked'
+  | 'Ready for Execution'
+  | 'Scheduled'
+  | 'Live'
+  | 'POD_UPLOADED'
+  | 'Delivered';
 
 export type ProductCategory =
   | 'Social Media'

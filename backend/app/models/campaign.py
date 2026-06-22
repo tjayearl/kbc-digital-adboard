@@ -4,8 +4,10 @@ from enum import Enum
 
 class CampaignStatus(str, Enum):
     draft = "draft"
+    campaign_configured = "campaignConfigured"
     discount_pending = "discountPending"
     discount_approved = "discountApproved"
+    discount_rejected = "discountRejected"
     order_sheet_generated = "orderSheetGenerated"
     client_signed = "clientSigned"
     ad_manager_countersigned = "adManagerCountersigned"

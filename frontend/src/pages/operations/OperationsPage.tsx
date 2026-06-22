@@ -1,14 +1,21 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, CalendarDays, CheckSquare, Clock3, UploadCloud, FileText } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { StatCard } from '../../components/ui/StatCard';
-import { materialSpecs, type Role } from '../../data/mockData';
+import { materialSpecs, type Campaign } from '../../data/mockData';
+import { getCampaigns, uploadPod, generateReport } from '../../services/api';
 
 export function OperationsPage() {
   const navigate = useNavigate();
+
+  // State for campaigns
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // State for validation checkboxes
   const [validationChecked, setValidationChecked] = useState({
@@ -21,12 +28,55 @@ export function OperationsPage() {
   const [podUploaded, setPodUploaded] = useState(false);
   const [podFileName, setPodFileName] = useState('');
   const [podPreview, setPodPreview] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
 
-  // State for campaign
-  const [currentCampaign] = useState({
-    id: '1',
-    name: 'Summer Sale Campaign'
-  });
+  // Reference to the hidden file input
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch unlocked briefs on page load
+  useEffect(() => {
+    fetchUnlockedBriefs();
+  }, []);
+
+  const fetchUnlockedBriefs = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const allCampaigns = await getCampaigns();
+      setCampaigns(allCampaigns);
+      
+      // Auto-select the first unlocked campaign if available
+      const unlocked = allCampaigns.filter(
+        (campaign) => campaign.status === 'Brief Unlocked'
+      );
+      if (unlocked.length > 0) {
+        setSelectedCampaign(unlocked[0]);
+        // Reset validation state when campaign changes
+        setValidationChecked({
+          Artwork: false,
+          VideoAssets: false,
+          SocialAssets: false
+        });
+        setPodUploaded(false);
+        setPodFileName('');
+        setPodPreview('');
+      }
+    } catch (err) {
+      console.error('Failed to fetch campaigns:', err);
+      setError('Failed to load campaigns. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Calculate dynamic stats from campaigns data
+  const stats = {
+    readyForExecution: campaigns.filter(c => c.status === 'Brief Unlocked').length,
+    scheduled: campaigns.filter(c => c.status === 'Scheduled' || c.status === 'Ready for Execution').length,
+    live: campaigns.filter(c => c.status === 'Live').length,
+    delivered: campaigns.filter(c => c.status === 'POD_UPLOADED' || c.status === 'Delivered').length
+  };
 
   const handleValidationToggle = (item: keyof typeof validationChecked) => {
     setValidationChecked(prev => ({
@@ -41,76 +91,200 @@ export function OperationsPage() {
       VideoAssets: true,
       SocialAssets: true
     });
+    // NO backend call here — validation is frontend-only
   };
 
   const allValidationsChecked = Object.values(validationChecked).every(v => v === true);
 
-  const handlePODUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePODUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-      if (!allowedTypes.includes(file.type)) {
-        alert('Please upload a valid file (JPG, PNG, or PDF)');
-        return;
-      }
+    if (!file || !selectedCampaign) {
+      alert('Please select a campaign first');
+      return;
+    }
 
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB');
-        return;
-      }
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please upload a valid file (JPG, PNG, or PDF)');
+      return;
+    }
 
-      setPodFileName(file.name);
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const result = await uploadPod(selectedCampaign.id, file);
       
+      setPodFileName(result.fileName || file.name);
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onloadend = () => {
           setPodPreview(reader.result as string);
         };
         reader.readAsDataURL(file);
-      } else {
-        setPodPreview('');
       }
       
-      const podData = {
-        campaignId: currentCampaign.id,
-        campaignName: currentCampaign.name,
-        fileName: file.name,
-        fileType: file.type,
-        uploadDate: new Date().toISOString(),
-        fileData: URL.createObjectURL(file)
-      };
-      localStorage.setItem(`pod_${currentCampaign.id}`, JSON.stringify(podData));
-      
       setPodUploaded(true);
+      
+      // Refresh campaign list to update stats
+      const allCampaigns = await getCampaigns();
+      setCampaigns(allCampaigns);
+      
       alert(`POD uploaded successfully: ${file.name}`);
+    } catch (err) {
+      console.error('Failed to upload POD:', err);
+      alert('Failed to upload POD. Please try again.');
+    } finally {
+      setUploading(false);
     }
   };
 
-  const handleGenerateReport = () => {
-    if (!podUploaded) {
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleGenerateReport = async () => {
+    if (!podUploaded || !selectedCampaign) {
       alert('Please upload POD before generating report');
       return;
     }
-    navigate(`/reports?campaign=${encodeURIComponent(currentCampaign.name)}&campaignId=${currentCampaign.id}`);
+
+    setGeneratingReport(true);
+    try {
+      const result = await generateReport(selectedCampaign.id);
+      navigate(`/reports?reportId=${result.reportId}&campaign=${encodeURIComponent(selectedCampaign.name)}`);
+    } catch (err) {
+      console.error('Failed to generate report:', err);
+      alert('Failed to generate report. Please try again.');
+    } finally {
+      setGeneratingReport(false);
+    }
   };
 
   const canGenerateReport = podUploaded;
+
+  const handleCampaignSelect = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    setValidationChecked({
+      Artwork: false,
+      VideoAssets: false,
+      SocialAssets: false
+    });
+    setPodUploaded(false);
+    setPodFileName('');
+    setPodPreview('');
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-[40vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-navy border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-ink">Digital operations</h2>
+          <p className="mt-1 text-sm text-slate-500">Unlocked briefs ready for execution.</p>
+        </div>
+        <Card>
+          <CardBody>
+            <div className="flex items-center gap-3 text-danger">
+              <AlertTriangle size={20} />
+              <p>{error}</p>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-ink">Digital operations</h2>
-        <p className="mt-1 text-sm text-slate-500">Phase 1 placeholder for approved briefs moving into execution.</p>
+        <p className="mt-1 text-sm text-slate-500">Unlocked briefs ready for execution.</p>
       </div>
 
+      {/* DYNAMIC STAT CARDS */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Ready for Execution" value="4" detail="Approved briefs" icon={CheckSquare} />
-        <StatCard label="Scheduled" value="3" detail="Calendar entries" icon={CalendarDays} />
-        <StatCard label="Live" value="2" detail="Campaigns in market" icon={Clock3} />
-        <StatCard label="Delivered" value="7" detail="Proof uploaded" icon={UploadCloud} />
+        <StatCard label="Ready for Execution" value={stats.readyForExecution.toString()} detail="Unlocked briefs" icon={CheckSquare} />
+        <StatCard label="Scheduled" value={stats.scheduled.toString()} detail="Calendar entries" icon={CalendarDays} />
+        <StatCard label="Live" value={stats.live.toString()} detail="Campaigns in market" icon={Clock3} />
+        <StatCard label="Delivered" value={stats.delivered.toString()} detail="Proof uploaded" icon={UploadCloud} />
       </section>
 
-      {/* Material Validation Checklist */}
+      {/* Unlocked Briefs List */}
+      <Card>
+        <CardHeader>
+          <h3 className="text-lg font-bold text-ink">Unlocked Briefs</h3>
+          <p className="mt-1 text-sm text-slate-500">
+            {campaigns.filter(c => c.status === 'Brief Unlocked').length} brief{campaigns.filter(c => c.status === 'Brief Unlocked').length !== 1 ? 's' : ''} ready for Digital Ops
+          </p>
+        </CardHeader>
+        <CardBody>
+          {campaigns.filter(c => c.status === 'Brief Unlocked').length === 0 ? (
+            <p className="text-center text-slate-500 py-4">No unlocked briefs available.</p>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {campaigns
+                .filter(c => c.status === 'Brief Unlocked')
+                .map((campaign) => (
+                  <div
+                    key={campaign.id}
+                    className={`rounded-lg border p-4 cursor-pointer transition ${
+                      selectedCampaign?.id === campaign.id
+                        ? 'border-gold bg-gold/5 ring-2 ring-gold/30'
+                        : 'border-slate-200 hover:border-gold/50 hover:bg-slate-50'
+                    }`}
+                    onClick={() => handleCampaignSelect(campaign)}
+                  >
+                    <p className="font-bold text-ink">{campaign.name}</p>
+                    <p className="text-sm text-slate-500">{campaign.clientCompany}</p>
+                    <Badge tone="gold" className="mt-2">Unlocked</Badge>
+                  </div>
+                ))}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
+      {/* Campaign Details - Only shows when a campaign is selected */}
+      {selectedCampaign && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-ink">{selectedCampaign.name}</h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  {selectedCampaign.clientCompany} • {selectedCampaign.dabRef}
+                </p>
+              </div>
+              <Badge tone="navy">{selectedCampaign.status}</Badge>
+            </div>
+          </CardHeader>
+          <CardBody className="grid gap-3 md:grid-cols-2">
+            <div>
+              <p className="text-sm text-slate-500">Client</p>
+              <p className="font-semibold">{selectedCampaign.clientName}</p>
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">Dates</p>
+              <p className="font-semibold">{selectedCampaign.startDate} to {selectedCampaign.endDate}</p>
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* ============================================================
+          MATERIAL VALIDATION CHECKLIST - ALWAYS VISIBLE
+          ============================================================ */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -146,7 +320,9 @@ export function OperationsPage() {
         </CardBody>
       </Card>
 
-      {/* Material Specifications and Deadlines */}
+      {/* ============================================================
+          MATERIAL SPECIFICATIONS AND DEADLINES - ALWAYS VISIBLE
+          ============================================================ */}
       <Card>
         <CardHeader>
           <h3 className="text-lg font-bold text-ink">Material specifications and deadlines</h3>
@@ -181,7 +357,9 @@ export function OperationsPage() {
         </CardBody>
       </Card>
 
-      {/* Proof of Delivery (POD) Section */}
+      {/* ============================================================
+          PROOF OF DELIVERY (POD) SECTION - ALWAYS VISIBLE
+          ============================================================ */}
       <Card>
         <CardHeader>
           <h3 className="text-lg font-bold text-ink">Proof of Delivery (POD)</h3>
@@ -192,22 +370,24 @@ export function OperationsPage() {
             <input
               type="file"
               id="pod-upload"
+              ref={fileInputRef}
               className="hidden"
               accept="image/jpeg,image/png,image/jpg,application/pdf"
               onChange={handlePODUpload}
-              disabled={!allValidationsChecked}
+              disabled={!allValidationsChecked || uploading || !selectedCampaign}
             />
-            <label htmlFor="pod-upload">
-              <Button 
-                variant="secondary" 
-                disabled={!allValidationsChecked}
-                onClick={() => {}}
-              >
-                <UploadCloud size={18} className="mr-2" />
-                {podUploaded ? 'Replace POD' : 'Upload POD'}
-              </Button>
-            </label>
-            {!allValidationsChecked && (
+            <Button 
+              variant="secondary" 
+              disabled={!allValidationsChecked || uploading || !selectedCampaign}
+              onClick={handleUploadClick}
+            >
+              <UploadCloud size={18} className="mr-2" />
+              {uploading ? 'Uploading...' : podUploaded ? 'Replace POD' : 'Upload POD'}
+            </Button>
+            {!selectedCampaign && (
+              <p className="text-sm text-slate-500">Select a campaign first</p>
+            )}
+            {!allValidationsChecked && selectedCampaign && (
               <p className="text-sm text-slate-500">Complete material validation first</p>
             )}
           </div>
@@ -227,7 +407,9 @@ export function OperationsPage() {
         </CardBody>
       </Card>
 
-      {/* Campaign Report Section */}
+      {/* ============================================================
+          CAMPAIGN REPORT SECTION - ALWAYS VISIBLE
+          ============================================================ */}
       <Card>
         <CardHeader>
           <h3 className="text-lg font-bold text-ink">Campaign Report</h3>
@@ -236,11 +418,11 @@ export function OperationsPage() {
         <CardBody>
           <Button 
             onClick={handleGenerateReport} 
-            disabled={!canGenerateReport}
+            disabled={!canGenerateReport || generatingReport}
             variant={canGenerateReport ? 'primary' : 'secondary'}
           >
             <FileText size={18} className="mr-2" />
-            Generate Report
+            {generatingReport ? 'Generating...' : 'Generate Report'}
           </Button>
           {!canGenerateReport && (
             <p className="mt-2 text-sm text-slate-500">Upload POD to enable report generation</p>

@@ -6,7 +6,8 @@ import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { campaignTotals, lineTotal, money, productCatalog, rateCard, type Role, type Campaign, type AuditEvent } from '../../data/mockData';
 import { OrderSheetContent } from '../../components/campaigns/OrderSheetContent';
 import { FileText, Download, Upload, Trash2 } from 'lucide-react';
-import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, uploadSignedSheet } from '../../services/api';
+import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, downloadOrderSheetPdf } from '../../services/api';
+import { downloadBlob, orderSheetFilename, printBlob, shareOrderSheet } from '../../utils/pdfActions';
 
 const tabs = ['Overview', 'Pricing', 'Order Sheet', 'Gate Checks', 'Audit Log'];
 
@@ -141,67 +142,50 @@ export function CampaignDetails() {
       });
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (!campaign) return;
-    if (campaign.orderSheetPdfUrl) {
-      fetch(campaign.orderSheetPdfUrl)
-        .then(res => {
-          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-          return res.blob();
-        })
-        .then(blob => {
-          const blobUrl = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = blobUrl;
-          link.download = `${campaign.dabRef}_Order_Sheet.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(blobUrl);
-        })
-        .catch(err => {
-          console.error("Failed to download PDF directly:", err);
-          const link = document.createElement('a');
-          link.href = campaign.orderSheetPdfUrl!;
-          link.target = '_blank';
-          link.download = `${campaign.dabRef}_Order_Sheet.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        });
-    } else {
+    if (!campaign.orderSheetPdfUrl) {
       alert("Order Sheet PDF has not been generated yet.");
+      return;
+    }
+
+    try {
+      const blob = await downloadOrderSheetPdf(campaign.id);
+      downloadBlob(blob, orderSheetFilename(campaign));
+    } catch (err) {
+      console.error("Failed to download PDF:", err);
+      alert(`Failed to download PDF: ${(err as Error).message || err}`);
     }
   };
 
-  const handlePrintPDF = () => {
+  const handlePrintPDF = async () => {
     if (!campaign) return;
-    if (campaign.orderSheetPdfUrl) {
-      window.open(campaign.orderSheetPdfUrl, '_blank');
-    } else {
-      window.print();
+    if (!campaign.orderSheetPdfUrl) {
+      alert("Order Sheet PDF has not been generated yet.");
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    try {
+      const blob = await downloadOrderSheetPdf(campaign.id);
+      printBlob(blob, campaign.orderSheetPdfUrl, printWindow);
+    } catch (err) {
+      console.error("Failed to print PDF:", err);
+      if (printWindow) {
+        printWindow.location.href = campaign.orderSheetPdfUrl;
+      } else {
+        window.open(campaign.orderSheetPdfUrl, '_blank', 'noopener,noreferrer');
+      }
     }
   };
 
   const handleSharePDF = async () => {
     if (!campaign) return;
-    const shareData = {
-      title: `KBC Digital AdBoard Order Sheet - ${campaign.dabRef}`,
-      text: `Please review the order sheet for campaign: ${campaign.name}`,
-      url: campaign.orderSheetPdfUrl || window.location.href,
-    };
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        console.error("Error sharing:", err);
-      }
-    } else {
-      const email = prompt("Enter email address to share the Order Sheet PDF with:", campaign.clientEmail);
-      if (email) {
-        window.location.href = `mailto:${email}?subject=KBC Digital AdBoard Order Sheet - ${campaign.dabRef}&body=Hi,%0D%0A%0D%0APlease find the Order Sheet for the campaign "${campaign.name}" here: ${campaign.orderSheetPdfUrl || ''}%0D%0A%0D%0ABest regards.`;
-      }
+    if (!campaign.orderSheetPdfUrl) {
+      alert("Order Sheet PDF has not been generated yet.");
+      return;
     }
+    await shareOrderSheet(campaign);
   };
 
   const handleGenerateOrderSheet = () => {
@@ -212,27 +196,12 @@ export function CampaignDetails() {
         alert("Order Sheet PDF generated successfully! Starting download...");
         setUpdateCount(prev => prev + 1);
         
-        if (res.pdfUrl) {
-          fetch(res.pdfUrl)
-            .then(fetchRes => {
-              if (!fetchRes.ok) throw new Error(`HTTP error! status: ${fetchRes.status}`);
-              return fetchRes.blob();
-            })
-            .then(blob => {
-              const blobUrl = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = blobUrl;
-              link.download = `${res.dabRef || campaign.dabRef}_Order_Sheet.pdf`;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              URL.revokeObjectURL(blobUrl);
-            })
-            .catch(err => {
-              console.error("Failed to download PDF directly:", err);
-              window.open(res.pdfUrl, '_blank');
-            });
-        }
+        return downloadOrderSheetPdf(campaign.id)
+          .then((blob) => downloadBlob(blob, `${res.dabRef || campaign.dabRef}_Order_Sheet.pdf`))
+          .catch((err) => {
+            console.error("Failed to download PDF directly:", err);
+            if (res.pdfUrl) window.open(res.pdfUrl, '_blank', 'noopener,noreferrer');
+          });
       })
       .catch((err) => {
         console.error(err);
