@@ -451,7 +451,9 @@ export function mapBackendCampaignToFrontend(bc: any): Campaign {
     prodVoLang: bc.prodVoLang || '',
     dec1: bc.dec1 || false,
     dec2: bc.dec2 || false,
-    dec3: bc.dec3 || false
+    dec3: bc.dec3 || false,
+    signedSheetUrl: bc.signedSheetUrl || '',
+    airtimeOrderSerial: bc.airtimeOrderSerial || ''
   };
 }
 

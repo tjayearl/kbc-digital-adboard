@@ -6,7 +6,7 @@ import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { campaignTotals, lineTotal, money, productCatalog, rateCard, type Role, type Campaign, type AuditEvent } from '../../data/mockData';
 import { OrderSheetContent } from '../../components/campaigns/OrderSheetContent';
 import { FileText, Download, Upload, Trash2 } from 'lucide-react';
-import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet } from '../../services/api';
+import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, uploadSignedSheet } from '../../services/api';
 
 const tabs = ['Overview', 'Pricing', 'Order Sheet', 'Gate Checks', 'Audit Log'];
 
@@ -28,6 +28,10 @@ export function CampaignDetails() {
   const [discountPercent, setDiscountPercent] = useState(0);
   const [discountReason, setDiscountReason] = useState('');
   const [generating, setGenerating] = useState(false);
+
+  const [airtimeSerial, setAirtimeSerial] = useState('');
+  const [signedFile, setSignedFile] = useState<File | null>(null);
+  const [uploadingSigned, setUploadingSigned] = useState(false);
 
   const navigate = useNavigate();
 
@@ -236,6 +240,29 @@ export function CampaignDetails() {
       })
       .finally(() => {
         setGenerating(false);
+      });
+  };
+
+  const handleUploadSignedSheet = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!campaign || !airtimeSerial || !signedFile) {
+      alert("Please select a file and enter the Air-Time Order serial number.");
+      return;
+    }
+    setUploadingSigned(true);
+    uploadSignedSheet(campaign.id, airtimeSerial, signedFile)
+      .then((res) => {
+        alert("Signed Order Sheet uploaded successfully!");
+        setUpdateCount(prev => prev + 1);
+        setSignedFile(null);
+        setAirtimeSerial('');
+      })
+      .catch((err) => {
+        console.error(err);
+        alert(`Failed to upload signed sheet: ${err.message || err}`);
+      })
+      .finally(() => {
+        setUploadingSigned(false);
       });
   };
 
@@ -472,6 +499,74 @@ export function CampaignDetails() {
                 )}
               </CardBody>
             </Card>
+
+            {campaign.status === 'Order Generated' && (role === 'sales' || role === 'admin') && (
+              <Card>
+                <CardHeader>
+                  <h3 className="text-lg font-bold text-ink">Upload Client-Signed Order Sheet</h3>
+                  <p className="mt-1 text-sm text-slate-500">Provide the client-signed scan/file and the verified Air-Time Order serial number to unlock the campaign brief.</p>
+                </CardHeader>
+                <CardBody>
+                  <form onSubmit={handleUploadSignedSheet} className="space-y-4">
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="airtime-serial" className="text-sm font-semibold text-slate-700">Air-Time Order Serial Number *</label>
+                      <input
+                        id="airtime-serial"
+                        type="text"
+                        placeholder="e.g. ATO-2026-01482"
+                        className="max-w-md rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-gold focus:ring-2 focus:ring-gold/20"
+                        value={airtimeSerial}
+                        onChange={(e) => setAirtimeSerial(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="signed-sheet-file" className="text-sm font-semibold text-slate-700">Client-Signed PDF *</label>
+                      <input
+                        id="signed-sheet-file"
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => setSignedFile(e.target.files?.[0] || null)}
+                        className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-navy/10 file:text-navy hover:file:bg-navy/20 cursor-pointer"
+                        required
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      disabled={uploadingSigned || !airtimeSerial || !signedFile}
+                      className="w-full sm:w-auto"
+                    >
+                      {uploadingSigned ? 'Uploading...' : 'Upload Signed Sheet'}
+                    </Button>
+                  </form>
+                </CardBody>
+              </Card>
+            )}
+
+            {campaign.signedSheetUrl && (
+              <Card>
+                <CardHeader>
+                  <h3 className="text-lg font-bold text-ink">Signed Order Sheet Document</h3>
+                  <p className="mt-1 text-sm text-slate-500">The verified client-signed order sheet and registered Air-Time Order serial.</p>
+                </CardHeader>
+                <CardBody className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-slate-700">
+                    <span className="font-semibold">Air-Time Serial:</span>
+                    <Badge tone="teal">{campaign.airtimeOrderSerial || 'ATO-2026-01482'}</Badge>
+                  </div>
+                  <div>
+                    <a 
+                      href={campaign.signedSheetUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-flex items-center text-sm font-bold text-navy hover:underline"
+                    >
+                      <FileText size={16} className="mr-1.5" /> View Signed Order Sheet PDF
+                    </a>
+                  </div>
+                </CardBody>
+              </Card>
+            )}
           </div>
         );
       }

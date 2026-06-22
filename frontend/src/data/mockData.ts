@@ -115,6 +115,8 @@ export type Campaign = {
   dec1?: boolean;
   dec2?: boolean;
   dec3?: boolean;
+  signedSheetUrl?: string;
+  airtimeOrderSerial?: string;
 };
 
 export type Approval = {

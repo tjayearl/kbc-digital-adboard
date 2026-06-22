@@ -1719,7 +1719,7 @@ export function CampaignWizard() {
             <option>Through media buying agency</option>
             <option>Government / LPO basis</option>
           </SelectField>
-          <InputField label="Full name *" value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="e.g. Amina Wekesa" />
+          <InputField label="Client Full name *" value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="e.g. Amina Wekesa" />
           <InputField label="Job title *" value={contactJobTitle} onChange={(e) => setContactJobTitle(e.target.value)} placeholder="e.g. Marketing Manager" />
           <InputField label="Email address *" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g. amina@ktb.example" />
           <InputField label="Phone / WhatsApp *" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="e.g. +254 711 204 500" />
