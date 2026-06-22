@@ -550,7 +550,7 @@ export function CampaignDetails() {
               </CardHeader>
               <CardBody className="grid gap-4 md:grid-cols-3">
                 <GateCheck label="Signed Order Sheet uploaded" done={['Client Signed', 'Countersigned', 'Payment Confirmed', 'Brief Unlocked'].includes(campaign.status)} />
-                <GateCheck label="Air-Time Order serial entered" done={campaign.status !== 'Draft'} />
+                <GateCheck label="Air-Time Order serial entered" done={!!campaign.airtimeOrderSerial} />
                 <GateCheck label="Deposit or LPO confirmed" done={campaign.paidDeposit} />
               </CardBody>
             </Card>
