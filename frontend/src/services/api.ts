@@ -303,6 +303,9 @@ export function mapFrontendCampaignToBackend(c: any) {
       discountValue: discountValue
     },
     bookingType: c.bookingType || null,
+    industry: c.industry || '',
+    campaignGoal: c.objective || '',
+    objective: c.objective || '',
     
     // Save all frontend wizard fields at root level (since backend has extra='allow' configured)
     kraPin: c.kraPin || '',

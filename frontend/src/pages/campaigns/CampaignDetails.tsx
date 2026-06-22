@@ -9,7 +9,7 @@ import { FileText, Download, Upload, Trash2 } from 'lucide-react';
 import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, downloadOrderSheetPdf, uploadSignedSheet } from '../../services/api';
 import { downloadBlob, orderSheetFilename, printBlob, shareOrderSheet } from '../../utils/pdfActions';
 
-const tabs = ['Overview', 'Pricing', 'Order Sheet', 'Gate Checks', 'Audit Log'];
+const tabs = ['Overview', 'Pricing', 'Order Sheet', 'Gate Checks', 'Reports', 'Audit Log'];
 
 export function CampaignDetails() {
   const { role, currentUser } = useOutletContext<{ role: Role; currentUser?: any }>();
@@ -287,19 +287,52 @@ export function CampaignDetails() {
     switch (activeTab) {
       case 'Overview':
         return (
-          <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+          <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <h3 className="text-lg font-bold text-ink">Overview</h3>
+                  <h3 className="text-lg font-bold text-ink">Client Details</h3>
                 </CardHeader>
-                <CardBody className="grid gap-4 md:grid-cols-2">
-                  <Info label="Client Contact" value={`${campaign.clientName}, ${campaign.clientPhone}`} />
-                  <Info label="Email" value={campaign.clientEmail} />
-                  <Info label="Industry" value={campaign.industry} />
-                  <Info label="Campaign Dates" value={`${campaign.startDate} to ${campaign.endDate}`} />
-                  <div className="md:col-span-2">
-                    <Info label="Objective" value={campaign.objective} />
+                <CardBody className="grid gap-4 sm:grid-cols-2">
+                  <Info label="Contact Person" value={campaign.clientName} />
+                  <Info label="Job Title" value={campaign.contactJobTitle || '—'} />
+                  <Info label="Email Address" value={campaign.clientEmail} />
+                  <Info label="Phone Number" value={campaign.clientPhone} />
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <h3 className="text-lg font-bold text-ink">Company Details</h3>
+                </CardHeader>
+                <CardBody className="grid gap-4 sm:grid-cols-2">
+                  <Info label="Company Name" value={campaign.clientCompany} />
+                  <Info label="Industry / Sector" value={campaign.industry || '—'} />
+                  <Info label="KRA PIN" value={campaign.kraPin || '—'} />
+                  <Info label="Booking Type" value={campaign.bookingType || '—'} />
+                  <div className="sm:col-span-2">
+                    <Info label="Billing Address" value={campaign.billingAddress || '—'} />
+                  </div>
+                </CardBody>
+              </Card>
+            </div>
+
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <h3 className="text-lg font-bold text-ink">Campaign Brief</h3>
+                </CardHeader>
+                <CardBody className="grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <Info label="Campaign Name" value={campaign.name} />
+                  </div>
+                  <Info label="Start Date" value={campaign.startDate} />
+                  <Info label="End Date" value={campaign.endDate} />
+                  <div className="sm:col-span-2">
+                    <Info label="Campaign Objective" value={campaign.objective || '—'} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Info label="Description" value={campaign.campaignDescription || '—'} />
                   </div>
                 </CardBody>
               </Card>
@@ -322,87 +355,89 @@ export function CampaignDetails() {
                 </CardBody>
               </Card>
             </div>
+          </div>
+        );
 
-            {/* Right column */}
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <h3 className="text-lg font-bold text-ink">Campaign report</h3>
-                  <p className="text-sm text-slate-500 mt-1">Upload and manage post-campaign execution reports.</p>
-                </CardHeader>
-                <CardBody className="space-y-4">
-                  {campaign.reportFile ? (
-                    <div className="rounded-lg border border-teal/20 bg-teal/10 p-3 space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Report</p>
-                      <p className="text-sm font-bold text-teal flex items-center gap-1.5 animate-in fade-in duration-200">
-                        <FileText size={16} /> {campaign.reportFile}
-                      </p>
-                      <div className="flex gap-2 pt-2">
+      case 'Reports':
+        return (
+          <div className="max-w-3xl">
+            <Card>
+              <CardHeader>
+                <h3 className="text-lg font-bold text-ink">Campaign report</h3>
+                <p className="text-sm text-slate-500 mt-1">Upload and manage post-campaign execution reports.</p>
+              </CardHeader>
+              <CardBody className="space-y-4">
+                {campaign.reportFile ? (
+                  <div className="rounded-lg border border-teal/20 bg-teal/10 p-3 space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Report</p>
+                    <p className="text-sm font-bold text-teal flex items-center gap-1.5 animate-in fade-in duration-200">
+                      <FileText size={16} /> {campaign.reportFile}
+                    </p>
+                    <div className="flex gap-2 pt-2">
+                      <Button 
+                        variant="secondary" 
+                        className="h-9 text-xs px-2.5" 
+                        onClick={() => {
+                          alert(`Downloading report: ${campaign.reportFile}`);
+                        }}
+                      >
+                        <Download size={14} /> Download
+                      </Button>
+                      {(role === 'digitalOps' || role === 'admin' || role === 'sales') && (
                         <Button 
-                          variant="secondary" 
-                          className="h-9 text-xs px-2.5" 
+                          variant="danger" 
+                          className="h-9 text-xs px-2.5"
                           onClick={() => {
-                            alert(`Downloading report: ${campaign.reportFile}`);
+                            updateCampaign(campaign.id, { ...campaign, reportFile: undefined })
+                              .then(() => {
+                                setUpdateCount(prev => prev + 1);
+                                alert('Report file removed.');
+                              })
+                              .catch(err => {
+                                alert(`Failed to remove report: ${err.message || err}`);
+                              });
                           }}
                         >
-                          <Download size={14} /> Download
+                          <Trash2 size={14} /> Remove
                         </Button>
-                        {(role === 'digitalOps' || role === 'admin' || role === 'sales') && (
-                          <Button 
-                            variant="danger" 
-                            className="h-9 text-xs px-2.5"
-                            onClick={() => {
-                              updateCampaign(campaign.id, { ...campaign, reportFile: undefined })
-                                .then(() => {
-                                  setUpdateCount(prev => prev + 1);
-                                  alert('Report file removed.');
-                                })
-                                .catch(err => {
-                                  alert(`Failed to remove report: ${err.message || err}`);
-                                });
-                            }}
-                          >
-                            <Trash2 size={14} /> Remove
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center">
-                      <p className="text-sm text-slate-500 italic">No custom report file uploaded.</p>
-                      {(role === 'digitalOps' || role === 'admin' || role === 'sales') && (
-                        <div className="mt-3 flex justify-center">
-                          <input
-                            type="file"
-                            id="detail-report-upload"
-                            className="hidden"
-                            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                updateCampaign(campaign.id, { ...campaign, reportFile: file.name })
-                                  .then(() => {
-                                    setUpdateCount(prev => prev + 1);
-                                    alert(`Report "${file.name}" uploaded successfully!`);
-                                  })
-                                  .catch(err => {
-                                    alert(`Failed to upload report: ${err.message || err}`);
-                                  });
-                              }
-                            }}
-                          />
-                          <label htmlFor="detail-report-upload">
-                            <Button variant="secondary" className="h-10 text-xs px-3 cursor-pointer" onClick={() => document.getElementById('detail-report-upload')?.click()}>
-                              <Upload size={14} className="mr-1" /> Upload Report
-                            </Button>
-                          </label>
-                        </div>
                       )}
                     </div>
-                  )}
-                </CardBody>
-              </Card>
-            </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center">
+                    <p className="text-sm text-slate-500 italic">No custom report file uploaded.</p>
+                    {(role === 'digitalOps' || role === 'admin' || role === 'sales') && (
+                      <div className="mt-3 flex justify-center">
+                        <input
+                          type="file"
+                          id="detail-report-upload"
+                          className="hidden"
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              updateCampaign(campaign.id, { ...campaign, reportFile: file.name })
+                                .then(() => {
+                                  setUpdateCount(prev => prev + 1);
+                                  alert(`Report "${file.name}" uploaded successfully!`);
+                                })
+                                .catch((err: any) => {
+                                  alert(`Failed to upload report: ${err.message || err}`);
+                                });
+                            }
+                          }}
+                        />
+                        <label htmlFor="detail-report-upload">
+                          <Button variant="secondary" className="h-10 text-xs px-3 cursor-pointer" onClick={() => document.getElementById('detail-report-upload')?.click()}>
+                            <Upload size={14} className="mr-1" /> Upload Report
+                          </Button>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardBody>
+            </Card>
           </div>
         );
 
