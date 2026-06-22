@@ -591,6 +591,7 @@ export function CampaignWizard() {
       products: selectedProducts,
       // Wizard states
       bookingType,
+      kraPin,
       contactJobTitle,
       billingAddress,
       campaignDescription,
@@ -682,6 +683,7 @@ export function CampaignWizard() {
         products: selectedProducts,
         // Wizard states
         bookingType,
+        kraPin,
         contactJobTitle,
         billingAddress,
         campaignDescription,
@@ -775,6 +777,7 @@ export function CampaignWizard() {
       products: selectedProducts,
       // Wizard states
       bookingType,
+      kraPin,
       contactJobTitle,
       billingAddress,
       campaignDescription,
