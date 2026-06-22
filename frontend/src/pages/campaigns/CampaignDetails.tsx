@@ -12,7 +12,7 @@ import { downloadBlob, orderSheetFilename, printBlob, shareOrderSheet } from '..
 const tabs = ['Overview', 'Pricing', 'Order Sheet', 'Gate Checks', 'Reports', 'Audit Log'];
 
 export function CampaignDetails() {
-  const { role, currentUser } = useOutletContext<{ role: Role; currentUser?: any }>();
+  const { role, currentUser, users } = useOutletContext<{ role: Role; currentUser?: any; users?: any[] }>();
   const { campaignId } = useParams();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,11 +78,11 @@ export function CampaignDetails() {
       id: e.logId || e.id,
       campaignId: e.campaignId,
       action: e.action,
-      user: e.actor,
+      user: users?.find(u => u.id === e.actor || u.id === `usr-fb-${e.actor}` || u.id.includes(e.actor))?.name || e.actor,
       role: e.role,
       timestamp: new Date(e.timestamp).toLocaleString(),
     }));
-  }, [auditEvents]);
+  }, [auditEvents, users]);
 
   const handleSubmitCo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -630,7 +630,7 @@ export function CampaignDetails() {
         <div>
           <Badge tone="navy">{campaign.dabRef}</Badge>
           <h2 className="mt-3 text-2xl font-bold text-ink">{campaign.name}</h2>
-          <p className="mt-1 text-sm text-slate-500">{campaign.clientCompany} • Owner: {campaign.owner}</p>
+          <p className="mt-1 text-sm text-slate-500">{campaign.clientCompany} • Owner: {users?.find(u => u.id === campaign.owner || u.id === `usr-fb-${campaign.owner}` || u.id.includes(campaign.owner))?.name || campaign.owner}</p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           {(role === 'sales' || role === 'admin') && (
