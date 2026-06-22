@@ -404,7 +404,7 @@ export function mapBackendCampaignToFrontend(bc: any): Campaign {
     objective: bc.campaignGoal || bc.objective || '',
     startDate: bc.campaign?.startDate || bc.startDate || '',
     endDate: bc.campaign?.endDate || bc.endDate || '',
-    owner: bc.createdBy || bc.owner || '',
+    owner: bc.owner || bc.createdBy || '',
     status: status as any,
     products: products,
     discountPercent: bc.discount?.percentage || bc.discountPercent || 0,
@@ -573,6 +573,19 @@ export async function deleteCampaign(campaignId: string): Promise<any> {
     return await res.json();
   } catch (error) {
     console.error(`Failed to delete campaign ${campaignId}:`, error);
+    throw error;
+  }
+}
+
+export async function getCampaignAudit(campaignId: string): Promise<any[]> {
+  try {
+    const res = await fetch(`${BASE_URL}/campaigns/${campaignId}/audit`, {
+      headers: await getAuthHeaders()
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    console.error(`Failed to fetch campaign audit ${campaignId}:`, error);
     throw error;
   }
 }

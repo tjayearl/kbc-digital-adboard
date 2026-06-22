@@ -85,7 +85,7 @@ export function OrderSheetContent({ campaign }: OrderSheetContentProps) {
 
       <section className="grid gap-4 md:grid-cols-2">
         <DocumentBlock title="Boosting Breakdown" rows={[['Platforms', 'Facebook, Instagram, KBC App'], ['Budget', 'NIL unless listed as a line item'], ['Treatment', 'Shown explicitly; never a footnote']]} />
-        <DocumentBlock title="Unlock Requirements" rows={[['Signed scan', 'Required'], ['Air-Time serial', 'ATO-2026-01482'], ['Deposit / LPO', campaign.paidDeposit ? 'Confirmed' : 'Pending']]} />
+        <DocumentBlock title="Unlock Requirements" rows={[['Signed scan', 'Required'], ['Air-Time serial', 'Required'], ['Deposit / LPO', campaign.paidDeposit ? 'Confirmed' : 'Pending']]} />
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">

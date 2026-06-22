@@ -103,3 +103,17 @@ async def delete_campaign(campaign_id: str, user=Depends(require_roles(["sales",
         raise HTTPException(status_code=403, detail="Access denied")
     ref.delete()
     return {"message": "Campaign deleted"}
+
+@router.get("/{campaign_id}/audit")
+async def get_campaign_audit(campaign_id: str, user=Depends(get_current_user)):
+    doc = db.collection("campaigns").document(campaign_id).get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    campaign = doc.to_dict()
+    if user.get("role") == "sales" and campaign.get("createdBy") != user["uid"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    logs = db.collection("auditLog").where("campaignId", "==", campaign_id).stream()
+    result = [{"id": l.id, **l.to_dict()} for l in logs]
+    result.sort(key=lambda x: x.get("timestamp", ""))
+    return result

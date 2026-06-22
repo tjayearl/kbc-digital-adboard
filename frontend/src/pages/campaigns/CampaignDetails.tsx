@@ -6,7 +6,7 @@ import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { campaignTotals, lineTotal, money, productCatalog, rateCard, type Role, type Campaign, type AuditEvent } from '../../data/mockData';
 import { OrderSheetContent } from '../../components/campaigns/OrderSheetContent';
 import { FileText, Download, Upload, Trash2 } from 'lucide-react';
-import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, downloadOrderSheetPdf, uploadSignedSheet } from '../../services/api';
+import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, downloadOrderSheetPdf, uploadSignedSheet, getCampaignAudit } from '../../services/api';
 import { downloadBlob, orderSheetFilename, printBlob, shareOrderSheet } from '../../utils/pdfActions';
 
 const tabs = ['Overview', 'Pricing', 'Order Sheet', 'Gate Checks', 'Reports', 'Audit Log'];
@@ -33,15 +33,17 @@ export function CampaignDetails() {
   const [airtimeSerial, setAirtimeSerial] = useState('');
   const [signedFile, setSignedFile] = useState<File | null>(null);
   const [uploadingSigned, setUploadingSigned] = useState(false);
+  const [auditEvents, setAuditEvents] = useState<any[]>([]);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     if (campaignId) {
       setLoading(true);
-      getCampaign(campaignId)
-        .then((data) => {
-          setCampaign(data);
+      Promise.all([getCampaign(campaignId), getCampaignAudit(campaignId)])
+        .then(([campaignData, auditData]) => {
+          setCampaign(campaignData);
+          setAuditEvents(auditData);
           setError(null);
           setLoading(false);
         })
@@ -72,9 +74,15 @@ export function CampaignDetails() {
   }, [campaign, updateCount]);
 
   const events = useMemo<AuditEvent[]>(() => {
-    // Return empty audit logs since audit logs are backend-only now (we can also fetch audit timeline if needed, but empty or a notice is fine)
-    return [];
-  }, [campaign?.id, updateCount]);
+    return auditEvents.map((e: any) => ({
+      id: e.logId || e.id,
+      campaignId: e.campaignId,
+      action: e.action,
+      user: e.actor,
+      role: e.role,
+      timestamp: new Date(e.timestamp).toLocaleString(),
+    }));
+  }, [auditEvents]);
 
   const handleSubmitCo = (e: React.FormEvent) => {
     e.preventDefault();
