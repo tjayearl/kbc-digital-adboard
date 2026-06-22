@@ -6,7 +6,7 @@ import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { campaignTotals, lineTotal, money, productCatalog, rateCard, type Role, type Campaign, type AuditEvent } from '../../data/mockData';
 import { OrderSheetContent } from '../../components/campaigns/OrderSheetContent';
 import { FileText, Download, Upload, Trash2 } from 'lucide-react';
-import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, downloadOrderSheetPdf } from '../../services/api';
+import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, downloadOrderSheetPdf, uploadSignedSheet } from '../../services/api';
 import { downloadBlob, orderSheetFilename, printBlob, shareOrderSheet } from '../../utils/pdfActions';
 
 const tabs = ['Overview', 'Pricing', 'Order Sheet', 'Gate Checks', 'Audit Log'];
@@ -220,13 +220,13 @@ export function CampaignDetails() {
     }
     setUploadingSigned(true);
     uploadSignedSheet(campaign.id, airtimeSerial, signedFile)
-      .then((res) => {
+      .then((res: any) => {
         alert("Signed Order Sheet uploaded successfully!");
         setUpdateCount(prev => prev + 1);
         setSignedFile(null);
         setAirtimeSerial('');
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error(err);
         alert(`Failed to upload signed sheet: ${err.message || err}`);
       })
