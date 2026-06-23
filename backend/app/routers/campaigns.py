@@ -156,5 +156,5 @@ async def get_campaign_audit(campaign_id: str, user=Depends(get_current_user)):
                     user_names[actor] = actor
             data["actor"] = user_names[actor]
         result.append({"id": l.id, **data})
-    result.sort(key=lambda x: x.get("timestamp", ""))
+    result.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
     return result

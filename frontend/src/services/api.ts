@@ -677,12 +677,6 @@ export async function uploadSignedSheet(campaignId: string, airtimeOrderSerial: 
     }
     
     const result = await res.json();
-    
-    // 🆕 After successful upload, update the campaign status to 'Client Signed'
-    await updateCampaign(campaignId, { 
-      status: 'Client Signed' 
-    } as any);
-    
     return result;
   } catch (error) {
     console.error(`Failed to upload signed sheet for ${campaignId}:`, error);
