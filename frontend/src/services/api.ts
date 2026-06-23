@@ -909,3 +909,52 @@ export async function deleteRateCardItem(id: string): Promise<any> {
     throw error;
   }
 }
+
+export async function getAirtimeSerials(): Promise<any[]> {
+  try {
+    const res = await fetch(`${BASE_URL}/airtime-orders/`, {
+      headers: await getAuthHeaders()
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to fetch airtime serials:', error);
+    throw error;
+  }
+}
+
+export async function createAirtimeSerial(serial: string): Promise<any> {
+  try {
+    const res = await fetch(`${BASE_URL}/airtime-orders/`, {
+      method: 'POST',
+      headers: await getAuthHeaders(),
+      body: JSON.stringify({ serial })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to create airtime serial:', error);
+    throw error;
+  }
+}
+
+export async function deleteAirtimeSerial(id: string): Promise<any> {
+  try {
+    const res = await fetch(`${BASE_URL}/airtime-orders/${id}`, {
+      method: 'DELETE',
+      headers: await getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error(`Failed to delete airtime serial ${id}:`, error);
+    throw error;
+  }
+}
+

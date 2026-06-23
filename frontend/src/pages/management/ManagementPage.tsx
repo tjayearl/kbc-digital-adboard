@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Archive, Edit3, Plus, ShieldAlert, UserPlus, Users, Trash2, ShieldCheck, ClipboardList, CheckSquare } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { InputField, SelectField } from '../../components/ui/Field';
 import { money, rateCard as mockRateCard, usersList as mockUsers, productCatalog, type Role, type RateCardItem, type UserItem, type ProductCategory } from '../../data/mockData';
-import { createUser, updateUser, deleteUser, deleteRateCardItem } from '../../services/api';
+import { createUser, updateUser, deleteUser, deleteRateCardItem, getAirtimeSerials, createAirtimeSerial, deleteAirtimeSerial } from '../../services/api';
 
 const categories: ProductCategory[] = [
   'Social Media',
@@ -25,8 +25,28 @@ export function ManagementPage() {
     users: UserItem[];
     setUsers: React.Dispatch<React.SetStateAction<UserItem[]>>;
   }>();
-  const [activeTab, setActiveTab] = useState<'Rate Card' | 'Users'>('Rate Card');
+  const [activeTab, setActiveTab] = useState<'Rate Card' | 'Users' | 'Air-Time Serials'>('Rate Card');
   const [rateItems, setRateItems] = useState<RateCardItem[]>(mockRateCard);
+  const [airtimeSerials, setAirtimeSerials] = useState<any[]>([]);
+  const [newSerial, setNewSerial] = useState('');
+  const [loadingSerials, setLoadingSerials] = useState(false);
+  const [submittingSerial, setSubmittingSerial] = useState(false);
+  const [serialsUpdateCount, setSerialsUpdateCount] = useState(0);
+
+  useEffect(() => {
+    if (activeTab === 'Air-Time Serials') {
+      setLoadingSerials(true);
+      getAirtimeSerials()
+        .then((data) => {
+          setAirtimeSerials(data);
+          setLoadingSerials(false);
+        })
+        .catch((err) => {
+          console.error(err);
+          setLoadingSerials(false);
+        });
+    }
+  }, [activeTab, serialsUpdateCount]);
 
   // Rate card modal state
   const [showRateModal, setShowRateModal] = useState(false);
@@ -273,12 +293,12 @@ export function ManagementPage() {
             <Plus size={18} />
             Add Rate Item
           </Button>
-        ) : (
+        ) : activeTab === 'Users' ? (
           <Button onClick={handleOpenAddUserModal}>
             <UserPlus size={18} />
             Add User
           </Button>
-        )}
+        ) : null}
       </div>
 
       {/* Tabs */}
@@ -300,6 +320,15 @@ export function ManagementPage() {
         >
           <Users size={18} />
           User Management
+        </button>
+        <button
+          onClick={() => setActiveTab('Air-Time Serials')}
+          className={`min-h-11 shrink-0 rounded-lg px-4 text-sm font-semibold transition-colors flex items-center gap-2 ${
+            activeTab === 'Air-Time Serials' ? 'bg-navy text-white' : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <CheckSquare size={18} />
+          Air-Time Serials
         </button>
       </div>
 
@@ -477,6 +506,117 @@ export function ManagementPage() {
             ))}
           </CardBody>
         </Card>
+      )}
+
+      {/* Air-Time Serials Tab */}
+      {activeTab === 'Air-Time Serials' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <Card>
+            <CardHeader>
+              <h3 className="text-lg font-bold text-ink">Register Air-Time Serial Number</h3>
+              <p className="mt-1 text-sm text-slate-500">Finance & Admin tool to pre-register serial numbers for campaign verification.</p>
+            </CardHeader>
+            <CardBody>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!newSerial.trim()) return;
+                  setSubmittingSerial(true);
+                  createAirtimeSerial(newSerial.trim())
+                    .then(() => {
+                      alert(`Serial number "${newSerial}" registered successfully!`);
+                      setNewSerial('');
+                      setSerialsUpdateCount(prev => prev + 1);
+                    })
+                    .catch((err) => {
+                      alert(`Failed to register serial: ${err.message || err}`);
+                    })
+                    .finally(() => {
+                      setSubmittingSerial(false);
+                    });
+                }}
+                className="flex flex-col gap-3 sm:flex-row sm:items-end max-w-lg"
+              >
+                <div className="flex-1">
+                  <InputField
+                    required
+                    label="Air-Time Serial Number"
+                    placeholder="e.g. ATO-2026-00012"
+                    value={newSerial}
+                    onChange={(e) => setNewSerial(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" disabled={submittingSerial || !newSerial.trim()}>
+                  {submittingSerial ? 'Registering...' : 'Register Serial'}
+                </Button>
+              </form>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <h3 className="text-lg font-bold text-ink">Registered Serials Directory</h3>
+            </CardHeader>
+            {loadingSerials ? (
+              <div className="flex h-32 items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-navy border-t-transparent" />
+              </div>
+            ) : airtimeSerials.length === 0 ? (
+              <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-slate-500">
+                No Air-Time serial numbers registered in the system
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-slate-100 bg-slate-50 text-xs uppercase text-slate-500">
+                    <tr>
+                      <th className="px-3 py-3 w-[40%]">Serial Number</th>
+                      <th className="px-3 py-3 w-[25%]">Loaded By</th>
+                      <th className="px-3 py-3 w-[25%]">Registered At</th>
+                      <th className="px-3 py-3 text-right w-[10%]">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {airtimeSerials.map((item) => (
+                      <tr key={item.id}>
+                        <td className="px-3 py-3.5 font-bold text-ink">{item.serial}</td>
+                        <td className="px-3 py-3.5 text-slate-600">
+                          {users.find((u) => u.id === item.loadedBy || u.id === `usr-fb-${item.loadedBy}`)?.name || item.loadedBy}
+                        </td>
+                        <td className="px-3 py-3.5 text-slate-500">
+                          {item.loadedAt ? new Date(item.loadedAt).toLocaleString() : '—'}
+                        </td>
+                        <td className="px-3 py-3.5">
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`Are you sure you want to delete serial number ${item.serial}?`)) {
+                                  deleteAirtimeSerial(item.id)
+                                    .then(() => {
+                                      alert('Serial number deleted.');
+                                      setSerialsUpdateCount(prev => prev + 1);
+                                    })
+                                    .catch((err) => {
+                                      alert(`Failed to delete serial: ${err.message || err}`);
+                                    });
+                                }
+                              }}
+                              className="h-8 w-8 flex items-center justify-center rounded-lg bg-danger text-white hover:bg-[#921616] transition shadow-sm"
+                              title="Delete"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </div>
       )}
 
       {/* Rate Card Modal */}

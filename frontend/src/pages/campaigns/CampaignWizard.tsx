@@ -6,7 +6,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { InputField, SelectField, TextareaField } from '../../components/ui/Field';
-import { campaigns, campaignTotals, lineTotal, materialSpecs, money, productCatalog, rateCard, approvals, workflowStages, type ProductCategory, type ProductLine, type Role } from '../../data/mockData';
+import { campaigns, campaignTotals, lineTotal, materialSpecs, money, productCatalog, rateCard, approvals, workflowStages, type ProductCategory, type ProductLine, type Role, type Campaign } from '../../data/mockData';
 import { getCampaign, createCampaign, updateCampaign } from '../../services/api';
 
 const enquirySteps = ['Client details', 'Campaign brief', 'Products', 'Review', 'Order sheet'];
@@ -43,6 +43,7 @@ export function CampaignWizard() {
   const { campaignId } = useParams();
   const isEdit = Boolean(campaignId);
   const { currentUser } = useOutletContext<{ currentUser?: any }>();
+  const [existingCampaign, setExistingCampaign] = useState<Campaign | null>(null);
   const [openCategory, setOpenCategory] = useState<ProductCategory | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<ProductLine[]>([]);
 
@@ -144,6 +145,7 @@ export function CampaignWizard() {
     if (isEdit && campaignId) {
       getCampaign(campaignId)
         .then((existing) => {
+          setExistingCampaign(existing);
           setOrganisation(existing.clientCompany || '');
           setKraPin(existing.kraPin || '');
           setIndustry(existing.industry || '');
@@ -490,13 +492,16 @@ export function CampaignWizard() {
         startDate: startDate,
         endDate: endDate,
         owner: currentUser?.name || 'Grace Mwangi',
-        status: (discountPercent > 0 ? 'Discount Pending' : 'Discount Approved') as any,
+        status: (existingCampaign && ['Order Generated', 'Client Signed', 'Countersigned', 'Payment Confirmed', 'Brief Unlocked'].includes(existingCampaign.status))
+          ? existingCampaign.status
+          : (discountPercent > 0 ? 'Discount Pending' : 'Discount Approved') as any,
         discountPercent: discountPercent,
         discountReason: discountReason,
-        paidDeposit: false,
+        paidDeposit: existingCampaign ? existingCampaign.paidDeposit : false,
         products: selectedProducts,
         // Wizard states
         bookingType,
+        kraPin,
         contactJobTitle,
         billingAddress,
         campaignDescription,
@@ -555,6 +560,9 @@ export function CampaignWizard() {
         dec1,
         dec2,
         dec3,
+        orderSheetPdfUrl: existingCampaign?.orderSheetPdfUrl,
+        signedSheetUrl: existingCampaign?.signedSheetUrl,
+        airtimeOrderSerial: existingCampaign?.airtimeOrderSerial,
       };
 
       updateCampaign(campaignId, updatedCampaign)
@@ -742,6 +750,9 @@ export function CampaignWizard() {
         dec1,
         dec2,
         dec3,
+        orderSheetPdfUrl: existingCampaign?.orderSheetPdfUrl,
+        signedSheetUrl: existingCampaign?.signedSheetUrl,
+        airtimeOrderSerial: existingCampaign?.airtimeOrderSerial,
       };
 
       updateCampaign(campaignId, updatedCampaign)

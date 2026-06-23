@@ -44,7 +44,24 @@ async def list_campaigns(user=Depends(get_current_user)):
         ]).stream()
     else:
         campaigns = db.collection("campaigns").stream()
-    return [{"id": c.id, **c.to_dict()} for c in campaigns]
+        
+    result = []
+    user_names = {}
+    for c in campaigns:
+        data = c.to_dict()
+        created_by = data.get("createdBy")
+        if created_by:
+            if created_by not in user_names:
+                user_doc = db.collection("users").document(created_by).get()
+                if user_doc.exists:
+                    user_names[created_by] = user_doc.to_dict().get("name", created_by)
+                else:
+                    user_names[created_by] = created_by
+            data["owner"] = user_names[created_by]
+        else:
+            data["owner"] = "Unknown"
+        result.append({"id": c.id, **data})
+    return result
 
 @router.get("/{campaign_id}")
 async def get_campaign(campaign_id: str, user=Depends(get_current_user)):
@@ -54,6 +71,17 @@ async def get_campaign(campaign_id: str, user=Depends(get_current_user)):
     campaign = doc.to_dict()
     if user.get("role") == "sales" and campaign.get("createdBy") != user["uid"]:
         raise HTTPException(status_code=403, detail="Access denied")
+        
+    created_by = campaign.get("createdBy")
+    if created_by:
+        user_doc = db.collection("users").document(created_by).get()
+        if user_doc.exists:
+            campaign["owner"] = user_doc.to_dict().get("name", created_by)
+        else:
+            campaign["owner"] = created_by
+    else:
+        campaign["owner"] = "Unknown"
+        
     return {"id": doc.id, **campaign}
 
 @router.put("/{campaign_id}")
@@ -114,6 +142,19 @@ async def get_campaign_audit(campaign_id: str, user=Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Access denied")
     
     logs = db.collection("auditLog").where("campaignId", "==", campaign_id).stream()
-    result = [{"id": l.id, **l.to_dict()} for l in logs]
+    result = []
+    user_names = {}
+    for l in logs:
+        data = l.to_dict()
+        actor = data.get("actor")
+        if actor:
+            if actor not in user_names:
+                user_doc = db.collection("users").document(actor).get()
+                if user_doc.exists:
+                    user_names[actor] = user_doc.to_dict().get("name", actor)
+                else:
+                    user_names[actor] = actor
+            data["actor"] = user_names[actor]
+        result.append({"id": l.id, **data})
     result.sort(key=lambda x: x.get("timestamp", ""))
     return result
