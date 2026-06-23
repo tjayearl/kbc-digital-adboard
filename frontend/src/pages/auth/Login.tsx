@@ -58,7 +58,7 @@ export default function Login() {
       // Instead of forcing a hard refresh via window.location.href, we change the URL path
       // client-side and let App.tsx handle mounting the router at this new path.
       let redirectUrl = "/";
-      if (role === "adManager") {
+      if (role === "adManager" || role === "finance") {
         redirectUrl = "/approvals";
       } else if (role === "digitalOps") {
         redirectUrl = "/operations";

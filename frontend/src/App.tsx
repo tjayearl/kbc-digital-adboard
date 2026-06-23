@@ -66,7 +66,7 @@ export default function App() {
           const currentPath = window.location.pathname;
           if (currentPath === '/' || currentPath === '/login') {
             let targetPath = '/';
-            if (userRole === 'adManager') {
+            if (userRole === 'adManager' || userRole === 'finance') {
               targetPath = '/approvals';
             } else if (userRole === 'digitalOps') {
               targetPath = '/operations';

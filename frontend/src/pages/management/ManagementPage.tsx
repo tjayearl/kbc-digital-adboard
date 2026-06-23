@@ -25,7 +25,12 @@ export function ManagementPage() {
     users: UserItem[];
     setUsers: React.Dispatch<React.SetStateAction<UserItem[]>>;
   }>();
-  const [activeTab, setActiveTab] = useState<'Rate Card' | 'Users' | 'Air-Time Serials'>('Rate Card');
+  const allowedTabs = role === 'finance'
+    ? ['Air-Time Serials']
+    : ['Rate Card', 'Users', 'Air-Time Serials'];
+  const [activeTab, setActiveTab] = useState<'Rate Card' | 'Users' | 'Air-Time Serials'>(
+    role === 'finance' ? 'Air-Time Serials' : 'Rate Card'
+  );
   const [rateItems, setRateItems] = useState<RateCardItem[]>(mockRateCard);
   const [airtimeSerials, setAirtimeSerials] = useState<any[]>([]);
   const [newSerial, setNewSerial] = useState('');
@@ -64,7 +69,7 @@ export function ManagementPage() {
   const [userEmail, setUserEmail] = useState('');
   const [userRole, setUserRole] = useState<Role>('sales');
 
-  if (role !== 'admin') {
+  if (role !== 'admin' && role !== 'finance') {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center text-center p-6 bg-white rounded-lg border border-slate-200 shadow-soft">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-danger/10 text-danger mb-4">
@@ -72,7 +77,7 @@ export function ManagementPage() {
         </div>
         <h3 className="text-xl font-bold text-ink">Access Denied</h3>
         <p className="mt-2 text-sm text-slate-500 max-w-sm leading-relaxed">
-          You do not have permission to view the Management settings. This page is restricted to Admin users.
+          You do not have permission to view the Management settings. This page is restricted to Admin and Finance users.
         </p>
       </div>
     );
@@ -303,33 +308,39 @@ export function ManagementPage() {
 
       {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2">
-        <button
-          onClick={() => setActiveTab('Rate Card')}
-          className={`min-h-11 shrink-0 rounded-lg px-4 text-sm font-semibold transition-colors flex items-center gap-2 ${
-            activeTab === 'Rate Card' ? 'bg-navy text-white' : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          <ClipboardList size={18} />
-          Rate Card
-        </button>
-        <button
-          onClick={() => setActiveTab('Users')}
-          className={`min-h-11 shrink-0 rounded-lg px-4 text-sm font-semibold transition-colors flex items-center gap-2 ${
-            activeTab === 'Users' ? 'bg-navy text-white' : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          <Users size={18} />
-          User Management
-        </button>
-        <button
-          onClick={() => setActiveTab('Air-Time Serials')}
-          className={`min-h-11 shrink-0 rounded-lg px-4 text-sm font-semibold transition-colors flex items-center gap-2 ${
-            activeTab === 'Air-Time Serials' ? 'bg-navy text-white' : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          <CheckSquare size={18} />
-          Air-Time Serials
-        </button>
+        {allowedTabs.includes('Rate Card') && (
+          <button
+            onClick={() => setActiveTab('Rate Card')}
+            className={`min-h-11 shrink-0 rounded-lg px-4 text-sm font-semibold transition-colors flex items-center gap-2 ${
+              activeTab === 'Rate Card' ? 'bg-navy text-white' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <ClipboardList size={18} />
+            Rate Card
+          </button>
+        )}
+        {allowedTabs.includes('Users') && (
+          <button
+            onClick={() => setActiveTab('Users')}
+            className={`min-h-11 shrink-0 rounded-lg px-4 text-sm font-semibold transition-colors flex items-center gap-2 ${
+              activeTab === 'Users' ? 'bg-navy text-white' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Users size={18} />
+            User Management
+          </button>
+        )}
+        {allowedTabs.includes('Air-Time Serials') && (
+          <button
+            onClick={() => setActiveTab('Air-Time Serials')}
+            className={`min-h-11 shrink-0 rounded-lg px-4 text-sm font-semibold transition-colors flex items-center gap-2 ${
+              activeTab === 'Air-Time Serials' ? 'bg-navy text-white' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <CheckSquare size={18} />
+            Air-Time Serials
+          </button>
+        )}
       </div>
 
       {/* Rate Card Tab */}
@@ -445,7 +456,7 @@ export function ManagementPage() {
                     <td className="px-3 py-3.5 font-bold text-ink">{item.name}</td>
                     <td className="px-3 py-3.5 text-slate-600 break-all">{item.email}</td>
                     <td className="px-3 py-3.5">
-                      <Badge tone={item.role === 'admin' ? 'gold' : item.role === 'adManager' ? 'navy' : 'teal'}>
+                      <Badge tone={item.role === 'admin' ? 'gold' : item.role === 'adManager' ? 'navy' : item.role === 'finance' ? 'gold' : 'teal'}>
                         {item.role}
                       </Badge>
                     </td>
@@ -490,7 +501,7 @@ export function ManagementPage() {
             {users.map((item) => (
               <article key={item.id} className={`rounded-lg border border-slate-200 p-4 ${item.status === 'Suspended' ? 'opacity-60 bg-slate-50/55' : ''}`}>
                 <div className="flex justify-between items-start gap-2">
-                  <Badge tone={item.role === 'admin' ? 'gold' : item.role === 'adManager' ? 'navy' : 'teal'}>{item.role}</Badge>
+                  <Badge tone={item.role === 'admin' ? 'gold' : item.role === 'adManager' ? 'navy' : item.role === 'finance' ? 'gold' : 'teal'}>{item.role}</Badge>
                   <Badge tone={item.status === 'Active' ? 'teal' : 'danger'}>{item.status}</Badge>
                 </div>
                 <h3 className="mt-3 font-bold text-ink">{item.name}</h3>
@@ -728,6 +739,7 @@ export function ManagementPage() {
                   <option value="sales">Sales</option>
                   <option value="adManager">Advertising Manager</option>
                   <option value="digitalOps">Digital Operations</option>
+                  <option value="finance">Finance</option>
                   <option value="admin">Admin</option>
                 </SelectField>
               </div>

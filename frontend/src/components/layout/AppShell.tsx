@@ -29,13 +29,13 @@ type AppShellProps = {
 
 // Define all possible nav items with their allowed roles
 const allNavItems = [
-  { label: 'Dashboard', to: '/', icon: LayoutDashboard, allowedRoles: ['sales', 'adManager', 'digitalOps', 'admin'] },
+  { label: 'Dashboard', to: '/', icon: LayoutDashboard, allowedRoles: ['sales', 'adManager', 'digitalOps', 'admin', 'finance'] },
   { label: 'Campaigns', to: '/campaigns', icon: BriefcaseBusiness, allowedRoles: ['sales', 'digitalOps', 'admin'] },
-  { label: 'Order Sheets', to: '/orders', icon: FileText, allowedRoles: ['sales', 'adManager', 'admin'] },
-  { label: 'Approvals', to: '/approvals', icon: CheckCircle2, allowedRoles: ['adManager', 'admin'] },
+  { label: 'Order Sheets', to: '/orders', icon: FileText, allowedRoles: ['sales', 'adManager', 'admin', 'finance'] },
+  { label: 'Approvals', to: '/approvals', icon: CheckCircle2, allowedRoles: ['adManager', 'admin', 'finance'] },
   { label: 'Digital Ops', to: '/operations', icon: ClipboardList, allowedRoles: ['digitalOps', 'admin'] },
-  { label: 'Reports', to: '/reports', icon: BarChart3, allowedRoles: ['sales', 'adManager', 'digitalOps', 'admin'] },
-  { label: 'Management', to: '/management', icon: Users, allowedRoles: ['admin'] },
+  { label: 'Reports', to: '/reports', icon: BarChart3, allowedRoles: ['sales', 'adManager', 'digitalOps', 'admin', 'finance'] },
+  { label: 'Management', to: '/management', icon: Users, allowedRoles: ['admin', 'finance'] },
 ];
 
 // Get mobile items (first 5) - will also be filtered by role

@@ -1,4 +1,4 @@
-export type Role = 'sales' | 'adManager' | 'digitalOps' | 'admin';
+export type Role = 'sales' | 'adManager' | 'digitalOps' | 'finance' | 'admin';
 
 export type CampaignStatus =
   | 'Draft'
@@ -182,7 +182,7 @@ export type AuditEvent = {
   timestamp: string;
 };
 
-export const roles: Role[] = ['sales', 'adManager', 'digitalOps', 'admin'];
+export const roles: Role[] = ['sales', 'adManager', 'digitalOps', 'finance', 'admin'];
 
 export const workflowStages: WorkflowStage[] = [
   { id: 'enquiry', name: 'Client enquiry & brief', description: 'Campaign objective, platform, budget, and timeline captured.', sla: 'Same day' },

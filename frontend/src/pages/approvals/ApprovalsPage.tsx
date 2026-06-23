@@ -18,7 +18,11 @@ const tabToType: Record<string, string> = {
 export function ApprovalsPage() {
   const { role, currentUser } = useOutletContext<{ role: Role; currentUser?: any }>();
 
-  const [activeTab, setActiveTab] = useState('Pending Discounts');
+  const allowedTabs = role === 'finance'
+    ? ['Payment Verification']
+    : tabs;
+
+  const [activeTab, setActiveTab] = useState(role === 'finance' ? 'Payment Verification' : 'Pending Discounts');
   const [campaignList, setCampaignList] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [updateCount, setUpdateCount] = useState(0);
@@ -35,7 +39,7 @@ export function ApprovalsPage() {
       });
   }, [updateCount]);
 
-  if (role !== 'adManager' && role !== 'admin') {
+  if (role !== 'adManager' && role !== 'admin' && role !== 'finance') {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center text-center p-6 bg-white rounded-lg border border-slate-200 shadow-soft">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-danger/10 text-danger mb-4">
@@ -43,7 +47,7 @@ export function ApprovalsPage() {
         </div>
         <h3 className="text-xl font-bold text-ink">Access Denied</h3>
         <p className="mt-2 text-sm text-slate-500 max-w-sm leading-relaxed">
-          You do not have permission to access the Approval Center. This page is restricted to the Advertising Manager.
+          You do not have permission to access the Approval Center. This page is restricted to Advertising Managers, Finance, and Admins.
         </p>
       </div>
     );
@@ -170,7 +174,7 @@ export function ApprovalsPage() {
 
       {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2">
-        {tabs.map((tab) => (
+        {allowedTabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
