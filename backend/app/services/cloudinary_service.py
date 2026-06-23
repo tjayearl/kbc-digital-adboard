@@ -16,6 +16,7 @@ async def upload_pdf(pdf_bytes: bytes, public_id: str) -> str:
         resource_type="raw",
         folder="dab/order-sheets",
         overwrite=True,
+        access_control=[{"access_type": "anonymous"}],
         access_mode="public",
         type="upload"
     )
@@ -29,6 +30,19 @@ async def upload_file(file_bytes: bytes, public_id: str, folder: str) -> str:
         resource_type="auto",
         folder=f"dab/{folder}",
         overwrite=True,
+        access_mode="public",
+        type="upload"
+    )
+    return result["secure_url"]
+
+async def upload_signed_pdf(pdf_bytes: bytes, public_id: str) -> str:
+    result = cloudinary.uploader.upload(
+        io.BytesIO(pdf_bytes),
+        public_id=f"{public_id}.pdf",
+        resource_type="raw",
+        folder="dab/signed-sheets",
+        overwrite=True,
+        access_control=[{"access_type": "anonymous"}],
         access_mode="public",
         type="upload"
     )

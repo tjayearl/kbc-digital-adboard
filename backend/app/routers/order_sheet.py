@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from app.core.security import require_roles, get_current_user
 from app.core.firebase import db
 from app.services.pdf_service import generate_order_sheet_pdf
-from app.services.cloudinary_service import upload_pdf, upload_file
+from app.services.cloudinary_service import upload_pdf, upload_signed_pdf
 from app.services.audit import log_action
 from app.services.dab_ref import generate_dab_ref
 from datetime import datetime, timezone
@@ -70,7 +70,7 @@ async def upload_signed_sheet(
         raise HTTPException(status_code=400, detail="Air-Time Order serial not found. Contact Finance to register it.")
     file_bytes = await file.read()
     dab_ref = doc.to_dict().get("dabRef", campaign_id)
-    file_url = await upload_file(file_bytes, f"{dab_ref}-signed", "signed-sheets")
+    file_url = await upload_signed_pdf(file_bytes, f"{dab_ref}-signed")
     now = datetime.now(timezone.utc).isoformat()
     ref.update({
         "status": "clientSigned", "airtimeOrderSerial": airtimeOrderSerial,
