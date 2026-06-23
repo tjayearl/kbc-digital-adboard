@@ -38,7 +38,7 @@ async def upload_file(file_bytes: bytes, public_id: str, folder: str) -> str:
 async def upload_signed_pdf(pdf_bytes: bytes, public_id: str) -> str:
     result = cloudinary.uploader.upload(
         io.BytesIO(pdf_bytes),
-        public_id=f"{public_id}.pdf",
+        public_id=public_id,
         resource_type="raw",
         folder="dab/signed-sheets",
         overwrite=True,
@@ -46,4 +46,5 @@ async def upload_signed_pdf(pdf_bytes: bytes, public_id: str) -> str:
         access_mode="public",
         type="upload"
     )
+    print(f"Signed PDF upload result: {result}")
     return result["secure_url"]
