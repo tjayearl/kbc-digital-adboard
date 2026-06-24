@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, CalendarDays, CheckSquare, Clock3, UploadCloud, FileText } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckSquare, Clock3, UploadCloud, FileText, Plus, X } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
@@ -30,6 +30,13 @@ export function OperationsPage() {
   const [podPreview, setPodPreview] = useState('');
   const [uploading, setUploading] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
+
+  // 🆕 State for delivered items
+  const [deliveredItems, setDeliveredItems] = useState<Array<{ name: string; quantity: number; notes: string }>>([]);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemQuantity, setNewItemQuantity] = useState(1);
+  const [newItemNotes, setNewItemNotes] = useState('');
+  const [reportNotes, setReportNotes] = useState('');
 
   // Reference to the hidden file input
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +68,9 @@ export function OperationsPage() {
         setPodUploaded(false);
         setPodFileName('');
         setPodPreview('');
+        // Reset delivered items
+        setDeliveredItems([]);
+        setReportNotes('');
       }
     } catch (err) {
       console.error('Failed to fetch campaigns:', err);
@@ -95,6 +105,29 @@ export function OperationsPage() {
   };
 
   const allValidationsChecked = Object.values(validationChecked).every(v => v === true);
+
+  // 🆕 Delivered Items Functions
+  const handleAddDeliveredItem = () => {
+    if (!newItemName.trim()) {
+      alert('Please enter an item name');
+      return;
+    }
+    setDeliveredItems([
+      ...deliveredItems,
+      {
+        name: newItemName.trim(),
+        quantity: newItemQuantity,
+        notes: newItemNotes.trim()
+      }
+    ]);
+    setNewItemName('');
+    setNewItemQuantity(1);
+    setNewItemNotes('');
+  };
+
+  const handleRemoveDeliveredItem = (index: number) => {
+    setDeliveredItems(deliveredItems.filter((_, i) => i !== index));
+  };
 
   const handlePODUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -146,16 +179,32 @@ export function OperationsPage() {
     fileInputRef.current?.click();
   };
 
+  // 🆕 Updated: Generate Report with delivered items
   const handleGenerateReport = async () => {
-    if (!podUploaded || !selectedCampaign) {
-      alert('Please upload POD before generating report');
+    if (!selectedCampaign) {
+      alert('Please select a campaign');
+      return;
+    }
+
+    if (deliveredItems.length === 0) {
+      alert('Please add at least one delivered item before generating the report');
       return;
     }
 
     setGeneratingReport(true);
     try {
-      const result = await generateReport(selectedCampaign.id);
+      const result = await generateReport(selectedCampaign.id, {
+        deliveredItems: deliveredItems,
+        notes: reportNotes
+      });
+      
+      // Navigate to reports page with the report ID
       navigate(`/reports?reportId=${result.reportId}&campaign=${encodeURIComponent(selectedCampaign.name)}`);
+      
+      // Reset delivered items after successful generation
+      setDeliveredItems([]);
+      setReportNotes('');
+      
     } catch (err) {
       console.error('Failed to generate report:', err);
       alert('Failed to generate report. Please try again.');
@@ -164,7 +213,8 @@ export function OperationsPage() {
     }
   };
 
-  const canGenerateReport = podUploaded;
+  // Update canGenerateReport to require delivered items
+  const canGenerateReport = podUploaded && deliveredItems.length > 0;
 
   const handleCampaignSelect = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
@@ -176,6 +226,8 @@ export function OperationsPage() {
     setPodUploaded(false);
     setPodFileName('');
     setPodPreview('');
+    setDeliveredItems([]);
+    setReportNotes('');
   };
 
   if (loading) {
@@ -408,24 +460,119 @@ export function OperationsPage() {
       </Card>
 
       {/* ============================================================
-          CAMPAIGN REPORT SECTION - ALWAYS VISIBLE
+          🆕 DELIVERED ITEMS SECTION
+          ============================================================ */}
+      <Card>
+        <CardHeader>
+          <h3 className="text-lg font-bold text-ink">Delivered Items</h3>
+          <p className="mt-1 text-sm text-slate-500">Add the items that were actually delivered for this campaign.</p>
+        </CardHeader>
+        <CardBody className="space-y-4">
+          {/* Add new item form */}
+          <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr_auto] items-end">
+            <div>
+              <label className="text-sm font-semibold text-slate-700">Item Name</label>
+              <input
+                type="text"
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                placeholder="e.g., Facebook Sponsored Post"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-slate-700">Quantity</label>
+              <input
+                type="number"
+                value={newItemQuantity}
+                onChange={(e) => setNewItemQuantity(Number(e.target.value))}
+                min="1"
+                className="w-20 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="md:col-span-1">
+              <label className="text-sm font-semibold text-slate-700">Notes (optional)</label>
+              <input
+                type="text"
+                value={newItemNotes}
+                onChange={(e) => setNewItemNotes(e.target.value)}
+                placeholder="Any delivery notes"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <Button onClick={handleAddDeliveredItem} className="md:col-span-1">
+              <Plus size={16} className="mr-2" />
+              Add Item
+            </Button>
+          </div>
+
+          {/* Delivered items list */}
+          {deliveredItems.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <p className="text-sm font-semibold text-slate-700">Delivered Items ({deliveredItems.length})</p>
+              {deliveredItems.map((item, index) => (
+                <div key={index} className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
+                  <div>
+                    <p className="font-semibold text-ink">{item.name}</p>
+                    <p className="text-sm text-slate-500">Qty: {item.quantity} {item.notes && `• ${item.notes}`}</p>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveDeliveredItem(index)}
+                    className="text-danger hover:text-danger/70"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
+      {/* ============================================================
+          CAMPAIGN REPORT SECTION - UPDATED
           ============================================================ */}
       <Card>
         <CardHeader>
           <h3 className="text-lg font-bold text-ink">Campaign Report</h3>
-          <p className="mt-1 text-sm text-slate-500">Generate performance report after POD is uploaded.</p>
+          <p className="mt-1 text-sm text-slate-500">Generate performance report with delivered items.</p>
         </CardHeader>
-        <CardBody>
-          <Button 
-            onClick={handleGenerateReport} 
-            disabled={!canGenerateReport || generatingReport}
-            variant={canGenerateReport ? 'primary' : 'secondary'}
-          >
-            <FileText size={18} className="mr-2" />
-            {generatingReport ? 'Generating...' : 'Generate Report'}
-          </Button>
-          {!canGenerateReport && (
-            <p className="mt-2 text-sm text-slate-500">Upload POD to enable report generation</p>
+        <CardBody className="space-y-4">
+          {/* Report notes */}
+          <div>
+            <label className="text-sm font-semibold text-slate-700">Report Notes (optional)</label>
+            <textarea
+              value={reportNotes}
+              onChange={(e) => setReportNotes(e.target.value)}
+              placeholder="Add any additional notes for the report..."
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm min-h-[80px]"
+            />
+          </div>
+
+          <div className="flex items-center gap-4 flex-wrap">
+            <Button 
+              onClick={handleGenerateReport} 
+              disabled={!canGenerateReport || generatingReport}
+              variant={canGenerateReport ? 'primary' : 'secondary'}
+            >
+              <FileText size={18} className="mr-2" />
+              {generatingReport ? 'Generating...' : 'Generate Report'}
+            </Button>
+            {!podUploaded && (
+              <p className="text-sm text-slate-500">Upload POD to enable report generation</p>
+            )}
+            {podUploaded && deliveredItems.length === 0 && (
+              <p className="text-sm text-slate-500">Add at least one delivered item</p>
+            )}
+          </div>
+
+          {/* Show delivery summary if items exist */}
+          {deliveredItems.length > 0 && (
+            <div className="rounded-lg border border-teal/20 bg-teal/10 p-3">
+              <p className="text-sm font-semibold text-teal">
+                ✓ Ready to generate report with {deliveredItems.length} delivered item{deliveredItems.length !== 1 ? 's' : ''}
+              </p>
+            </div>
           )}
         </CardBody>
       </Card>
