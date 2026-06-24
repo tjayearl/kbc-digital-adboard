@@ -84,7 +84,7 @@ export function ApprovalsPage() {
         status: 'Pending',
         note: 'Order Sheet signed by client. Ready for countersigning.'
       });
-    } else if (c.status === 'Countersigned') {
+    } else if (c.status === 'Client Signed' && c.signedSheetUrl) {
       approvalsList.push({
         id: `ap-pay-${c.id}`,
         campaignId: c.id,
