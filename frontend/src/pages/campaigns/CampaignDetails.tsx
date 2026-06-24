@@ -883,4 +883,5 @@ function PriceRow({ label, value }: { label: string; value: string }) {
       <span className="text-slate-500">{label}</span>
       <span className="font-bold text-ink">{value}</span>
     </div>
- 
+  );
+}
