@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from app.core.security import require_roles
+from app.core.security import require_roles, get_current_user
 from app.core.firebase import db
 from app.services.audit import log_action
 from app.services.pdf_service import generate_report_pdf
