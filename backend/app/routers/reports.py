@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from app.core.security import require_roles, get_current_user
 from app.core.firebase import db
 from app.services.audit import log_action
-from app.services.pdf_service import generate_report_pdf
+from app.services.pdf_service import generate_campaign_report_pdf
 from datetime import datetime, timezone
 from pydantic import BaseModel
 from typing import List, Optional
@@ -66,12 +66,10 @@ async def download_report(
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Campaign not found")
     campaign = doc.to_dict()
-    report = campaign.get("report")
-    if not report:
-        raise HTTPException(status_code=404, detail="No report generated yet for this campaign")
+    campaign['id'] = campaign_id # Ensure ID is in the dict for the PDF service
 
     dab_ref = campaign.get("dabRef", campaign_id)
-    pdf_bytes = generate_report_pdf(campaign, report)
+    pdf_bytes = generate_campaign_report_pdf(campaign)
 
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
