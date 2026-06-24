@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from fastapi.responses import RedirectResponse
+from fastapi.responses import StreamingResponse
 from app.core.security import require_roles, get_current_user
 from app.core.firebase import db
 from app.services.pdf_service import generate_order_sheet_pdf
@@ -8,6 +8,7 @@ from app.services.audit import log_action
 from app.services.dab_ref import generate_dab_ref
 from datetime import datetime, timezone
 import logging
+import io
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ async def generate_order_sheet(campaign_id: str, user=Depends(require_roles(["sa
         pdf_url = await upload_pdf(pdf_bytes, f"{dab_ref}")
     except Exception as exc:
         logger.exception("Failed to upload order sheet PDF for campaign %s", campaign_id)
-        raise HTTPException(status_code=500, detail="Failed to upload Order Sheet PDF. Check Cloudinary configuration and logs.") from exc
+        raise HTTPException(status_code=500, detail="Failed to upload Order Sheet PDF.") from exc
     now = datetime.now(timezone.utc).isoformat()
     try:
         ref.update({"dabRef": dab_ref, "orderSheetPdfUrl": pdf_url, "status": "orderSheetGenerated", "updatedAt": now})
@@ -53,16 +54,37 @@ async def download_order_sheet(campaign_id: str, user=Depends(get_current_user))
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Campaign not found")
     campaign = doc.to_dict()
-    pdf_url = campaign.get("orderSheetPdfUrl")
-    if not pdf_url:
+    if not campaign.get("orderSheetPdfUrl"):
         raise HTTPException(status_code=404, detail="No Order Sheet generated yet")
     dab_ref = campaign.get("dabRef", campaign_id)
+    # Re-generate PDF from campaign data and stream directly — bypasses Cloudinary auth
+    pdf_bytes = generate_order_sheet_pdf(campaign)
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={dab_ref}.pdf"}
+    )
 
-    # Add Cloudinary transformation flags to force download with a specific filename.
-    # f_auto: automatically select format, q_auto: automatically select quality
-    # fl_attachment: force download with the name provided
-    download_url = pdf_url.replace("/upload/", f"/upload/fl_attachment:{dab_ref}/")
-    return RedirectResponse(url=download_url)
+@router.get("/{campaign_id}/download-signed")
+async def download_signed_sheet(campaign_id: str, user=Depends(get_current_user)):
+    import requests as req
+    doc = db.collection("campaigns").document(campaign_id).get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    campaign = doc.to_dict()
+    signed_url = campaign.get("signedSheetUrl")
+    if not signed_url:
+        raise HTTPException(status_code=404, detail="No signed sheet uploaded yet")
+    dab_ref = campaign.get("dabRef", campaign_id)
+    # Fetch from Cloudinary server-side and stream to client
+    response = req.get(signed_url)
+    if response.status_code != 200:
+        raise HTTPException(status_code=502, detail="Could not fetch signed sheet from storage")
+    return StreamingResponse(
+        io.BytesIO(response.content),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={dab_ref}-signed.pdf"}
+    )
 
 @router.post("/{campaign_id}/upload-signed")
 async def upload_signed_sheet(

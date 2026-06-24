@@ -6,7 +6,7 @@ import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { campaignTotals, lineTotal, money, productCatalog, rateCard, type Role, type Campaign, type AuditEvent } from '../../data/mockData';
 import { OrderSheetContent } from '../../components/campaigns/OrderSheetContent';
 import { FileText, Download, Upload, Trash2 } from 'lucide-react';
-import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, downloadOrderSheetPdf, uploadSignedSheet, getCampaignAudit } from '../../services/api';
+import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, downloadOrderSheetPdf, uploadSignedSheet, getCampaignAudit, BASE_URL, getAuthHeaders } from '../../services/api';
 import { downloadBlob, orderSheetFilename, printBlob, shareOrderSheet } from '../../utils/pdfActions';
 
 const tabs = ['Overview', 'Pricing', 'Order Sheet', 'Gate Checks', 'Reports', 'Audit Log'];
@@ -567,14 +567,30 @@ export function CampaignDetails() {
                     <Badge tone="teal">{campaign.airtimeOrderSerial || 'ATO-2026-01482'}</Badge>
                   </div>
                   <div>
-                    <a 
-                      href={campaign.signedSheetUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`${BASE_URL}/order-sheet/${campaign.id}/download-signed`, {
+                            headers: await getAuthHeaders()
+                          });
+                          if (!res.ok) throw new Error('Failed to download');
+                          const blob = await res.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = `${campaign.dabRef || campaign.id}-signed.pdf`;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          window.URL.revokeObjectURL(url);
+                        } catch (err) {
+                          alert('Failed to download signed sheet');
+                        }
+                      }}
                       className="inline-flex items-center text-sm font-bold text-navy hover:underline"
                     >
-                      <FileText size={16} className="mr-1.5" /> View Signed Order Sheet PDF
-                    </a>
+                      <FileText size={16} className="mr-1.5" /> Download Signed Order Sheet PDF
+                    </button>
                   </div>
                 </CardBody>
               </Card>
@@ -867,5 +883,4 @@ function PriceRow({ label, value }: { label: string; value: string }) {
       <span className="text-slate-500">{label}</span>
       <span className="font-bold text-ink">{value}</span>
     </div>
-  );
-}
+ 
