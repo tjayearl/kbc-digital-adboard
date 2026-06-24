@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from fastapi.responses import StreamingResponse
+from fastapi.responses import RedirectResponse
 from app.core.security import require_roles, get_current_user
 from app.core.firebase import db
 from app.services.pdf_service import generate_order_sheet_pdf
@@ -7,8 +7,6 @@ from app.services.cloudinary_service import upload_pdf, upload_signed_pdf
 from app.services.audit import log_action
 from app.services.dab_ref import generate_dab_ref
 from datetime import datetime, timezone
-import requests
-import io
 
 router = APIRouter()
 
@@ -42,17 +40,12 @@ async def download_order_sheet(campaign_id: str, user=Depends(get_current_user))
     if not pdf_url:
         raise HTTPException(status_code=404, detail="No Order Sheet generated yet")
     dab_ref = campaign.get("dabRef", campaign_id)
-    
-    try:
-        response = requests.get(pdf_url, stream=True)
-        response.raise_for_status()
-        return StreamingResponse(
-            response.iter_content(chunk_size=8192),
-            media_type=response.headers.get("Content-Type", "application/pdf"),
-            headers={"Content-Disposition": f"attachment; filename={dab_ref}.pdf"}
-        )
-    except requests.exceptions.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch PDF from storage: {e}")
+
+    # Add Cloudinary transformation flags to force download with a specific filename.
+    # f_auto: automatically select format, q_auto: automatically select quality
+    # fl_attachment: force download with the name provided
+    download_url = pdf_url.replace("/upload/", f"/upload/fl_attachment:{dab_ref}/")
+    return RedirectResponse(url=download_url)
 
 @router.post("/{campaign_id}/upload-signed")
 async def upload_signed_sheet(
