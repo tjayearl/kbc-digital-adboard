@@ -6,7 +6,7 @@ import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { campaignTotals, lineTotal, money, productCatalog, rateCard, type Role, type Campaign, type AuditEvent } from '../../data/mockData';
 import { OrderSheetContent } from '../../components/campaigns/OrderSheetContent';
 import { FileText, Download, Upload, Trash2 } from 'lucide-react';
-import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, downloadOrderSheetPdf, uploadSignedSheet, getCampaignAudit, BASE_URL, getAuthHeaders } from '../../services/api';
+import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, downloadOrderSheetPdf, uploadSignedSheet, getCampaignAudit, BASE_URL, getAuthHeaders, downloadReportPdf } from '../../services/api';
 import { downloadBlob, orderSheetFilename, printBlob, shareOrderSheet } from '../../utils/pdfActions';
 
 const tabs = ['Overview', 'Pricing', 'Order Sheet', 'Gate Checks', 'Reports', 'Audit Log'];
@@ -385,27 +385,20 @@ export function CampaignDetails() {
                       <Button 
                         variant="secondary" 
                         className="h-9 text-xs px-2.5" 
-                        onClick={() => {
-                          const handleDownload = async () => {
-                            try {
-                              const res = await fetch(`${BASE_URL}/reports/${campaign.id}/download`, {
-                                headers: await getAuthHeaders()
-                              });
-                              if (!res.ok) throw new Error('Failed to download report');
-                              const blob = await res.blob();
-                              const url = window.URL.createObjectURL(blob);
-                              const link = document.createElement('a');
-                              link.href = url;
-                              link.download = `${campaign.dabRef || campaign.id}-report.pdf`;
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                              window.URL.revokeObjectURL(url);
-                            } catch (err) {
-                              alert(`Error downloading report: ${(err as Error).message}`);
-                            }
-                          };
-                          handleDownload();
+                        onClick={async () => {
+                          try {
+                            const blob = await downloadReportPdf(campaign.id);
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `${campaign.dabRef || campaign.id}-report.pdf`;
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            window.URL.revokeObjectURL(url);
+                          } catch (err) {
+                            alert(`Error downloading report: ${(err as Error).message}`);
+                          }
                         }}
                       >
                         <Download size={14} /> Download
