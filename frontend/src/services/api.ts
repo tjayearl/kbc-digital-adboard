@@ -982,4 +982,3 @@ export async function deleteAirtimeSerial(id: string): Promise<any> {
     throw error;
   }
 }
-

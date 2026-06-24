@@ -14,12 +14,12 @@ export function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [updateCount, setUpdateCount] = useState(0);
   
-  // 🆕 State for generated reports
+  // State for generated reports
   const [generatedReports, setGeneratedReports] = useState<Record<string, any[]>>({});
   const [loadingReports, setLoadingReports] = useState<Record<string, boolean>>({});
   const [downloading, setDownloading] = useState<string | null>(null);
 
-  // 🆕 Check if we came from report generation
+  // Check if we came from report generation
   const reportId = searchParams.get('reportId');
   const campaignName = searchParams.get('campaign');
 
@@ -48,7 +48,7 @@ export function ReportsPage() {
       });
   }, [updateCount]);
 
-  // 🆕 Fetch generated reports for a campaign
+  // Fetch generated reports for a campaign
   const fetchCampaignReports = async (campaignId: string) => {
     setLoadingReports(prev => ({ ...prev, [campaignId]: true }));
     try {
@@ -64,7 +64,7 @@ export function ReportsPage() {
     }
   };
 
-  // 🆕 Download a generated report PDF
+  // Download a generated report PDF
   const handleDownloadGeneratedReport = async (campaignId: string, reportId: string) => {
     setDownloading(reportId);
     try {
@@ -83,7 +83,7 @@ export function ReportsPage() {
     }
   };
 
-  // 🆕 View a generated report (opens in new tab)
+  // View a generated report (opens in new tab)
   const handleViewGeneratedReport = async (campaignId: string, reportId: string) => {
     try {
       const blob = await downloadReportPdf(campaignId, reportId);
@@ -128,43 +128,43 @@ export function ReportsPage() {
         });
     }
   };
+const handleExportReport = async (campaign: Campaign) => {
+  const reports = generatedReports[campaign.id];
 
-  const handleExportReport = (campaign: Campaign) => {
-    const totals = campaignTotals(campaign);
-    alert(`Exporting report summary for ${campaign.dabRef}...`);
+  if (!reports || reports.length === 0) {
+    alert("No generated report available for this campaign");
+    return;
+  }
 
-    const reportContent = `KBC Digital AdBoard - Campaign Performance Report\n` +
-      `=============================================================\n` +
-      `Campaign Reference: ${campaign.dabRef}\n` +
-      `Campaign Name:      ${campaign.name}\n` +
-      `Client Company:     ${campaign.clientCompany}\n` +
-      `Client Name:        ${campaign.clientName}\n` +
-      `Owner / Representative: ${campaign.owner}\n` +
-      `Campaign Schedule:  ${campaign.startDate} to ${campaign.endDate}\n` +
-      `Workflow Status:    ${campaign.status}\n` +
-      `-------------------------------------------------------------\n` +
-      `Uploaded Report:    ${campaign.reportFile || 'No custom report file uploaded (using standard scaffold)'}\n` +
-      `-------------------------------------------------------------\n` +
-      `Deliverables Summary:\n` +
-      campaign.products.map(p => ` - [${p.category}] ${p.name}: ${p.quantity} ${p.unit} (Value: ${money.format(p.quantity * p.unitPrice)})`).join('\n') +
-      `\n-------------------------------------------------------------\n` +
-      `Financial Summary:\n` +
-      ` - Subtotal:           ${money.format(totals.subtotal)}\n` +
-      ` - Discount (${campaign.discountPercent}%):    ${money.format(totals.discount)}\n` +
-      ` - VAT (16%):          ${money.format(totals.vat)}\n` +
-      ` - Grand Total:        ${money.format(totals.grandTotal)}\n` +
-      `=============================================================\n` +
-      `Generated on: ${new Date().toLocaleString()}\n` +
-      `Kenya Broadcasting Corporation - Digital AdBoard Services\n`;
+  const latestReport = reports[reports.length - 1];
 
-    const blob = new Blob([reportContent], { type: 'text/plain' });
+  setDownloading(latestReport.id);
+
+  try {
+    const blob = await downloadReportPdf(
+      campaign.id,
+      latestReport.id
+    );
+
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `${campaign.dabRef}_Performance_Report.txt`;
+    link.download = `${campaign.dabRef}_Performance_Report.pdf`;
+
+    document.body.appendChild(link);
     link.click();
+
+    link.remove();
     URL.revokeObjectURL(url);
-  };
+
+  } catch (err) {
+    console.error("Failed to export report:", err);
+    alert("Failed to export report");
+  } finally {
+    setDownloading(null);
+  }
+};
 
   const canUpload = role === 'digitalOps' || role === 'admin' || role === 'sales';
 
@@ -218,7 +218,7 @@ export function ReportsPage() {
                   </div>
                   <p className="text-sm text-slate-500">{campaign.clientCompany} • representative: {campaign.owner}</p>
                   
-                  {/* 🆕 Generated Reports Section */}
+                  {/* Generated Reports Section */}
                   {reports.length > 0 && (
                     <div className="mt-2 space-y-1">
                       <p className="text-xs font-semibold text-slate-500">📄 Generated Reports:</p>
@@ -229,21 +229,21 @@ export function ReportsPage() {
                             {new Date(report.generatedAt).toLocaleDateString()} 
                             {report.deliveredItems && ` • ${report.deliveredItems.length} items`}
                           </span>
-                         <Button
-  variant="secondary"
-  className="h-7 min-h-0 text-xs px-2 py-1"  // ✅ Override default min-h-11
-  onClick={() => handleViewGeneratedReport(campaign.id, report.id)}
-  disabled={downloading === report.id}
->
+                          <Button
+                            variant="secondary"
+                            className="h-7 min-h-0 text-xs px-2 py-1"
+                            onClick={() => handleViewGeneratedReport(campaign.id, report.id)}
+                            disabled={downloading === report.id}
+                          >
                             <Eye size={12} className="mr-1" />
                             View
                           </Button>
                           <Button
-  variant="secondary"
-  className="h-7 min-h-0 text-xs px-2 py-1"  // ✅ Override default min-h-11
-  onClick={() => handleViewGeneratedReport(campaign.id, report.id)}
-  disabled={downloading === report.id}
->
+                            variant="secondary"
+                            className="h-7 min-h-0 text-xs px-2 py-1"
+                            onClick={() => handleDownloadGeneratedReport(campaign.id, report.id)}
+                            disabled={downloading === report.id}
+                          >
                             <Download size={12} className="mr-1" />
                             {downloading === report.id ? '...' : 'PDF'}
                           </Button>
