@@ -160,6 +160,18 @@ export async function getAuthHeaders(isMultipart = false) {
   return headers;
 }
 
+async function getApiErrorMessage(res: Response) {
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    const err = await res.json().catch(() => null);
+    return err?.detail || err?.message || `HTTP ${res.status}`;
+  }
+
+  const text = await res.text().catch(() => '');
+  const detail = text.replace(/\s+/g, ' ').trim().slice(0, 200);
+  return detail ? `HTTP ${res.status}: ${detail}` : `HTTP ${res.status}`;
+}
+
 // ----------------------------------------------------
 // PRODUCT CATALOG & RATE CARD MAPPING HELPERS
 // ----------------------------------------------------
@@ -633,8 +645,7 @@ export async function generateOrderSheet(campaignId: string): Promise<{ message:
       headers: await getAuthHeaders()
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(err.detail || `HTTP ${res.status}`);
+      throw new Error(await getApiErrorMessage(res));
     }
     return await res.json();
   } catch (error) {
@@ -649,8 +660,7 @@ export async function downloadOrderSheetPdf(campaignId: string): Promise<Blob> {
       headers: await getAuthHeaders()
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(err.detail || `HTTP ${res.status}`);
+      throw new Error(await getApiErrorMessage(res));
     }
     return await res.blob();
   } catch (error) {

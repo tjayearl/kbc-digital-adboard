@@ -7,8 +7,10 @@ from app.services.cloudinary_service import upload_pdf, upload_signed_pdf
 from app.services.audit import log_action
 from app.services.dab_ref import generate_dab_ref
 from datetime import datetime, timezone
+import logging
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.post("/{campaign_id}/generate")
 async def generate_order_sheet(campaign_id: str, user=Depends(require_roles(["sales", "admin"]))):
@@ -23,11 +25,26 @@ async def generate_order_sheet(campaign_id: str, user=Depends(require_roles(["sa
         raise HTTPException(status_code=400, detail="Cannot generate Order Sheet while discount is pending")
     dab_ref = await generate_dab_ref()
     campaign["dabRef"] = dab_ref
-    pdf_bytes = generate_order_sheet_pdf(campaign)
-    pdf_url = await upload_pdf(pdf_bytes, f"{dab_ref}")
+    try:
+        pdf_bytes = generate_order_sheet_pdf(campaign)
+    except Exception as exc:
+        logger.exception("Failed to generate order sheet PDF for campaign %s", campaign_id)
+        raise HTTPException(status_code=500, detail="Failed to generate Order Sheet PDF") from exc
+    try:
+        pdf_url = await upload_pdf(pdf_bytes, f"{dab_ref}")
+    except Exception as exc:
+        logger.exception("Failed to upload order sheet PDF for campaign %s", campaign_id)
+        raise HTTPException(status_code=500, detail="Failed to upload Order Sheet PDF. Check Cloudinary configuration and logs.") from exc
     now = datetime.now(timezone.utc).isoformat()
-    ref.update({"dabRef": dab_ref, "orderSheetPdfUrl": pdf_url, "status": "orderSheetGenerated", "updatedAt": now})
-    await log_action(campaign_id, "ORDER_SHEET_GENERATED", user["uid"], user.get("role", ""), f"DAB Ref: {dab_ref}")
+    try:
+        ref.update({"dabRef": dab_ref, "orderSheetPdfUrl": pdf_url, "status": "orderSheetGenerated", "updatedAt": now})
+    except Exception as exc:
+        logger.exception("Failed to update campaign %s after order sheet PDF upload", campaign_id)
+        raise HTTPException(status_code=500, detail="Order Sheet PDF was uploaded, but the campaign could not be updated") from exc
+    try:
+        await log_action(campaign_id, "ORDER_SHEET_GENERATED", user["uid"], user.get("role", ""), f"DAB Ref: {dab_ref}")
+    except Exception:
+        logger.exception("Failed to write order sheet audit log for campaign %s", campaign_id)
     return {"message": "Order Sheet generated", "dabRef": dab_ref, "pdfUrl": pdf_url}
 
 @router.get("/{campaign_id}/download")
