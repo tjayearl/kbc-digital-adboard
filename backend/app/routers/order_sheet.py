@@ -42,17 +42,17 @@ async def download_order_sheet(campaign_id: str, user=Depends(get_current_user))
     if not pdf_url:
         raise HTTPException(status_code=404, detail="No Order Sheet generated yet")
     dab_ref = campaign.get("dabRef", campaign_id)
-
-    # Re-generate the PDF from campaign data and stream it directly
-    pdf_bytes = generate_order_sheet_pdf(campaign)
     
-    return StreamingResponse(
-        io.BytesIO(pdf_bytes),
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f"attachment; filename={dab_ref}.pdf"
-        }
-    )
+    try:
+        response = requests.get(pdf_url, stream=True)
+        response.raise_for_status()
+        return StreamingResponse(
+            response.iter_content(chunk_size=8192),
+            media_type=response.headers.get("Content-Type", "application/pdf"),
+            headers={"Content-Disposition": f"attachment; filename={dab_ref}.pdf"}
+        )
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch PDF from storage: {e}")
 
 @router.post("/{campaign_id}/upload-signed")
 async def upload_signed_sheet(
