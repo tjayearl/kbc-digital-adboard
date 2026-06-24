@@ -2,18 +2,23 @@ import type { Campaign } from '../data/mockData';
 
 export function orderSheetFilename(campaign: Campaign) {
   const ref = (campaign.dabRef || campaign.id || 'order-sheet').replace(/[^A-Za-z0-9_.-]+/g, '_');
-  return `${ref}_Order_Sheet.pdf`;
+  return ensurePdfFilename(`${ref}_Order_Sheet.pdf`);
 }
 
 export function downloadBlob(blob: Blob, filename: string) {
   const blobUrl = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = blobUrl;
-  link.download = filename;
+  link.download = ensurePdfFilename(filename);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(blobUrl);
+}
+
+function ensurePdfFilename(filename: string) {
+  const safeFilename = (filename || 'order-sheet').replace(/[^A-Za-z0-9_.-]+/g, '_');
+  return safeFilename.toLowerCase().endsWith('.pdf') ? safeFilename : `${safeFilename}.pdf`;
 }
 
 export function printBlob(blob: Blob, fallbackUrl?: string, targetWindow?: Window | null) {

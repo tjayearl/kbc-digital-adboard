@@ -208,6 +208,7 @@ def generate_order_sheet_pdf(campaign: dict) -> bytes:
     buffer.seek(0)
     return buffer.read()
 
+<<<<<<< HEAD
 # ============================================================
 # 🆕 NEW: Generate Report PDF (Add this at the BOTTOM of the file)
 # ============================================================
@@ -371,3 +372,51 @@ def generate_report_pdf(campaign: dict, delivered_items: list, notes: str = "") 
     doc.build(elements)
     buffer.seek(0)
     return buffer.read()
+=======
+def generate_report_pdf(campaign: dict, report: dict) -> bytes:
+    buffer = io.BytesIO()
+
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+
+    elements = []
+
+    elements.append(
+        Paragraph(
+            f"Campaign Report - {campaign.get('dabRef', '')}",
+            ParagraphStyle("title", fontSize=18)
+        )
+    )
+
+    elements.append(Spacer(1, 12))
+
+    elements.append(
+        Paragraph(
+            f"Generated At: {report.get('generatedAt', '')}",
+            ParagraphStyle("body", fontSize=10)
+        )
+    )
+
+    elements.append(Spacer(1, 12))
+
+    for item in report.get("deliveredItems", []):
+        elements.append(
+            Paragraph(
+                f"{item['name']} - Qty: {item['quantity']}",
+                ParagraphStyle("body", fontSize=10)
+            )
+        )
+
+    elements.append(Spacer(1, 12))
+
+    elements.append(
+        Paragraph(
+            f"Notes: {report.get('notes', '')}",
+            ParagraphStyle("body", fontSize=10)
+        )
+    )
+
+    doc.build(elements)
+
+    buffer.seek(0)
+    return buffer.read()
+>>>>>>> 550d6fa3acb4bfbaea0f3c5dd8d8658bb7e0fa11
