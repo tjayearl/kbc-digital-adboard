@@ -1,122 +1,91 @@
 from fastapi import APIRouter, Depends, HTTPException
-from app.core.security import require_roles, get_current_user
+from fastapi.responses import StreamingResponse
+from app.core.security import require_roles
 from app.core.firebase import db
 from app.services.audit import log_action
+from app.services.pdf_service import generate_report_pdf
 from datetime import datetime, timezone
 from pydantic import BaseModel
-import uuid  # ← ADD THIS
+from typing import List, Optional
+import uuid
+import io
 
 router = APIRouter()
 
-class ReportActuals(BaseModel):
-    deliveredItems: list
+class DeliveredItem(BaseModel):
+    name: str
+    quantity: int
     notes: str = ""
 
-# ============================================================
-# EXISTING ENDPOINT - KEEP AS IS
-# ============================================================
+class ReportActuals(BaseModel):
+    deliveredItems: List[DeliveredItem]
+    notes: str = ""
+
 @router.post("/{campaign_id}/generate")
-async def generate_report(campaign_id: str, actuals: ReportActuals, user=Depends(require_roles(["digitalOps", "admin"]))):
+async def generate_report(
+    campaign_id: str,
+    actuals: ReportActuals,
+    user=Depends(require_roles(["digitalOps", "admin"]))
+):
     ref = db.collection("campaigns").document(campaign_id)
     doc = ref.get()
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Campaign not found")
-    if doc.to_dict().get("status") not in ["delivered", "inExecution"]:
-        raise HTTPException(status_code=400, detail="Campaign must be delivered first")
-    
-    # ✅ Generate a report ID
+    campaign = doc.to_dict()
+    if campaign.get("status") not in ["delivered", "inExecution", "briefUnlocked"]:
+        raise HTTPException(status_code=400, detail="Campaign must be in execution or delivered state")
+
     report_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
-    
-    # ✅ Save to reports collection
-    db.collection("reports").document(report_id).set({
+
+    report_data = {
+        "reportId": report_id,
         "campaignId": campaign_id,
-        "deliveredItems": actuals.deliveredItems,
+        "deliveredItems": [item.dict() for item in actuals.deliveredItems],
         "notes": actuals.notes,
         "generatedBy": user["uid"],
         "generatedAt": now,
-        "createdAt": now
-    })
-    
-    # ✅ Update campaign
+    }
+
     ref.update({
-        "report": {
-            "deliveredItems": actuals.deliveredItems, 
-            "notes": actuals.notes,
-            "generatedBy": user["uid"], 
-            "generatedAt": now,
-            "reportId": report_id
-        },
-        "status": "reported", 
+        "report": report_data,
+        "status": "reported",
         "updatedAt": now
     })
-    
-    await log_action(campaign_id, "REPORT_GENERATED", user["uid"], user.get("role", ""), f"Report ID: {report_id}")
-    
-    # ✅ Return reportId and reportUrl
-    return {
-        "message": "Report generated",
-        "reportId": report_id,
-        "reportUrl": f"/api/v1/reports/{campaign_id}/pdf/{report_id}"
-    }
 
+    await log_action(campaign_id, "REPORT_GENERATED", user["uid"], user.get("role", ""), "")
 
-# ============================================================
-# 🆕 NEW ENDPOINT: Get all reports for a campaign
-# ============================================================
-@router.get("/{campaign_id}/reports")
-async def get_campaign_reports(campaign_id: str, user=Depends(require_roles(["digitalOps", "admin", "sales"]))):
-    """Get all generated reports for a campaign"""
-    reports = db.collection("reports").where("campaignId", "==", campaign_id).stream()
-    
-    result = []
-    for r in reports:
-        data = r.to_dict()
-        data["id"] = r.id
-        result.append(data)
-    
-    return result
+    return {**report_data, "message": "Report generated. Use GET /reports/{campaign_id}/download to download PDF."}
 
-
-# ============================================================
-# 🆕 NEW ENDPOINT: Download report PDF
-# ============================================================
-@router.get("/{campaign_id}/pdf/{report_id}")
-async def download_report_pdf(campaign_id: str, report_id: str, user=Depends(get_current_user)):
-    """Download report PDF - accessible to authenticated users"""
-    doc = db.collection("reports").document(report_id).get()
-    
+@router.get("/{campaign_id}/download")
+async def download_report(
+    campaign_id: str,
+    user=Depends(get_current_user)
+):
+    doc = db.collection("campaigns").document(campaign_id).get()
     if not doc.exists:
-        raise HTTPException(status_code=404, detail="Report not found")
-    
-    report = doc.to_dict()
-    
-    if report.get("campaignId") != campaign_id:
-        raise HTTPException(status_code=403, detail="Report does not belong to this campaign")
-    
-    # For now, return the report data as JSON
-    # Later you can replace this with actual PDF generation
-    return {
-        "reportId": report_id,
-        "campaignId": campaign_id,
-        "deliveredItems": report.get("deliveredItems", []),
-        "notes": report.get("notes", ""),
-        "generatedBy": report.get("generatedBy", ""),
-        "generatedAt": report.get("generatedAt", ""),
-        "message": "PDF download will be implemented when PDF service is ready"
-    }
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    campaign = doc.to_dict()
+    report = campaign.get("report")
+    if not report:
+        raise HTTPException(status_code=404, detail="No report generated yet for this campaign")
 
+    dab_ref = campaign.get("dabRef", campaign_id)
+    pdf_bytes = generate_report_pdf(campaign, report)
 
-# ============================================================
-# EXISTING ENDPOINTS - KEEP AS IS
-# ============================================================
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={dab_ref}-report.pdf"}
+    )
+
 @router.get("/pipeline")
 async def get_pipeline(user=Depends(require_roles(["admin", "adManager"]))):
     campaigns = db.collection("campaigns").stream()
     pipeline = [{"id": c.id, **c.to_dict()} for c in campaigns]
     total_booked = sum(
         c.get("totals", {}).get("grandTotal", 0) for c in pipeline
-        if c.get("status") not in ["draft", "campaignConfigured", "discountPending", "discountRejected"]
+        if c.get("status") not in ["draft", "discountPending"]
     )
     total_discounts = sum(
         c.get("totals", {}).get("discountValue", 0) for c in pipeline
@@ -162,9 +131,8 @@ async def revenue_by_rep(user=Depends(require_roles(["admin", "adManager"]))):
     rep_revenue = {}
     for c in campaigns:
         data = c.to_dict()
-        if data.get("status") not in ["draft", "campaignConfigured", "discountPending", "discountRejected"]:
+        if data.get("status") not in ["draft", "discountPending"]:
             rep = data.get("createdBy", "unknown")
             total = data.get("totals", {}).get("grandTotal", 0)
             rep_revenue[rep] = rep_revenue.get(rep, 0) + total
     return {"revenueByRep": rep_revenue}
-    

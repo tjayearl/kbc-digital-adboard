@@ -386,7 +386,26 @@ export function CampaignDetails() {
                         variant="secondary" 
                         className="h-9 text-xs px-2.5" 
                         onClick={() => {
-                          alert(`Downloading report: ${campaign.reportFile}`);
+                          const handleDownload = async () => {
+                            try {
+                              const res = await fetch(`${BASE_URL}/reports/${campaign.id}/download`, {
+                                headers: await getAuthHeaders()
+                              });
+                              if (!res.ok) throw new Error('Failed to download report');
+                              const blob = await res.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = `${campaign.dabRef || campaign.id}-report.pdf`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              window.URL.revokeObjectURL(url);
+                            } catch (err) {
+                              alert(`Error downloading report: ${(err as Error).message}`);
+                            }
+                          };
+                          handleDownload();
                         }}
                       >
                         <Download size={14} /> Download
