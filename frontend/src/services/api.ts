@@ -7,7 +7,7 @@ import {
   type Approval
 } from '../data/mockData';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://kbc-digital-adboard.onrender.com/api/v1';
+export const BASE_URL = import.meta.env.VITE_API_URL || 'https://kbc-digital-adboard.onrender.com/api/v1';
 
 // Dynamic rate card cache
 let cachedRateCard: any[] = [];
