@@ -77,6 +77,10 @@ const FRONTEND_TO_BACKEND_STATUS: Record<string, string> = {
   'Countersigned': 'adManagerCountersigned',
   'Payment Confirmed': 'paymentConfirmed',
   'Brief Unlocked': 'briefUnlocked',
+  // 🆕 ADD THESE:
+  'Scheduled': 'scheduled',
+  'Live': 'live',
+  'Delivered': 'delivered',
 };
 
 // ============================================================
@@ -93,6 +97,10 @@ const BACKEND_TO_FRONTEND_STATUS: Record<string, string> = {
   adManagerCountersigned: 'Countersigned',
   paymentConfirmed: 'Payment Confirmed',
   briefUnlocked: 'Brief Unlocked',
+  // 🆕 ADD THESE:
+  scheduled: 'Scheduled',
+  live: 'Live',
+  delivered: 'Delivered',
 };
 
 export function matchFrontendProductToBackend(p: any, rateCardItems: any[]): any {
