@@ -699,9 +699,7 @@ export async function countersignOrderSheet(campaignId: string): Promise<any> {
     
     // 🆕 Ensure status is updated to 'Countersigned' on frontend
     // (Backend should already do this, but just to be safe)
-    await updateCampaign(campaignId, { 
-      status: 'Countersigned' 
-    } as any);
+   
     
     return result;
   } catch (error) {
@@ -725,9 +723,7 @@ export async function confirmPayment(campaignId: string): Promise<any> {
     
     // 🆕 Ensure status is updated to 'Payment Confirmed' on frontend
     // (Backend should already do this, but just to be safe)
-    await updateCampaign(campaignId, { 
-      status: 'Payment Confirmed' 
-    } as any);
+    
     
     return result;
   } catch (error) {
@@ -761,12 +757,19 @@ export async function uploadPod(campaignId: string, file: File, note = ''): Prom
 // ============================================================
 // DIGITAL OPS - GENERATE REPORT
 // ============================================================
-
-export async function generateReport(campaignId: string): Promise<{ reportId: string; message: string; reportUrl?: string }> {
+export async function generateReport(
+  campaignId: string, 
+  actuals?: { deliveredItems: Array<{ name: string; quantity: number; notes: string }>; notes: string }
+): Promise<{ reportId: string; message: string; reportUrl?: string }> {
   try {
-    const res = await fetch(`${BASE_URL}/execution/${campaignId}/report`, {
+    // Use the reports endpoint (not execution)
+    const res = await fetch(`${BASE_URL}/reports/${campaignId}/generate`, {
       method: 'POST',
-      headers: await getAuthHeaders()
+      headers: await getAuthHeaders(),
+      body: JSON.stringify({
+        deliveredItems: actuals?.deliveredItems || [],
+        notes: actuals?.notes || ''
+      })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
@@ -775,6 +778,34 @@ export async function generateReport(campaignId: string): Promise<{ reportId: st
     return await res.json();
   } catch (error) {
     console.error(`Failed to generate report for ${campaignId}:`, error);
+    throw error;
+  }
+}
+
+// 🆕 Get all reports for a campaign
+export async function getCampaignReports(campaignId: string): Promise<any[]> {
+  try {
+    const res = await fetch(`${BASE_URL}/reports/${campaignId}/reports`, {
+      headers: await getAuthHeaders()
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    console.error(`Failed to fetch reports for ${campaignId}:`, error);
+    return [];
+  }
+}
+
+// 🆕 Download report PDF
+export async function downloadReportPdf(campaignId: string, reportId: string): Promise<Blob> {
+  try {
+    const res = await fetch(`${BASE_URL}/reports/${campaignId}/pdf/${reportId}`, {
+      headers: await getAuthHeaders()
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.blob();
+  } catch (error) {
+    console.error(`Failed to download report ${reportId}:`, error);
     throw error;
   }
 }

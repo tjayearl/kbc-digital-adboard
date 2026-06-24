@@ -8,6 +8,28 @@ import uuid
 
 router = APIRouter()
 
+@router.post("/{campaign_id}/start-execution")
+async def start_execution(campaign_id: str, user=Depends(require_roles(["digitalOps", "admin"]))):
+    ref = db.collection("campaigns").document(campaign_id)
+    doc = ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    campaign = doc.to_dict()
+    if campaign.get("status") != "briefUnlocked":
+        raise HTTPException(status_code=400, detail="Campaign must be unlocked first")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    ref.update({
+        "status": "inExecution",
+        "executionStartedAt": now,
+        "executionStartedBy": user["uid"],
+        "updatedAt": now
+    })
+    
+    await log_action(campaign_id, "EXECUTION_STARTED", user["uid"], user.get("role", ""), "")
+    return {"message": "Campaign marked as in execution"}
+
 @router.post("/{campaign_id}/go-live")
 async def log_go_live(
     campaign_id: str, taskId: str = Form(...), note: str = Form(""),
