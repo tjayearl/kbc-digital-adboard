@@ -205,7 +205,7 @@ export function CampaignDetails() {
         setUpdateCount(prev => prev + 1);
         
         return downloadOrderSheetPdf(campaign.id)
-          .then((blob) => downloadBlob(blob, `${res.dabRef || campaign.dabRef}_Order_Sheet.pdf`))
+          .then((blob) => downloadBlob(blob, `${res.dabRef || campaign.dabRef || campaign.id}_Order_Sheet.pdf`))
           .catch((err) => {
             console.error("Failed to download PDF directly:", err);
             if (res.pdfUrl) window.open(res.pdfUrl, '_blank', 'noopener,noreferrer');
