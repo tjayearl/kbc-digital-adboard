@@ -63,7 +63,7 @@ export function CampaignDetails() {
           alert('Campaign deleted successfully.');
           navigate('/campaigns');
         })
-        .catch((err) => {
+        .catch((err: any) => {
           alert(`Failed to delete campaign: ${err.message || err}`);
         });
     }
@@ -251,7 +251,7 @@ export function CampaignDetails() {
         setShowDiscountModal(false);
         setUpdateCount(prev => prev + 1);
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error(err);
         alert(`Failed to request discount: ${err.message || err}`);
       });
@@ -385,16 +385,16 @@ export function CampaignDetails() {
                       <Button 
                         variant="secondary" 
                         className="h-9 text-xs px-2.5" 
-                        onClick={async () => {
+                        onClick={async () => { // This is the corrected handler
                           try {
                             const blob = await downloadReportPdf(campaign.id);
                             const url = window.URL.createObjectURL(blob);
-                            const a = document.createElement("a");
-                            a.href = url;
-                            a.download = `${campaign.dabRef || campaign.id}-report.pdf`;
-                            document.body.appendChild(a);
-                            a.click();
-                            a.remove();
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = `${campaign.dabRef}-report.pdf`;
+                            document.body.appendChild(link);
+                            link.click();
+                            link.remove();
                             window.URL.revokeObjectURL(url);
                           } catch (err) {
                             alert(`Error downloading report: ${(err as Error).message}`);

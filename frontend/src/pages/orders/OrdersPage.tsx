@@ -25,7 +25,7 @@ export function OrdersPage() {
         setCampaignList(data);
         setLoading(false);
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error(err);
         setLoading(false);
       });
