@@ -115,7 +115,7 @@ export function ApprovalsPage() {
           alert('Discount Approved successfully!');
           setUpdateCount(prev => prev + 1);
         })
-        .catch((err) => {
+        .catch((err: any) => {
           alert(`Failed to approve discount: ${err.message || err}`);
         });
     } else if (approval.type === 'Countersign') {
@@ -124,7 +124,7 @@ export function ApprovalsPage() {
           alert('Order Countersigned successfully!');
           setUpdateCount(prev => prev + 1);
         })
-        .catch((err) => {
+        .catch((err: any) => {
           alert(`Failed to countersign: ${err.message || err}`);
         });
     } else if (approval.type === 'Payment') {
@@ -133,7 +133,7 @@ export function ApprovalsPage() {
           alert('Payment Verified successfully!\nCampaign brief unlocked for operations.');
           setUpdateCount(prev => prev + 1);
         })
-        .catch((err) => {
+        .catch((err: any) => {
           alert(`Failed to verify payment: ${err.message || err}`);
         });
     }
@@ -149,7 +149,7 @@ export function ApprovalsPage() {
           alert('Discount request rejected.');
           setUpdateCount(prev => prev + 1);
         })
-        .catch((err) => {
+        .catch((err: any) => {
           alert(`Failed to reject discount: ${err.message || err}`);
         });
     } else {
@@ -159,7 +159,7 @@ export function ApprovalsPage() {
           alert(`${approval.type} request rejected. Campaign reverted to Draft.`);
           setUpdateCount(prev => prev + 1);
         })
-        .catch((err) => {
+        .catch((err: any) => {
           alert(`Failed to reject approval request: ${err.message || err}`);
         });
     }
@@ -264,7 +264,7 @@ export function ApprovalsPage() {
                                 .then(() => {
                                   setUpdateCount(prev => prev + 1);
                                 })
-                                .catch(err => console.error(err));
+                                .catch((err: any) => console.error(err));
                             }
                           }}
                         />
