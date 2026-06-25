@@ -68,12 +68,14 @@ export function ReportsPage() {
   const handleDownloadGeneratedReport = async (campaignId: string, reportId: string) => {
     setDownloading(reportId);
     try {
-      const blob = await downloadReportPdf(campaignId, reportId);
+      const blob = await downloadReportPdf(campaignId);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `report_${reportId}.pdf`;
+      document.body.appendChild(link);
       link.click();
+      link.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Failed to download report:', err);
@@ -86,7 +88,7 @@ export function ReportsPage() {
   // View a generated report (opens in new tab)
   const handleViewGeneratedReport = async (campaignId: string, reportId: string) => {
     try {
-      const blob = await downloadReportPdf(campaignId, reportId);
+      const blob = await downloadReportPdf(campaignId);
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
       setTimeout(() => URL.revokeObjectURL(url), 10000);
@@ -128,43 +130,41 @@ export function ReportsPage() {
         });
     }
   };
-const handleExportReport = async (campaign: Campaign) => {
-  const reports = generatedReports[campaign.id];
 
-  if (!reports || reports.length === 0) {
-    alert("No generated report available for this campaign");
-    return;
-  }
+  const handleExportReport = async (campaign: Campaign) => {
+    const reports = generatedReports[campaign.id];
 
-  const latestReport = reports[reports.length - 1];
+    if (!reports || reports.length === 0) {
+      alert("No generated report available for this campaign");
+      return;
+    }
 
-  setDownloading(latestReport.id);
+    const latestReport = reports[reports.length - 1];
 
-  try {
-    const blob = await downloadReportPdf(
-      campaign.id,
-      latestReport.id
-    );
+    setDownloading(latestReport.id);
 
-    const url = URL.createObjectURL(blob);
+    try {
+      const blob = await downloadReportPdf(campaign.id);
 
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${campaign.dabRef}_Performance_Report.pdf`;
+      const url = URL.createObjectURL(blob);
 
-    document.body.appendChild(link);
-    link.click();
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${campaign.dabRef}_Performance_Report.pdf`;
 
-    link.remove();
-    URL.revokeObjectURL(url);
+      document.body.appendChild(link);
+      link.click();
 
-  } catch (err) {
-    console.error("Failed to export report:", err);
-    alert("Failed to export report");
-  } finally {
-    setDownloading(null);
-  }
-};
+      link.remove();
+      URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error("Failed to export report:", err);
+      alert("Failed to export report");
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   const canUpload = role === 'digitalOps' || role === 'admin' || role === 'sales';
 
