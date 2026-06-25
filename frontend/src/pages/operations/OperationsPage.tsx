@@ -6,14 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { StatCard } from '../../components/ui/StatCard';
 import { materialSpecs, type Campaign } from '../../data/mockData';
-import { 
-  getCampaigns, 
-  getCampaign, 
-  uploadPod, 
-  generateReport, 
-  updateCampaign,
-  updateCampaignStatus as updateCampaignStatusApi
-} from '../../services/api';
+import { getCampaigns, getCampaign, uploadPod, generateReport, updateCampaign } from '../../services/api';
 
 export function OperationsPage() {
   const navigate = useNavigate();
@@ -58,6 +51,7 @@ export function OperationsPage() {
     setError(null);
     try {
       const allCampaigns = await getCampaigns();
+      console.log('📊 Campaigns loaded:', allCampaigns.map(c => ({ name: c.name, status: c.status })));
       setCampaigns(allCampaigns);
       
       // Auto-select the first unlocked campaign if available
@@ -87,34 +81,18 @@ export function OperationsPage() {
     }
   };
 
-  // Helper function to update campaign status using dedicated API
-  const updateCampaignStatus = async (campaignId: string, newStatus: string) => {
-    try {
-      // Use the dedicated status update API
-      await updateCampaignStatusApi(campaignId, newStatus);
-      
-      // Refresh campaigns to update stats
-      const allCampaigns = await getCampaigns();
-      setCampaigns(allCampaigns);
-      
-      // Update selected campaign
-      const updatedCampaign = allCampaigns.find(c => c.id === campaignId);
-      if (updatedCampaign) {
-        setSelectedCampaign(updatedCampaign);
-      }
-      
-      return updatedCampaign;
-    } catch (error) {
-      console.error('Failed to update campaign status:', error);
-      throw error;
-    }
-  };
-
   // Calculate dynamic stats from campaigns data based on Digital Ops workflow
   const stats = {
+    // Ready for Execution = Brief Unlocked (Digital Ops can work on these)
     readyForExecution: campaigns.filter(c => c.status === 'Brief Unlocked').length,
+    
+    // Scheduled = Campaigns that have been scheduled by Digital Ops
     scheduled: campaigns.filter(c => c.status === 'Scheduled').length,
+    
+    // Live = Campaigns that are live/in market
     live: campaigns.filter(c => c.status === 'Live').length,
+    
+    // Delivered = Campaigns with POD uploaded or marked as delivered
     delivered: campaigns.filter(c => c.status === 'Delivered' || c.status === 'POD_UPLOADED').length
   };
 
@@ -135,7 +113,32 @@ export function OperationsPage() {
 
   const allValidationsChecked = Object.values(validationChecked).every(v => v === true);
 
-  // Schedule Campaign - Move from Brief Unlocked to Scheduled
+  // ✅ MAIN HELPER FUNCTION - ONLY ONE
+  const updateCampaignStatus = async (campaignId: string, newStatus: string) => {
+    try {
+      // Only send the status field
+      await updateCampaign(campaignId, { 
+        status: newStatus 
+      } as any);
+      
+      // Refresh campaigns to update stats
+      const allCampaigns = await getCampaigns();
+      setCampaigns(allCampaigns);
+      
+      // Update selected campaign
+      const updated = allCampaigns.find(c => c.id === campaignId);
+      if (updated) {
+        setSelectedCampaign(updated);
+      }
+      
+      return updated;
+    } catch (error) {
+      console.error('Failed to update campaign status:', error);
+      throw error;
+    }
+  };
+
+  // 🆕 Schedule Campaign - Move from Brief Unlocked to Scheduled
   const handleScheduleCampaign = async () => {
     if (!selectedCampaign) {
       alert('Please select a campaign');
@@ -148,28 +151,15 @@ export function OperationsPage() {
     }
 
     try {
-      setLoading(true);
-      
-      // Update the campaign status using the dedicated API
       await updateCampaignStatus(selectedCampaign.id, 'Scheduled');
-      
-      // Reset validation state
-      setValidationChecked({
-        Artwork: false,
-        VideoAssets: false,
-        SocialAssets: false
-      });
-      
       alert(`Campaign "${selectedCampaign.name}" has been scheduled successfully!`);
     } catch (err) {
       console.error('Failed to schedule campaign:', err);
       alert('Failed to schedule campaign. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Log Go-Live - Move from Scheduled to Live
+  // 🆕 Log Go-Live - Move from Scheduled to Live
   const handleLogGoLive = async () => {
     if (!selectedCampaign) {
       alert('Please select a campaign');
@@ -177,17 +167,11 @@ export function OperationsPage() {
     }
 
     try {
-      setLoading(true);
-      
-      // Update the campaign status using the dedicated API
       await updateCampaignStatus(selectedCampaign.id, 'Live');
-      
       alert(`Campaign "${selectedCampaign.name}" is now LIVE!`);
     } catch (err) {
       console.error('Failed to log go-live:', err);
       alert('Failed to log go-live. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -246,7 +230,7 @@ export function OperationsPage() {
       
       setPodUploaded(true);
       
-      // Update campaign status to Delivered
+      // Update campaign status to Delivered when POD is uploaded
       await updateCampaignStatus(selectedCampaign.id, 'Delivered');
       
       alert(`POD uploaded successfully and campaign marked as Delivered!`);
@@ -345,30 +329,10 @@ export function OperationsPage() {
 
       {/* DYNAMIC STAT CARDS */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard 
-          label="Ready for Execution" 
-          value={stats.readyForExecution.toString()} 
-          detail="Unlocked briefs" 
-          icon={CheckSquare} 
-        />
-        <StatCard 
-          label="Scheduled" 
-          value={stats.scheduled.toString()} 
-          detail="Calendar entries" 
-          icon={CalendarDays} 
-        />
-        <StatCard 
-          label="Live" 
-          value={stats.live.toString()} 
-          detail="Campaigns in market" 
-          icon={Clock3} 
-        />
-        <StatCard 
-          label="Delivered" 
-          value={stats.delivered.toString()} 
-          detail="Proof uploaded" 
-          icon={UploadCloud} 
-        />
+        <StatCard label="Ready for Execution" value={stats.readyForExecution.toString()} detail="Unlocked briefs" icon={CheckSquare} />
+        <StatCard label="Scheduled" value={stats.scheduled.toString()} detail="Calendar entries" icon={CalendarDays} />
+        <StatCard label="Live" value={stats.live.toString()} detail="Campaigns in market" icon={Clock3} />
+        <StatCard label="Delivered" value={stats.delivered.toString()} detail="Proof uploaded" icon={UploadCloud} />
       </section>
 
       {/* Unlocked Briefs List */}
@@ -437,7 +401,7 @@ export function OperationsPage() {
               {selectedCampaign.status === 'Brief Unlocked' && (
                 <Button 
                   onClick={handleScheduleCampaign}
-                  disabled={!allValidationsChecked || loading}
+                  disabled={!allValidationsChecked}
                   className="bg-teal text-white hover:bg-teal/80"
                 >
                   <Calendar size={18} className="mr-2" />
@@ -448,7 +412,6 @@ export function OperationsPage() {
               {selectedCampaign.status === 'Scheduled' && (
                 <Button 
                   onClick={handleLogGoLive}
-                  disabled={loading}
                   className="bg-gold text-navy hover:bg-[#d5a43a]"
                 >
                   <Radio size={18} className="mr-2" />
@@ -466,7 +429,9 @@ export function OperationsPage() {
         </Card>
       )}
 
-      {/* MATERIAL VALIDATION CHECKLIST */}
+      {/* ============================================================
+          MATERIAL VALIDATION CHECKLIST
+          ============================================================ */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -503,7 +468,9 @@ export function OperationsPage() {
         </CardBody>
       </Card>
 
-      {/* MATERIAL SPECIFICATIONS AND DEADLINES */}
+      {/* ============================================================
+          MATERIAL SPECIFICATIONS AND DEADLINES
+          ============================================================ */}
       <Card>
         <CardHeader>
           <h3 className="text-lg font-bold text-ink">Material specifications and deadlines</h3>
@@ -538,7 +505,9 @@ export function OperationsPage() {
         </CardBody>
       </Card>
 
-      {/* PROOF OF DELIVERY (POD) SECTION */}
+      {/* ============================================================
+          PROOF OF DELIVERY (POD) SECTION
+          ============================================================ */}
       <Card>
         <CardHeader>
           <h3 className="text-lg font-bold text-ink">Proof of Delivery (POD)</h3>
@@ -589,7 +558,9 @@ export function OperationsPage() {
         </CardBody>
       </Card>
 
-      {/* DELIVERED ITEMS SECTION */}
+      {/* ============================================================
+          DELIVERED ITEMS SECTION
+          ============================================================ */}
       <Card>
         <CardHeader>
           <h3 className="text-lg font-bold text-ink">Delivered Items</h3>
@@ -664,7 +635,9 @@ export function OperationsPage() {
         </CardBody>
       </Card>
 
-      {/* CAMPAIGN REPORT SECTION */}
+      {/* ============================================================
+          CAMPAIGN REPORT SECTION
+          ============================================================ */}
       <Card>
         <CardHeader>
           <h3 className="text-lg font-bold text-ink">Campaign Report</h3>
