@@ -1,17 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException
-<<<<<<< HEAD
-from fastapi.responses import StreamingResponse  # 🆕 ADD THIS
-from app.core.security import require_roles, get_current_user
-from app.core.firebase import db
-from app.services.audit import log_action
-from app.services.pdf_service import generate_report_pdf  # 🆕 ADD THIS
-from app.services.cloudinary_service import upload_pdf  # 🆕 ADD THIS
-from datetime import datetime, timezone
-from pydantic import BaseModel
-import uuid
-import io  # 🆕 ADD THIS
-import httpx  # 🆕 ADD THIS
-=======
 from fastapi.responses import StreamingResponse
 from app.core.security import require_roles, get_current_user
 from app.core.firebase import db
@@ -19,10 +6,9 @@ from app.services.audit import log_action
 from app.services.pdf_service import generate_report_pdf
 from datetime import datetime, timezone
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 import uuid
 import io
->>>>>>> 550d6fa3acb4bfbaea0f3c5dd8d8658bb7e0fa11
 
 router = APIRouter()
 
@@ -35,12 +21,6 @@ class ReportActuals(BaseModel):
     deliveredItems: List[DeliveredItem]
     notes: str = ""
 
-<<<<<<< HEAD
-# ============================================================
-# UPDATED ENDPOINT - Now generates actual PDF
-# ============================================================
-=======
->>>>>>> 550d6fa3acb4bfbaea0f3c5dd8d8658bb7e0fa11
 @router.post("/{campaign_id}/generate")
 async def generate_report(
     campaign_id: str,
@@ -51,152 +31,38 @@ async def generate_report(
     doc = ref.get()
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Campaign not found")
-<<<<<<< HEAD
-    
-    campaign = doc.to_dict()
-    if campaign.get("status") not in ["delivered", "inExecution"]:
-        raise HTTPException(status_code=400, detail="Campaign must be delivered or in execution")
-    
-    # Generate a report ID
-    report_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc).isoformat()
-    
-    # 📄 Generate PDF using the new function
-    pdf_bytes = generate_report_pdf(campaign, actuals.deliveredItems, actuals.notes)
-    
-    # ☁️ Upload to Cloudinary
-    pdf_url = await upload_pdf(pdf_bytes, f"report_{report_id}")
-    
-    # Save to reports collection with PDF URL
-    db.collection("reports").document(report_id).set({
-=======
     campaign = doc.to_dict()
     if campaign.get("status") not in ["delivered", "inExecution", "briefUnlocked"]:
         raise HTTPException(status_code=400, detail="Campaign must be in execution or delivered state")
-
     report_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
-
     report_data = {
         "reportId": report_id,
->>>>>>> 550d6fa3acb4bfbaea0f3c5dd8d8658bb7e0fa11
         "campaignId": campaign_id,
         "deliveredItems": [item.dict() for item in actuals.deliveredItems],
         "notes": actuals.notes,
         "generatedBy": user["uid"],
         "generatedAt": now,
-<<<<<<< HEAD
-        "createdAt": now,
-        "pdfUrl": pdf_url  # 🆕 Store Cloudinary URL
-    })
-    
-    # Update campaign
-    ref.update({
-        "report": {
-            "deliveredItems": actuals.deliveredItems, 
-            "notes": actuals.notes,
-            "generatedBy": user["uid"], 
-            "generatedAt": now,
-            "reportId": report_id,
-            "pdfUrl": pdf_url  # 🆕 Store Cloudinary URL
-        },
-        "status": "reported", 
-        "updatedAt": now
-    })
-    
-    await log_action(campaign_id, "REPORT_GENERATED", user["uid"], user.get("role", ""), f"Report ID: {report_id}")
-    
-    # Return reportId and reportUrl (Cloudinary URL)
-    return {
-        "message": "Report generated",
-        "reportId": report_id,
-        "reportUrl": pdf_url  # 🆕 Return Cloudinary URL
     }
-=======
-    }
-
     ref.update({
         "report": report_data,
         "status": "reported",
         "updatedAt": now
     })
->>>>>>> 550d6fa3acb4bfbaea0f3c5dd8d8658bb7e0fa11
-
     await log_action(campaign_id, "REPORT_GENERATED", user["uid"], user.get("role", ""), "")
-
-<<<<<<< HEAD
-# ============================================================
-# GET ALL REPORTS FOR A CAMPAIGN
-# ============================================================
-@router.get("/{campaign_id}/reports")
-async def get_campaign_reports(campaign_id: str, user=Depends(require_roles(["digitalOps", "admin", "sales"]))):
-    """Get all generated reports for a campaign"""
-    reports = db.collection("reports").where("campaignId", "==", campaign_id).stream()
-    
-    result = []
-    for r in reports:
-        data = r.to_dict()
-        data["id"] = r.id
-        result.append(data)
-    
-    return result
-
-
-# ============================================================
-# UPDATED ENDPOINT - Now downloads actual PDF from Cloudinary
-# ============================================================
-@router.get("/{campaign_id}/pdf/{report_id}")
-async def download_report_pdf(campaign_id: str, report_id: str, user=Depends(get_current_user)):
-    """Download report PDF from Cloudinary"""
-    doc = db.collection("reports").document(report_id).get()
-    
-    if not doc.exists:
-        raise HTTPException(status_code=404, detail="Report not found")
-    
-    report = doc.to_dict()
-    
-    if report.get("campaignId") != campaign_id:
-        raise HTTPException(status_code=403, detail="Report does not belong to this campaign")
-    
-    pdf_url = report.get("pdfUrl")
-    
-    if not pdf_url:
-        raise HTTPException(status_code=404, detail="PDF not found")
-    
-    # Fetch from Cloudinary and stream
-    async with httpx.AsyncClient() as client:
-        response = await client.get(pdf_url)
-        if response.status_code != 200:
-            raise HTTPException(status_code=500, detail="Failed to fetch PDF from storage")
-        
-        return StreamingResponse(
-            io.BytesIO(response.content),
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f"attachment; filename=report_{report_id}.pdf"
-            }
-        )
-=======
-    return {**report_data, "message": "Report generated. Use GET /reports/{campaign_id}/download to download PDF."}
+    return {**report_data, "message": "Report generated successfully."}
 
 @router.get("/{campaign_id}/download")
-async def download_report(
-    campaign_id: str,
-    user=Depends(get_current_user)
-):
+async def download_report(campaign_id: str, user=Depends(get_current_user)):
     doc = db.collection("campaigns").document(campaign_id).get()
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Campaign not found")
     campaign = doc.to_dict()
-
-    dab_ref = campaign.get("dabRef", campaign_id)
-
     report = campaign.get("report")
     if not report:
-        raise HTTPException(status_code=404, detail="No report generated yet for this campaign")
-
+        raise HTTPException(status_code=404, detail="No report generated yet")
+    dab_ref = campaign.get("dabRef", campaign_id)
     pdf_bytes = generate_report_pdf(campaign, report)
-
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",
@@ -221,14 +87,9 @@ async def get_pipeline(user=Depends(require_roles(["admin", "adManager"]))):
         if c.get("status") in ["briefUnlocked", "inExecution"]
         and c.get("campaign", {}).get("endDate", "9999") < now[:10]
     ]
-    return {
-        "campaigns": pipeline,
-        "totalBooked": total_booked,
-        "totalDiscounts": total_discounts,
-        "overdueCount": len(overdue),
-        "overdue": overdue,
-        "count": len(pipeline)
-    }
+    return {"campaigns": pipeline, "totalBooked": total_booked,
+            "totalDiscounts": total_discounts, "overdueCount": len(overdue),
+            "overdue": overdue, "count": len(pipeline)}
 
 @router.get("/discounts")
 async def get_discount_report(user=Depends(require_roles(["admin", "adManager"]))):
