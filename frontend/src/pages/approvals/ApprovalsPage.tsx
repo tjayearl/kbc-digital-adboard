@@ -84,16 +84,18 @@ export function ApprovalsPage() {
         status: 'Pending',
         note: 'Order Sheet signed by client. Ready for countersigning.'
       });
-    } else if (c.status === 'Countersigned') {
-      approvalsList.push({
-        id: `ap-pay-${c.id}`,
-        campaignId: c.id,
-        type: 'Payment',
-        requestedBy: c.owner || 'Sales Rep',
-        value: Math.round(campaignTotals(c).grandTotal * 0.5),
-        status: 'Pending',
-        note: 'Deposit payment receipt uploaded by client. Please verify.'
-      });
+
+      if (c.signedSheetUrl) {
+        approvalsList.push({
+          id: `ap-pay-${c.id}`,
+          campaignId: c.id,
+          type: 'Payment',
+          requestedBy: c.owner || 'Sales Rep',
+          value: Math.round(campaignTotals(c).grandTotal * 0.5),
+          status: 'Pending',
+          note: 'Deposit payment receipt uploaded by client. Please verify.'
+        });
+      }
     }
   });
 

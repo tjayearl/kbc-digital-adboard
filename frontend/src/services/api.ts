@@ -834,11 +834,14 @@ export async function generateReport(
 
 export async function getCampaignReports(campaignId: string): Promise<any[]> {
   try {
-    const res = await fetch(`${BASE_URL}/reports/${campaignId}/reports`, {
+    const res = await fetch(`${BASE_URL}/campaigns/${campaignId}`, {
       headers: await getAuthHeaders()
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
+    const data = await res.json();
+    const report = data.report;
+    if (!report) return [];
+    return [{ id: report.reportId || campaignId, ...report }];
   } catch (error) {
     console.error(`Failed to fetch reports for ${campaignId}:`, error);
     return [];
@@ -847,13 +850,16 @@ export async function getCampaignReports(campaignId: string): Promise<any[]> {
 
 export async function downloadReportPdf(campaignId: string, reportId: string): Promise<Blob> {
   try {
-    const res = await fetch(`${BASE_URL}/reports/${campaignId}/pdf/${reportId}`, {
+    const res = await fetch(`${BASE_URL}/reports/${campaignId}/download`, {
       headers: await getAuthHeaders()
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
     return await res.blob();
   } catch (error) {
-    console.error(`Failed to download report ${reportId}:`, error);
+    console.error(`Failed to download report PDF for ${campaignId}:`, error);
     throw error;
   }
 }
@@ -882,6 +888,38 @@ export async function createChangeOrder(payload: {
   } catch (error) {
     console.error('Failed to create change order:', error);
     throw error;
+  }
+}
+
+export async function createAirtimeSerial(data: any): Promise<any> {
+  const res = await fetch(`${BASE_URL}/airtime-orders/`, {
+    method: "POST",
+    headers: {
+      ...(await getAuthHeaders()),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to create airtime serial");
+  }
+
+  return await res.json();
+}
+
+export async function deleteAirtimeSerial(id: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/airtime-orders/${id}`, {
+    method: "DELETE",
+    headers: await getAuthHeaders(),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+    if (err.detail) {
+      throw new Error(err.detail);
+    }
+    throw new Error("Failed to delete airtime serial");
   }
 }
 
@@ -1002,47 +1040,20 @@ export async function deleteRateCardItem(id: string): Promise<any> {
 export async function getAirtimeSerials(): Promise<any[]> {
   try {
     const res = await fetch(`${BASE_URL}/airtime-orders/`, {
-      headers: await getAuthHeaders()
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (error) {
-    console.error('Failed to fetch airtime serials:', error);
-    throw error;
-  }
-}
-
-export async function createAirtimeSerial(serial: string): Promise<any> {
-  try {
-    const res = await fetch(`${BASE_URL}/airtime-orders/`, {
-      method: 'POST',
       headers: await getAuthHeaders(),
-      body: JSON.stringify({ serial })
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(err.detail || `HTTP ${res.status}`);
-    }
-    return await res.json();
-  } catch (error) {
-    console.error('Failed to create airtime serial:', error);
-    throw error;
-  }
-}
 
-export async function deleteAirtimeSerial(id: string): Promise<any> {
-  try {
-    const res = await fetch(`${BASE_URL}/airtime-orders/${id}`, {
-      method: 'DELETE',
-      headers: await getAuthHeaders()
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(err.detail || `HTTP ${res.status}`);
+        if (!res.ok) {
+      const err = await res.json().catch(() => ({
+        detail: "Unknown error",
+      }));
+
+       throw new Error(err.detail || `HTTP ${res.status}`);
     }
+
     return await res.json();
   } catch (error) {
-    console.error(`Failed to delete airtime serial ${id}:`, error);
+    console.error("Failed to fetch airtime serials:", error);
     throw error;
   }
 }
