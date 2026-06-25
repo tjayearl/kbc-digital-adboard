@@ -33,7 +33,7 @@ async def start_execution(campaign_id: str, user=Depends(require_roles(["digital
 @router.post("/{campaign_id}/schedule")
 async def schedule_campaign(
     campaign_id: str,
-    user=Depends(require_roles(["digitalOps"]))
+    user=Depends(require_roles(["digitalOps", "admin"]))
 ):
     ref = db.collection("campaigns").document(campaign_id)
     doc = ref.get()
