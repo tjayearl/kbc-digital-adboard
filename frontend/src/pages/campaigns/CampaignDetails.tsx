@@ -403,7 +403,7 @@ export function CampaignDetails() {
                       >
                         <Download size={14} /> Download
                       </Button>
-                      {(role === 'digitalOps' || role === 'admin' || role === 'sales') && (
+                      {(role === 'admin' || role === 'sales') && (
                         <Button 
                           variant="danger" 
                           className="h-9 text-xs px-2.5"
@@ -426,7 +426,7 @@ export function CampaignDetails() {
                 ) : (
                   <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center">
                     <p className="text-sm text-slate-500 italic">No custom report file uploaded.</p>
-                    {(role === 'digitalOps' || role === 'admin' || role === 'sales') && (
+                    {(role === 'admin' || role === 'sales') && (
                       <div className="mt-3 flex justify-center">
                         <input
                           type="file"
