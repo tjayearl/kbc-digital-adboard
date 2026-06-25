@@ -84,18 +84,18 @@ export function ApprovalsPage() {
         status: 'Pending',
         note: 'Order Sheet signed by client. Ready for countersigning.'
       });
-
-      if (c.signedSheetUrl) {
-        approvalsList.push({
-          id: `ap-pay-${c.id}`,
-          campaignId: c.id,
-          type: 'Payment',
-          requestedBy: c.owner || 'Sales Rep',
-          value: Math.round(campaignTotals(c).grandTotal * 0.5),
-          status: 'Pending',
-          note: 'Deposit payment receipt uploaded by client. Please verify.'
-        });
-      }
+    } else if (c.status === 'Countersigned') {
+      // This maps to 'adManagerCountersigned' on the backend.
+      // This is the correct stage for payment verification.
+      approvalsList.push({
+        id: `ap-pay-${c.id}`,
+        campaignId: c.id,
+        type: 'Payment',
+        requestedBy: c.owner || 'Sales Rep',
+        value: Math.round(campaignTotals(c).grandTotal * 0.5),
+        status: 'Pending',
+        note: 'Order sheet is countersigned. Please verify client deposit payment.'
+      });
     }
   });
 
