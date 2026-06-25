@@ -158,3 +158,91 @@ async def get_campaign_audit(campaign_id: str, user=Depends(get_current_user)):
         result.append({"id": l.id, **data})
     result.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
     return result
+
+# ============================================================
+# NEW: Digital Ops Approval Endpoint
+# ============================================================
+@router.patch("/{campaign_id}/approve")
+async def approve_campaign(campaign_id: str, user=Depends(require_roles(["digitalOps", "admin"]))):
+    """Digital Ops approves a campaign for execution"""
+    ref = db.collection("campaigns").document(campaign_id)
+    doc = ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    campaign = doc.to_dict()
+    
+    # Check if user has access (digitalOps or admin can approve any campaign)
+    if user.get("role") not in ["admin", "digitalOps"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Only briefUnlocked campaigns can be approved
+    if campaign.get("status") != "briefUnlocked":
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Campaign must be in briefUnlocked status. Current status: {campaign.get('status')}"
+        )
+    
+    # Update status to inExecution and record approval
+    now = datetime.now(timezone.utc).isoformat()
+    ref.update({
+        "status": "inExecution",
+        "approvedBy": user["uid"],
+        "approvedAt": now,
+        "updatedAt": now
+    })
+    
+    await log_action(
+        campaign_id, 
+        "CAMPAIGN_APPROVED", 
+        user["uid"], 
+        user.get("role", ""), 
+        f"Campaign approved for execution by Digital Ops"
+    )
+    
+    return {"message": "Campaign approved for execution", "campaignId": campaign_id}
+
+# ============================================================
+# NEW: Status Update Endpoint
+# ============================================================
+@router.patch("/{campaign_id}/status")
+async def update_campaign_status(
+    campaign_id: str, 
+    status: str, 
+    user=Depends(require_roles(["digitalOps", "admin", "sales"]))
+):
+    """Update campaign status"""
+    ref = db.collection("campaigns").document(campaign_id)
+    doc = ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    campaign = doc.to_dict()
+    
+    # Check permissions
+    if user.get("role") == "sales" and campaign.get("createdBy") != user["uid"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Validate status
+    valid_statuses = ["briefUnlocked", "inExecution", "delivered", "reported", "closed"]
+    if status not in valid_statuses:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
+        )
+    
+    now = datetime.now(timezone.utc).isoformat()
+    ref.update({
+        "status": status,
+        "updatedAt": now
+    })
+    
+    await log_action(
+        campaign_id, 
+        "STATUS_UPDATED", 
+        user["uid"], 
+        user.get("role", ""), 
+        f"Campaign status updated to: {status}"
+    )
+    
+    return {"message": "Status updated", "campaignId": campaign_id, "status": status}

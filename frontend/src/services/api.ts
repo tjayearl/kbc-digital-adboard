@@ -64,7 +64,7 @@ const fallbackRateCard = [
 ];
 
 // ============================================================
-// 🆕 FRONTEND TO BACKEND STATUS MAPPING (FIX)
+// FRONTEND TO BACKEND STATUS MAPPING
 // ============================================================
 const FRONTEND_TO_BACKEND_STATUS: Record<string, string> = {
   'Draft': 'draft',
@@ -77,7 +77,6 @@ const FRONTEND_TO_BACKEND_STATUS: Record<string, string> = {
   'Countersigned': 'adManagerCountersigned',
   'Payment Confirmed': 'paymentConfirmed',
   'Brief Unlocked': 'briefUnlocked',
-  // 🆕 ADD THESE:
   'Scheduled': 'scheduled',
   'Live': 'live',
   'Delivered': 'delivered',
@@ -97,7 +96,6 @@ const BACKEND_TO_FRONTEND_STATUS: Record<string, string> = {
   adManagerCountersigned: 'Countersigned',
   paymentConfirmed: 'Payment Confirmed',
   briefUnlocked: 'Brief Unlocked',
-  // 🆕 ADD THESE:
   scheduled: 'Scheduled',
   live: 'Live',
   delivered: 'Delivered',
@@ -291,7 +289,6 @@ export function mapFrontendCampaignToBackend(c: any) {
     reason: c.discountReason || (c as any).discount?.reason || ''
   };
 
-  // 🆕 FIX: Map frontend status to backend status
   const backendStatus = c.status ? FRONTEND_TO_BACKEND_STATUS[c.status] || c.status : undefined;
 
   const payload = {
@@ -327,7 +324,6 @@ export function mapFrontendCampaignToBackend(c: any) {
     campaignGoal: c.objective || '',
     objective: c.objective || '',
     
-    // Save all frontend wizard fields at root level (since backend has extra='allow' configured)
     kraPin: c.kraPin || '',
     billingAddress: c.billingAddress || '',
     contactJobTitle: c.contactJobTitle || '',
@@ -388,7 +384,7 @@ export function mapFrontendCampaignToBackend(c: any) {
     dec2: c.dec2 || false,
     dec3: c.dec3 || false,
     reportFile: c.reportFile,
-    status: backendStatus, // 🆕 FIX: Use mapped status
+    status: backendStatus,
     orderSheetPdfUrl: c.orderSheetPdfUrl || undefined
   };
 
@@ -396,7 +392,6 @@ export function mapFrontendCampaignToBackend(c: any) {
 }
 
 export function mapBackendCampaignToFrontend(bc: any): Campaign {
-  // 🆕 FIX: Use the mapping
   const status = bc.status ? BACKEND_TO_FRONTEND_STATUS[bc.status] || bc.status : 'Draft';
 
   const products = (bc.lineItems || []).map((item: any) => {
@@ -433,7 +428,6 @@ export function mapBackendCampaignToFrontend(bc: any): Campaign {
     reportFile: bc.reportFile || undefined,
     orderSheetPdfUrl: bc.orderSheetPdfUrl || '',
     
-    // Wizard configurations
     bookingType: bc.bookingType || '',
     kraPin: bc.kraPin || '',
     billingAddress: bc.billingAddress || '',
@@ -702,7 +696,6 @@ export async function uploadSignedSheet(campaignId: string, airtimeOrderSerial: 
   }
 }
 
-// 🆕 FIX: Countersign order sheet (backend should handle status update)
 export async function countersignOrderSheet(campaignId: string): Promise<any> {
   try {
     const res = await fetch(`${BASE_URL}/order-sheet/${campaignId}/countersign`, {
@@ -714,11 +707,6 @@ export async function countersignOrderSheet(campaignId: string): Promise<any> {
       throw new Error(err.detail || `HTTP ${res.status}`);
     }
     const result = await res.json();
-    
-    // 🆕 Ensure status is updated to 'Countersigned' on frontend
-    // (Backend should already do this, but just to be safe)
-   
-    
     return result;
   } catch (error) {
     console.error(`Failed to countersign order sheet for ${campaignId}:`, error);
@@ -726,7 +714,6 @@ export async function countersignOrderSheet(campaignId: string): Promise<any> {
   }
 }
 
-// 🆕 FIX: Confirm payment (backend should handle status update)
 export async function confirmPayment(campaignId: string): Promise<any> {
   try {
     const res = await fetch(`${BASE_URL}/order-sheet/${campaignId}/confirm-payment`, {
@@ -738,17 +725,16 @@ export async function confirmPayment(campaignId: string): Promise<any> {
       throw new Error(err.detail || `HTTP ${res.status}`);
     }
     const result = await res.json();
-    
-    // 🆕 Ensure status is updated to 'Payment Confirmed' on frontend
-    // (Backend should already do this, but just to be safe)
-    
-    
     return result;
   } catch (error) {
     console.error(`Failed to confirm payment for ${campaignId}:`, error);
     throw error;
   }
 }
+
+// ============================================================
+// DIGITAL OPS - EXECUTION APIs
+// ============================================================
 
 export async function uploadPod(campaignId: string, file: File, note = ''): Promise<any> {
   try {
@@ -772,6 +758,49 @@ export async function uploadPod(campaignId: string, file: File, note = ''): Prom
     throw error;
   }
 }
+
+export async function scheduleCampaign(campaignId: string): Promise<any> {
+  try {
+    const res = await fetch(`${BASE_URL}/execution/${campaignId}/schedule`, {
+      method: 'POST',
+      headers: await getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error(`Failed to schedule campaign ${campaignId}:`, error);
+    throw error;
+  }
+}
+
+// ============================================================
+// 🆕 UPDATE CAMPAIGN STATUS - Uses the dedicated PATCH endpoint
+// ============================================================
+export async function updateCampaignStatus(campaignId: string, status: string, note?: string): Promise<any> {
+  try {
+    // ✅ CORRECT: PATCH /campaigns/{campaignId}/status
+    const res = await fetch(`${BASE_URL}/campaigns/${campaignId}/status`, {
+      method: 'PATCH',
+      headers: await getAuthHeaders(),
+      body: JSON.stringify({ 
+        status: status,
+        note: note || ''
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error(`Failed to update status for ${campaignId}:`, error);
+    throw error;
+  }
+}
+
 // ============================================================
 // DIGITAL OPS - GENERATE REPORT
 // ============================================================
@@ -780,7 +809,6 @@ export async function generateReport(
   actuals?: { deliveredItems: Array<{ name: string; quantity: number; notes: string }>; notes: string }
 ): Promise<{ reportId: string; message: string; reportUrl?: string }> {
   try {
-    // Use the reports endpoint (not execution)
     const res = await fetch(`${BASE_URL}/reports/${campaignId}/generate`, {
       method: 'POST',
       headers: await getAuthHeaders(),
@@ -800,7 +828,10 @@ export async function generateReport(
   }
 }
 
-// 🆕 Get all reports for a campaign
+// ============================================================
+// REPORTS APIs
+// ============================================================
+
 export async function getCampaignReports(campaignId: string): Promise<any[]> {
   try {
     const res = await fetch(`${BASE_URL}/reports/${campaignId}/reports`, {
@@ -814,7 +845,6 @@ export async function getCampaignReports(campaignId: string): Promise<any[]> {
   }
 }
 
-// 🆕 Download report PDF
 export async function downloadReportPdf(campaignId: string, reportId: string): Promise<Blob> {
   try {
     const res = await fetch(`${BASE_URL}/reports/${campaignId}/pdf/${reportId}`, {
@@ -827,6 +857,10 @@ export async function downloadReportPdf(campaignId: string, reportId: string): P
     throw error;
   }
 }
+
+// ============================================================
+// CHANGE ORDER APIs
+// ============================================================
 
 export async function createChangeOrder(payload: {
   parentCampaignId: string;
@@ -863,6 +897,10 @@ export async function getChangeOrders(campaignId: string): Promise<any[]> {
     return [];
   }
 }
+
+// ============================================================
+// USER MANAGEMENT APIs
+// ============================================================
 
 export async function getUsers(): Promise<any[]> {
   try {
@@ -936,6 +974,10 @@ export async function deleteUser(uid: string): Promise<any> {
   }
 }
 
+// ============================================================
+// RATE CARD MANAGEMENT APIs
+// ============================================================
+
 export async function deleteRateCardItem(id: string): Promise<any> {
   try {
     const res = await fetch(`${BASE_URL}/rate-card/${id}`, {
@@ -952,6 +994,10 @@ export async function deleteRateCardItem(id: string): Promise<any> {
     throw error;
   }
 }
+
+// ============================================================
+// AIRTIME ORDER APIs
+// ============================================================
 
 export async function getAirtimeSerials(): Promise<any[]> {
   try {
