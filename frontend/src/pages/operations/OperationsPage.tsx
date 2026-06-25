@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, CalendarDays, CheckSquare, Clock3, UploadCloud, FileText, Plus, X } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckSquare, Clock3, UploadCloud, FileText, Plus, X, Calendar, Radio } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { StatCard } from '../../components/ui/StatCard';
 import { materialSpecs, type Campaign } from '../../data/mockData';
-import { getCampaigns, uploadPod, generateReport } from '../../services/api';
+import { getCampaigns, getCampaign, uploadPod, generateReport, updateCampaign } from '../../services/api';
 
 export function OperationsPage() {
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ export function OperationsPage() {
   const [uploading, setUploading] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
 
-  // 🆕 State for delivered items
+  // State for delivered items
   const [deliveredItems, setDeliveredItems] = useState<Array<{ name: string; quantity: number; notes: string }>>([]);
   const [newItemName, setNewItemName] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState(1);
@@ -51,6 +51,7 @@ export function OperationsPage() {
     setError(null);
     try {
       const allCampaigns = await getCampaigns();
+      console.log('📊 Campaigns loaded:', allCampaigns.map(c => ({ name: c.name, status: c.status })));
       setCampaigns(allCampaigns);
       
       // Auto-select the first unlocked campaign if available
@@ -80,12 +81,19 @@ export function OperationsPage() {
     }
   };
 
-  // Calculate dynamic stats from campaigns data
+  // Calculate dynamic stats from campaigns data based on Digital Ops workflow
   const stats = {
+    // Ready for Execution = Brief Unlocked (Digital Ops can work on these)
     readyForExecution: campaigns.filter(c => c.status === 'Brief Unlocked').length,
-    scheduled: campaigns.filter(c => c.status === 'Scheduled' || c.status === 'Ready for Execution').length,
+    
+    // Scheduled = Campaigns that have been scheduled by Digital Ops
+    scheduled: campaigns.filter(c => c.status === 'Scheduled').length,
+    
+    // Live = Campaigns that are live/in market
     live: campaigns.filter(c => c.status === 'Live').length,
-    delivered: campaigns.filter(c => c.status === 'POD_UPLOADED' || c.status === 'Delivered').length
+    
+    // Delivered = Campaigns with POD uploaded or marked as delivered
+    delivered: campaigns.filter(c => c.status === 'Delivered' || c.status === 'POD_UPLOADED').length
   };
 
   const handleValidationToggle = (item: keyof typeof validationChecked) => {
@@ -101,12 +109,72 @@ export function OperationsPage() {
       VideoAssets: true,
       SocialAssets: true
     });
-    // NO backend call here — validation is frontend-only
   };
 
   const allValidationsChecked = Object.values(validationChecked).every(v => v === true);
 
-  // 🆕 Delivered Items Functions
+  // ✅ MAIN HELPER FUNCTION - ONLY ONE
+  const updateCampaignStatus = async (campaignId: string, newStatus: string) => {
+    try {
+      // Only send the status field
+      await updateCampaign(campaignId, { 
+        status: newStatus 
+      } as any);
+      
+      // Refresh campaigns to update stats
+      const allCampaigns = await getCampaigns();
+      setCampaigns(allCampaigns);
+      
+      // Update selected campaign
+      const updated = allCampaigns.find(c => c.id === campaignId);
+      if (updated) {
+        setSelectedCampaign(updated);
+      }
+      
+      return updated;
+    } catch (error) {
+      console.error('Failed to update campaign status:', error);
+      throw error;
+    }
+  };
+
+  // 🆕 Schedule Campaign - Move from Brief Unlocked to Scheduled
+  const handleScheduleCampaign = async () => {
+    if (!selectedCampaign) {
+      alert('Please select a campaign');
+      return;
+    }
+
+    if (!allValidationsChecked) {
+      alert('Please complete all material validations first');
+      return;
+    }
+
+    try {
+      await updateCampaignStatus(selectedCampaign.id, 'Scheduled');
+      alert(`Campaign "${selectedCampaign.name}" has been scheduled successfully!`);
+    } catch (err) {
+      console.error('Failed to schedule campaign:', err);
+      alert('Failed to schedule campaign. Please try again.');
+    }
+  };
+
+  // 🆕 Log Go-Live - Move from Scheduled to Live
+  const handleLogGoLive = async () => {
+    if (!selectedCampaign) {
+      alert('Please select a campaign');
+      return;
+    }
+
+    try {
+      await updateCampaignStatus(selectedCampaign.id, 'Live');
+      alert(`Campaign "${selectedCampaign.name}" is now LIVE!`);
+    } catch (err) {
+      console.error('Failed to log go-live:', err);
+      alert('Failed to log go-live. Please try again.');
+    }
+  };
+
   const handleAddDeliveredItem = () => {
     if (!newItemName.trim()) {
       alert('Please enter an item name');
@@ -162,11 +230,10 @@ export function OperationsPage() {
       
       setPodUploaded(true);
       
-      // Refresh campaign list to update stats
-      const allCampaigns = await getCampaigns();
-      setCampaigns(allCampaigns);
+      // Update campaign status to Delivered when POD is uploaded
+      await updateCampaignStatus(selectedCampaign.id, 'Delivered');
       
-      alert(`POD uploaded successfully: ${file.name}`);
+      alert(`POD uploaded successfully and campaign marked as Delivered!`);
     } catch (err) {
       console.error('Failed to upload POD:', err);
       alert('Failed to upload POD. Please try again.');
@@ -179,7 +246,6 @@ export function OperationsPage() {
     fileInputRef.current?.click();
   };
 
-  // 🆕 Updated: Generate Report with delivered items
   const handleGenerateReport = async () => {
     if (!selectedCampaign) {
       alert('Please select a campaign');
@@ -198,10 +264,8 @@ export function OperationsPage() {
         notes: reportNotes
       });
       
-      // Navigate to reports page with the report ID
       navigate(`/reports?reportId=${result.reportId}&campaign=${encodeURIComponent(selectedCampaign.name)}`);
       
-      // Reset delivered items after successful generation
       setDeliveredItems([]);
       setReportNotes('');
       
@@ -213,7 +277,6 @@ export function OperationsPage() {
     }
   };
 
-  // Update canGenerateReport to require delivered items
   const canGenerateReport = podUploaded && deliveredItems.length > 0;
 
   const handleCampaignSelect = (campaign: Campaign) => {
@@ -307,7 +370,7 @@ export function OperationsPage() {
         </CardBody>
       </Card>
 
-      {/* Campaign Details - Only shows when a campaign is selected */}
+      {/* Campaign Details */}
       {selectedCampaign && (
         <Card>
           <CardHeader>
@@ -321,21 +384,53 @@ export function OperationsPage() {
               <Badge tone="navy">{selectedCampaign.status}</Badge>
             </div>
           </CardHeader>
-          <CardBody className="grid gap-3 md:grid-cols-2">
-            <div>
-              <p className="text-sm text-slate-500">Client</p>
-              <p className="font-semibold">{selectedCampaign.clientName}</p>
+          <CardBody className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <p className="text-sm text-slate-500">Client</p>
+                <p className="font-semibold">{selectedCampaign.clientName}</p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Dates</p>
+                <p className="font-semibold">{selectedCampaign.startDate} to {selectedCampaign.endDate}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-slate-500">Dates</p>
-              <p className="font-semibold">{selectedCampaign.startDate} to {selectedCampaign.endDate}</p>
+
+            {/* Workflow Action Buttons */}
+            <div className="flex flex-wrap gap-3 pt-2 border-t border-slate-200">
+              {selectedCampaign.status === 'Brief Unlocked' && (
+                <Button 
+                  onClick={handleScheduleCampaign}
+                  disabled={!allValidationsChecked}
+                  className="bg-teal text-white hover:bg-teal/80"
+                >
+                  <Calendar size={18} className="mr-2" />
+                  Schedule Campaign
+                </Button>
+              )}
+              
+              {selectedCampaign.status === 'Scheduled' && (
+                <Button 
+                  onClick={handleLogGoLive}
+                  className="bg-gold text-navy hover:bg-[#d5a43a]"
+                >
+                  <Radio size={18} className="mr-2" />
+                  Log Go-Live
+                </Button>
+              )}
+
+              {selectedCampaign.status === 'Brief Unlocked' && !allValidationsChecked && (
+                <p className="text-sm text-slate-500 self-center">
+                  Complete all validations to schedule
+                </p>
+              )}
             </div>
           </CardBody>
         </Card>
       )}
 
       {/* ============================================================
-          MATERIAL VALIDATION CHECKLIST - ALWAYS VISIBLE
+          MATERIAL VALIDATION CHECKLIST
           ============================================================ */}
       <Card>
         <CardHeader>
@@ -364,6 +459,7 @@ export function OperationsPage() {
                   className="h-5 w-5 rounded border-slate-300 text-navy focus:ring-gold"
                   checked={validationChecked[itemKey]}
                   onChange={() => handleValidationToggle(itemKey)}
+                  disabled={selectedCampaign?.status !== 'Brief Unlocked'}
                 />
                 <span className="font-semibold text-slate-700">{item}</span>
               </label>
@@ -373,7 +469,7 @@ export function OperationsPage() {
       </Card>
 
       {/* ============================================================
-          MATERIAL SPECIFICATIONS AND DEADLINES - ALWAYS VISIBLE
+          MATERIAL SPECIFICATIONS AND DEADLINES
           ============================================================ */}
       <Card>
         <CardHeader>
@@ -410,7 +506,7 @@ export function OperationsPage() {
       </Card>
 
       {/* ============================================================
-          PROOF OF DELIVERY (POD) SECTION - ALWAYS VISIBLE
+          PROOF OF DELIVERY (POD) SECTION
           ============================================================ */}
       <Card>
         <CardHeader>
@@ -426,11 +522,11 @@ export function OperationsPage() {
               className="hidden"
               accept="image/jpeg,image/png,image/jpg,application/pdf"
               onChange={handlePODUpload}
-              disabled={!allValidationsChecked || uploading || !selectedCampaign}
+              disabled={!allValidationsChecked || uploading || !selectedCampaign || selectedCampaign.status === 'Brief Unlocked'}
             />
             <Button 
               variant="secondary" 
-              disabled={!allValidationsChecked || uploading || !selectedCampaign}
+              disabled={!allValidationsChecked || uploading || !selectedCampaign || selectedCampaign.status === 'Brief Unlocked'}
               onClick={handleUploadClick}
             >
               <UploadCloud size={18} className="mr-2" />
@@ -439,7 +535,10 @@ export function OperationsPage() {
             {!selectedCampaign && (
               <p className="text-sm text-slate-500">Select a campaign first</p>
             )}
-            {!allValidationsChecked && selectedCampaign && (
+            {selectedCampaign?.status === 'Brief Unlocked' && (
+              <p className="text-sm text-slate-500">Schedule campaign before uploading POD</p>
+            )}
+            {!allValidationsChecked && selectedCampaign && selectedCampaign.status !== 'Brief Unlocked' && (
               <p className="text-sm text-slate-500">Complete material validation first</p>
             )}
           </div>
@@ -460,7 +559,7 @@ export function OperationsPage() {
       </Card>
 
       {/* ============================================================
-          🆕 DELIVERED ITEMS SECTION
+          DELIVERED ITEMS SECTION
           ============================================================ */}
       <Card>
         <CardHeader>
@@ -478,6 +577,7 @@ export function OperationsPage() {
                 onChange={(e) => setNewItemName(e.target.value)}
                 placeholder="e.g., Facebook Sponsored Post"
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                disabled={!selectedCampaign || selectedCampaign.status === 'Brief Unlocked'}
               />
             </div>
             <div>
@@ -488,6 +588,7 @@ export function OperationsPage() {
                 onChange={(e) => setNewItemQuantity(Number(e.target.value))}
                 min="1"
                 className="w-20 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                disabled={!selectedCampaign || selectedCampaign.status === 'Brief Unlocked'}
               />
             </div>
             <div className="md:col-span-1">
@@ -498,9 +599,14 @@ export function OperationsPage() {
                 onChange={(e) => setNewItemNotes(e.target.value)}
                 placeholder="Any delivery notes"
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                disabled={!selectedCampaign || selectedCampaign.status === 'Brief Unlocked'}
               />
             </div>
-            <Button onClick={handleAddDeliveredItem} className="md:col-span-1">
+            <Button 
+              onClick={handleAddDeliveredItem} 
+              className="md:col-span-1"
+              disabled={!selectedCampaign || selectedCampaign.status === 'Brief Unlocked'}
+            >
               <Plus size={16} className="mr-2" />
               Add Item
             </Button>
@@ -530,7 +636,7 @@ export function OperationsPage() {
       </Card>
 
       {/* ============================================================
-          CAMPAIGN REPORT SECTION - UPDATED
+          CAMPAIGN REPORT SECTION
           ============================================================ */}
       <Card>
         <CardHeader>
@@ -546,19 +652,26 @@ export function OperationsPage() {
               onChange={(e) => setReportNotes(e.target.value)}
               placeholder="Add any additional notes for the report..."
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm min-h-[80px]"
+              disabled={!selectedCampaign || selectedCampaign.status === 'Brief Unlocked'}
             />
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
             <Button 
               onClick={handleGenerateReport} 
-              disabled={!canGenerateReport || generatingReport}
+              disabled={!canGenerateReport || generatingReport || !selectedCampaign || selectedCampaign.status === 'Brief Unlocked'}
               variant={canGenerateReport ? 'primary' : 'secondary'}
             >
               <FileText size={18} className="mr-2" />
               {generatingReport ? 'Generating...' : 'Generate Report'}
             </Button>
-            {!podUploaded && (
+            {!selectedCampaign && (
+              <p className="text-sm text-slate-500">Select a campaign first</p>
+            )}
+            {selectedCampaign?.status === 'Brief Unlocked' && (
+              <p className="text-sm text-slate-500">Schedule campaign before generating report</p>
+            )}
+            {!podUploaded && selectedCampaign && selectedCampaign.status !== 'Brief Unlocked' && (
               <p className="text-sm text-slate-500">Upload POD to enable report generation</p>
             )}
             {podUploaded && deliveredItems.length === 0 && (

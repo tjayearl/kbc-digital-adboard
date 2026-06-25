@@ -208,6 +208,171 @@ def generate_order_sheet_pdf(campaign: dict) -> bytes:
     buffer.seek(0)
     return buffer.read()
 
+<<<<<<< HEAD
+# ============================================================
+# 🆕 NEW: Generate Report PDF (Add this at the BOTTOM of the file)
+# ============================================================
+def generate_report_pdf(campaign: dict, delivered_items: list, notes: str = "") -> bytes:
+    """Generate a PDF report from campaign data and delivered items"""
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=20 * mm,
+        leftMargin=20 * mm,
+        topMargin=15 * mm,
+        bottomMargin=15 * mm,
+    )
+    elements = []
+
+    # Header - Similar to order sheet
+    header_data = [[
+        Paragraph(
+            '<font color="#1A3E6F"><b>KBC</b></font> <font color="#C8972B">Digital Division</font>',
+            ParagraphStyle("h", fontSize=20, fontName="Helvetica-Bold"),
+        ),
+        Paragraph(
+            '<font color="#1A3E6F"><b>CAMPAIGN PERFORMANCE REPORT</b></font>'
+            f'<br/><font color="#C8972B" size="10">{_xml_text(campaign.get("dabRef", ""))}</font>',
+            ParagraphStyle("ref", fontSize=8, alignment=TA_RIGHT),
+        ),
+    ]]
+    header_table = Table(header_data, colWidths=[100 * mm, 70 * mm])
+    header_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4 * mm),
+    ]))
+    elements.append(header_table)
+    elements.append(HRFlowable(width="100%", thickness=2, color=NAVY))
+    elements.append(Spacer(1, 5 * mm))
+
+    # Campaign Details
+    client = campaign.get("client", {})
+    campaign_info = campaign.get("campaign", {})
+    client_data = [
+        ["CLIENT DETAILS", "CAMPAIGN DETAILS"],
+        [
+            f"Name: {_text(client.get('name'))}\n"
+            f"Company: {_text(client.get('company'))}\n"
+            f"Contact: {_text(client.get('contact'))}\n"
+            f"Email: {_text(client.get('email'))}\n"
+            f"Phone: {_text(client.get('phone'))}",
+            f"Campaign: {_text(campaign_info.get('name'))}\n"
+            f"Start: {_text(campaign_info.get('startDate'))}\n"
+            f"End: {_text(campaign_info.get('endDate'))}\n"
+            f"Status: {_text(campaign.get('status', 'N/A'))}",
+        ],
+    ]
+    client_table = Table(client_data, colWidths=[85 * mm, 85 * mm])
+    client_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), NAVY),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ("PADDING", (0, 0), (-1, -1), 3 * mm),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("GRID", (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
+        ("BACKGROUND", (0, 1), (-1, -1), OFF_WHITE),
+    ]))
+    elements.append(client_table)
+    elements.append(Spacer(1, 5 * mm))
+
+    # Delivered Items Section
+    elements.append(Paragraph(
+        "DELIVERED ITEMS",
+        ParagraphStyle("s", fontSize=9, fontName="Helvetica-Bold", textColor=NAVY, spaceAfter=2 * mm),
+    ))
+
+    if delivered_items and len(delivered_items) > 0:
+        item_data = [["Item", "Quantity", "Notes"]]
+        for item in delivered_items:
+            item_data.append([
+                _text(item.get("name", "")),
+                _text(item.get("quantity", 0)),
+                _text(item.get("notes", "")),
+            ])
+        
+        item_table = Table(item_data, colWidths=[70 * mm, 30 * mm, 70 * mm])
+        item_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), NAVY),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("ALIGN", (1, 0), (1, -1), "CENTER"),
+            ("PADDING", (0, 0), (-1, -1), 2.5 * mm),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, OFF_WHITE]),
+            ("GRID", (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
+        ]))
+        elements.append(item_table)
+    else:
+        elements.append(Paragraph(
+            '<font color="#888888">No delivered items recorded</font>',
+            ParagraphStyle("empty", fontSize=8, alignment=TA_CENTER),
+        ))
+    
+    elements.append(Spacer(1, 4 * mm))
+
+    # Notes Section
+    if notes:
+        elements.append(Paragraph(
+            "NOTES",
+            ParagraphStyle("s", fontSize=9, fontName="Helvetica-Bold", textColor=NAVY, spaceAfter=2 * mm),
+        ))
+        elements.append(Paragraph(
+            _xml_text(notes),
+            ParagraphStyle("notes", fontSize=8, textColor=colors.black, spaceAfter=4 * mm),
+        ))
+
+    # Financial Summary
+    elements.append(Spacer(1, 4 * mm))
+    elements.append(Paragraph(
+        "FINANCIAL SUMMARY",
+        ParagraphStyle("s", fontSize=9, fontName="Helvetica-Bold", textColor=NAVY, spaceAfter=2 * mm),
+    ))
+
+    totals = campaign.get("totals", {})
+    discount = campaign.get("discount", {})
+    
+    totals_data = [
+        ["Subtotal", f"KSh {_money(totals.get('subtotal'))}"],
+    ]
+    
+    if discount.get("status") == "approved":
+        totals_data.append([
+            f"Discount ({_number(discount.get('percentage')):g}%)",
+            f"- KSh {_money(totals.get('discountValue'))}",
+        ])
+    
+    totals_data.append(["VAT (16%)", f"KSh {_money(totals.get('vatAmount'))}"])
+    totals_data.append(["GRAND TOTAL", f"KSh {_money(totals.get('grandTotal'))}"])
+    
+    totals_table = Table(totals_data, colWidths=[130 * mm, 40 * mm])
+    totals_table.setStyle(TableStyle([
+        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+        ("TEXTCOLOR", (0, -1), (-1, -1), NAVY),
+        ("BACKGROUND", (0, -1), (-1, -1), OFF_WHITE),
+        ("PADDING", (0, 0), (-1, -1), 2.5 * mm),
+        ("LINEABOVE", (0, -1), (-1, -1), 1, GOLD),
+    ]))
+    elements.append(totals_table)
+    elements.append(Spacer(1, 8 * mm))
+
+    # Report Generation Info
+    elements.append(HRFlowable(width="100%", thickness=1, color=LIGHT_GRAY))
+    elements.append(Paragraph(
+        '<font color="#1A3E6F" size="7">'
+        f'KBC Digital Division - Performance Report - {_xml_text(campaign.get("dabRef", ""))} - '
+        f'Generated {datetime.now().strftime("%d %B %Y %H:%M")} - '
+        'Digital Operations Report</font>',
+        ParagraphStyle("footer", fontSize=7, alignment=TA_CENTER, spaceBefore=2 * mm),
+    ))
+
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer.read()
+=======
 def generate_report_pdf(campaign: dict, report: dict) -> bytes:
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -340,3 +505,4 @@ def generate_report_pdf(campaign: dict, report: dict) -> bytes:
     doc.build(elements)
     buffer.seek(0)
     return buffer.read()
+>>>>>>> 550d6fa3acb4bfbaea0f3c5dd8d8658bb7e0fa11

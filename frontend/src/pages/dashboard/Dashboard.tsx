@@ -55,14 +55,20 @@ export function Dashboard({ role }: DashboardProps) {
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Link to="/campaigns/new">
-              <Button className="w-full bg-gold text-ink hover:bg-[#d5a43a]">
+            <Link to={role === 'sales' ? "/campaigns/new" : "#"}>
+              <Button 
+                className="w-full bg-gold text-ink hover:bg-[#d5a43a]" 
+                disabled={role !== 'sales'}
+              >
                 <PlusCircle size={18} />
                 New Campaign
               </Button>
             </Link>
-            <Link to="/orders">
-              <Button className="w-full bg-gold text-navy hover:bg-[#d5a43a]">
+            <Link to={role === 'sales' ? "/orders" : "#"}>
+              <Button 
+                className="w-full bg-gold text-navy hover:bg-[#d5a43a]" 
+                disabled={role !== 'sales'}
+              >
                 <FileText size={18} />
                 Order Sheets
               </Button>

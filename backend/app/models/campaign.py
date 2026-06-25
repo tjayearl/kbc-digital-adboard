@@ -13,6 +13,8 @@ class CampaignStatus(str, Enum):
     ad_manager_countersigned = "adManagerCountersigned"
     payment_confirmed = "paymentConfirmed"
     brief_unlocked = "briefUnlocked"
+    scheduled = "scheduled"          # 🆕 ADD THIS
+    live = "live"                    # 🆕 ADD THIS
     in_execution = "inExecution"
     delivered = "delivered"
     reported = "reported"
