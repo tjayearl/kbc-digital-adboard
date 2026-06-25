@@ -55,8 +55,8 @@ export function OperationsPage() {
       setCampaigns(allCampaigns);
       
       // Auto-select the first unlocked campaign if available
-      const unlocked = allCampaigns.filter(
-        (campaign) => campaign.status === 'Brief Unlocked'
+      const unlocked = allCampaigns.filter((campaign) =>
+        ['Brief Unlocked', 'Scheduled', 'Live', 'live', 'Delivered'].includes(campaign.status)
       );
       if (unlocked.length > 0) {
         setSelectedCampaign(unlocked[0]);
@@ -327,29 +327,28 @@ export function OperationsPage() {
         <p className="mt-1 text-sm text-slate-500">Unlocked briefs ready for execution.</p>
       </div>
 
-      {/* DYNAMIC STAT CARDS */}
+      {/* DYNAMIC STAT CARDS - These are correct as they filter on specific statuses */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Ready for Execution" value={stats.readyForExecution.toString()} detail="Unlocked briefs" icon={CheckSquare} />
         <StatCard label="Scheduled" value={stats.scheduled.toString()} detail="Calendar entries" icon={CalendarDays} />
         <StatCard label="Live" value={stats.live.toString()} detail="Campaigns in market" icon={Clock3} />
         <StatCard label="Delivered" value={stats.delivered.toString()} detail="Proof uploaded" icon={UploadCloud} />
       </section>
-
-      {/* Unlocked Briefs List */}
+      
+      {/* Campaigns for Ops List */}
       <Card>
         <CardHeader>
-          <h3 className="text-lg font-bold text-ink">Unlocked Briefs</h3>
+          <h3 className="text-lg font-bold text-ink">Campaigns for Operations</h3>
           <p className="mt-1 text-sm text-slate-500">
-            {campaigns.filter(c => c.status === 'Brief Unlocked').length} brief{campaigns.filter(c => c.status === 'Brief Unlocked').length !== 1 ? 's' : ''} ready for Digital Ops
+            {campaigns.filter(c => ['Brief Unlocked', 'Scheduled', 'Live', 'live', 'Delivered'].includes(c.status)).length} campaign{campaigns.filter(c => ['Brief Unlocked', 'Scheduled', 'Live', 'live', 'Delivered'].includes(c.status)).length !== 1 ? 's' : ''} in the operations pipeline.
           </p>
         </CardHeader>
         <CardBody>
-          {campaigns.filter(c => c.status === 'Brief Unlocked').length === 0 ? (
+          {campaigns.filter(c => ['Brief Unlocked', 'Scheduled', 'Live', 'live', 'Delivered'].includes(c.status)).length === 0 ? (
             <p className="text-center text-slate-500 py-4">No unlocked briefs available.</p>
           ) : (
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {campaigns
-                .filter(c => c.status === 'Brief Unlocked')
+              {campaigns.filter(c => ['Brief Unlocked', 'Scheduled', 'Live', 'live', 'Delivered'].includes(c.status))
                 .map((campaign) => (
                   <div
                     key={campaign.id}
@@ -362,7 +361,7 @@ export function OperationsPage() {
                   >
                     <p className="font-bold text-ink">{campaign.name}</p>
                     <p className="text-sm text-slate-500">{campaign.clientCompany}</p>
-                    <Badge tone="gold" className="mt-2">Unlocked</Badge>
+                    <Badge tone="gold" className="mt-2">{campaign.status}</Badge>
                   </div>
                 ))}
             </div>
