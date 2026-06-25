@@ -208,10 +208,7 @@ def generate_order_sheet_pdf(campaign: dict) -> bytes:
     buffer.seek(0)
     return buffer.read()
 
-<<<<<<< HEAD
-# ============================================================
 # 🆕 NEW: Generate Report PDF (Add this at the BOTTOM of the file)
-# ============================================================
 def generate_report_pdf(campaign: dict, report: dict) -> bytes:
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -344,4 +341,3 @@ def generate_report_pdf(campaign: dict, report: dict) -> bytes:
     doc.build(elements)
     buffer.seek(0)
     return buffer.read()
->>>>>>> 550d6fa3acb4bfbaea0f3c5dd8d8658bb7e0fa11
