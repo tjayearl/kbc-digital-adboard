@@ -1,5 +1,6 @@
 import io
 from datetime import datetime
+from typing import List, Dict
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -7,18 +8,10 @@ from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib import colors
 
 
-def generate_order_sheet_pdf(campaign: dict) -> bytes:
-    # This is a placeholder for the existing order sheet generation
-    # to keep the file structure consistent.
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
-    story = [Paragraph("Order Sheet PDF", styles['h1'])]
-    story.append(Paragraph(f"Campaign: {campaign.get('name', 'N/A')}", styles['body']))
-    doc.build(story)
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
-    return pdf_bytes
+def generate_report_pdf(campaign: dict, report: dict) -> bytes:
+    """
+    Generates a campaign performance report PDF.
+    """
 
 def generate_campaign_report_pdf(campaign: dict) -> bytes:
     buffer = io.BytesIO()

@@ -800,35 +800,36 @@ export async function generateReport(
   }
 }
 
-// Download report PDF
-export async function downloadReportPdf(campaignId: string, reportId?: string): Promise<Blob> {
+export async function getCampaignReports(campaignId: string): Promise<any[]> {
   try {
-    const res = await fetch(`${BASE_URL}/reports/${campaignId}/download${reportId ? `?reportId=${reportId}` : ''}`, {
+    const res = await fetch(`${BASE_URL}/campaigns/${campaignId}`, {
       headers: await getAuthHeaders()
     });
-    if (!res.ok) {
-      throw new Error(await getApiErrorMessage(res));
-    }
-    return await res.blob();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const report = data.report;
+    if (!report) return [];
+    return [{ id: report.reportId || campaignId, ...report }];
   } catch (error) {
-    console.error(`Failed to download report for campaign ${campaignId}:`, error);
-    throw error;
+    console.error(`Failed to fetch reports for ${campaignId}:`, error);
+    return [];
   }
 }
 
-export async function getCampaignReports(campaignId: string): Promise<any> {
-  const res = await fetch(
-    `${BASE_URL}/reports/${campaignId}`,
-    {
-      headers: await getAuthHeaders(),
+export async function downloadReportPdf(campaignId: string, reportId: string): Promise<Blob> {
+  try {
+    const res = await fetch(`${BASE_URL}/reports/${campaignId}/download`, {
+      headers: await getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
     }
-  );
-
-  if (!res.ok) {
-    throw new Error("Failed to get campaign reports");
+    return await res.blob();
+  } catch (error) {
+    console.error(`Failed to download report PDF for ${campaignId}:`, error);
+    throw error;
   }
-
-  return await res.json();
 }
 
 export async function createChangeOrder(payload: {
@@ -1008,5 +1009,3 @@ export async function getAirtimeSerials(): Promise<any[]> {
     throw error;
   }
 }
-
-
