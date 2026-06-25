@@ -85,7 +85,7 @@ async def get_campaign(campaign_id: str, user=Depends(get_current_user)):
     return {"id": doc.id, **campaign}
 
 @router.put("/{campaign_id}")
-async def update_campaign(campaign_id: str, request: CreateCampaignRequest, user=Depends(require_roles(["sales", "admin"]))):
+async def update_campaign(campaign_id: str, request: CreateCampaignRequest, user=Depends(require_roles(["sales", "admin", "digitalOps", "adManager", "finance"]))):
     ref = db.collection("campaigns").document(campaign_id)
     doc = ref.get()
     if not doc.exists:
