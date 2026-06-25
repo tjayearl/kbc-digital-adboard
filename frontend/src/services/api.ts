@@ -816,7 +816,7 @@ export async function getCampaignReports(campaignId: string): Promise<any[]> {
   }
 }
 
-export async function downloadReportPdf(campaignId: string, reportId: string): Promise<Blob> {
+export async function downloadReportPdf(campaignId: string, reportId?: string): Promise<Blob> {
   try {
     const res = await fetch(`${BASE_URL}/reports/${campaignId}/download`, {
       headers: await getAuthHeaders()
