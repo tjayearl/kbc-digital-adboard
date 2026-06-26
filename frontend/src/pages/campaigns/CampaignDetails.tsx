@@ -287,7 +287,9 @@ export function CampaignDetails() {
   }
 
   // Digital Ops reads docs at status >= briefUnlocked
-  if (role === 'digitalOps' && campaign.status !== 'Brief Unlocked') {
+  const normalizedStatus = campaign.status.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const isUnlockedOrBeyond = ['briefunlocked', 'scheduled', 'live', 'delivered', 'poduploaded', 'reported', 'closed', 'inexecution'].includes(normalizedStatus);
+  if (role === 'digitalOps' && !isUnlockedOrBeyond) {
     return <Navigate to="/campaigns" replace />;
   }
 
@@ -459,7 +461,7 @@ export function CampaignDetails() {
               <CardBody className="space-y-4">
                 <Info label="Status" value={campaign.status} />
                 <Info label="DAB Reference" value={campaign.dabRef} />
-                <Info label="Air-Time Serial" value={campaign.status === 'Draft' ? 'Required before unlock' : 'ATO-2026-01482'} />
+                <Info label="Air-Time Serial" value={campaign.airtimeOrderSerial || 'Required before unlock'} />
                 <PriceRow label="Subtotal" value={money.format(totals.subtotal)} />
                 <PriceRow label="Discount" value={`-${money.format(totals.discount)}`} />
                 <PriceRow label="VAT 16%" value={money.format(totals.vat)} />
@@ -564,7 +566,7 @@ export function CampaignDetails() {
                 <CardBody className="space-y-3">
                   <div className="flex items-center gap-2 text-sm text-slate-700">
                     <span className="font-semibold">Air-Time Serial:</span>
-                    <Badge tone="teal">{campaign.airtimeOrderSerial || 'ATO-2026-01482'}</Badge>
+                    <Badge tone="teal">{campaign.airtimeOrderSerial || 'Not entered'}</Badge>
                   </div>
                   <div>
                     <a 
@@ -592,9 +594,9 @@ export function CampaignDetails() {
                 <p className="mt-1 text-sm text-slate-500">Brief unlock is blocked until every item is complete. Sales has no override.</p>
               </CardHeader>
               <CardBody className="grid gap-4 md:grid-cols-3">
-                <GateCheck label="Signed Order Sheet uploaded" done={['Client Signed', 'Countersigned', 'Payment Confirmed', 'Brief Unlocked'].includes(campaign.status)} />
+                <GateCheck label="Signed Order Sheet uploaded" done={!!campaign.signedSheetUrl || ['clientsigned', 'countersigned', 'paymentconfirmed', 'briefunlocked', 'scheduled', 'live', 'delivered', 'poduploaded', 'reported', 'closed', 'inexecution'].includes(campaign.status.toLowerCase().replace(/[^a-z0-9]/g, ''))} />
                 <GateCheck label="Air-Time Order serial entered" done={!!campaign.airtimeOrderSerial} />
-                <GateCheck label="Deposit or LPO confirmed" done={campaign.paidDeposit} />
+                <GateCheck label="Deposit or LPO confirmed" done={campaign.paidDeposit || ['paymentconfirmed', 'briefunlocked', 'scheduled', 'live', 'delivered', 'poduploaded', 'reported', 'closed', 'inexecution'].includes(campaign.status.toLowerCase().replace(/[^a-z0-9]/g, ''))} />
               </CardBody>
             </Card>
           </div>

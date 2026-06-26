@@ -77,6 +77,9 @@ const FRONTEND_TO_BACKEND_STATUS: Record<string, string> = {
   'Countersigned': 'adManagerCountersigned',
   'Payment Confirmed': 'paymentConfirmed',
   'Brief Unlocked': 'briefUnlocked',
+  'Scheduled': 'scheduled',
+  'Live': 'inExecution',
+  'Delivered': 'delivered',
 };
 
 // ============================================================
@@ -93,6 +96,12 @@ const BACKEND_TO_FRONTEND_STATUS: Record<string, string> = {
   adManagerCountersigned: 'Countersigned',
   paymentConfirmed: 'Payment Confirmed',
   briefUnlocked: 'Brief Unlocked',
+  inExecution: 'Live',
+  live: 'Live',
+  scheduled: 'Scheduled',
+  delivered: 'Delivered',
+  reported: 'Delivered',
+  closed: 'Delivered',
 };
 
 export function matchFrontendProductToBackend(p: any, rateCardItems: any[]): any {
@@ -696,13 +705,6 @@ export async function countersignOrderSheet(campaignId: string): Promise<any> {
       throw new Error(err.detail || `HTTP ${res.status}`);
     }
     const result = await res.json();
-    
-    // 🆕 Ensure status is updated to 'Countersigned' on frontend
-    // (Backend should already do this, but just to be safe)
-    await updateCampaign(campaignId, { 
-      status: 'Countersigned' 
-    } as any);
-    
     return result;
   } catch (error) {
     console.error(`Failed to countersign order sheet for ${campaignId}:`, error);
@@ -722,13 +724,6 @@ export async function confirmPayment(campaignId: string): Promise<any> {
       throw new Error(err.detail || `HTTP ${res.status}`);
     }
     const result = await res.json();
-    
-    // 🆕 Ensure status is updated to 'Payment Confirmed' on frontend
-    // (Backend should already do this, but just to be safe)
-    await updateCampaign(campaignId, { 
-      status: 'Payment Confirmed' 
-    } as any);
-    
     return result;
   } catch (error) {
     console.error(`Failed to confirm payment for ${campaignId}:`, error);
