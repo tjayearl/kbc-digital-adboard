@@ -85,6 +85,8 @@ export function ApprovalsPage() {
         note: 'Order Sheet signed by client. Ready for countersigning.'
       });
     } else if (c.status === 'Countersigned') {
+      // This maps to 'adManagerCountersigned' on the backend.
+      // This is the correct stage for payment verification.
       approvalsList.push({
         id: `ap-pay-${c.id}`,
         campaignId: c.id,
@@ -92,7 +94,7 @@ export function ApprovalsPage() {
         requestedBy: c.owner || 'Sales Rep',
         value: Math.round(campaignTotals(c).grandTotal * 0.5),
         status: 'Pending',
-        note: 'Deposit payment receipt uploaded by client. Please verify.'
+        note: 'Order sheet is countersigned. Please verify client deposit payment.'
       });
     }
   });
@@ -113,7 +115,7 @@ export function ApprovalsPage() {
           alert('Discount Approved successfully!');
           setUpdateCount(prev => prev + 1);
         })
-        .catch((err) => {
+        .catch((err: any) => {
           alert(`Failed to approve discount: ${err.message || err}`);
         });
     } else if (approval.type === 'Countersign') {
@@ -122,7 +124,7 @@ export function ApprovalsPage() {
           alert('Order Countersigned successfully!');
           setUpdateCount(prev => prev + 1);
         })
-        .catch((err) => {
+        .catch((err: any) => {
           alert(`Failed to countersign: ${err.message || err}`);
         });
     } else if (approval.type === 'Payment') {
@@ -131,7 +133,7 @@ export function ApprovalsPage() {
           alert('Payment Verified successfully!\nCampaign brief unlocked for operations.');
           setUpdateCount(prev => prev + 1);
         })
-        .catch((err) => {
+        .catch((err: any) => {
           alert(`Failed to verify payment: ${err.message || err}`);
         });
     }
@@ -147,7 +149,7 @@ export function ApprovalsPage() {
           alert('Discount request rejected.');
           setUpdateCount(prev => prev + 1);
         })
-        .catch((err) => {
+        .catch((err: any) => {
           alert(`Failed to reject discount: ${err.message || err}`);
         });
     } else {
@@ -157,7 +159,7 @@ export function ApprovalsPage() {
           alert(`${approval.type} request rejected. Campaign reverted to Draft.`);
           setUpdateCount(prev => prev + 1);
         })
-        .catch((err) => {
+        .catch((err: any) => {
           alert(`Failed to reject approval request: ${err.message || err}`);
         });
     }
@@ -262,7 +264,7 @@ export function ApprovalsPage() {
                                 .then(() => {
                                   setUpdateCount(prev => prev + 1);
                                 })
-                                .catch(err => console.error(err));
+                                .catch((err: any) => console.error(err));
                             }
                           }}
                         />

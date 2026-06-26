@@ -1,32 +1,73 @@
 from fastapi import APIRouter, Depends, HTTPException
-from app.core.security import require_roles
+from fastapi.responses import StreamingResponse
+from app.core.security import require_roles, get_current_user
 from app.core.firebase import db
 from app.services.audit import log_action
+from app.services.pdf_service import generate_report_pdf
 from datetime import datetime, timezone
 from pydantic import BaseModel
+from typing import List
+import uuid
+import io
 
 router = APIRouter()
 
+class DeliveredItem(BaseModel):
+    name: str
+    quantity: int
+    notes: str = ""
+
 class ReportActuals(BaseModel):
-    deliveredItems: list
+    deliveredItems: List[DeliveredItem]
     notes: str = ""
 
 @router.post("/{campaign_id}/generate")
-async def generate_report(campaign_id: str, actuals: ReportActuals, user=Depends(require_roles(["digitalOps", "admin"]))):
+async def generate_report(
+    campaign_id: str,
+    actuals: ReportActuals,
+    user=Depends(require_roles(["digitalOps", "admin"]))
+):
     ref = db.collection("campaigns").document(campaign_id)
     doc = ref.get()
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Campaign not found")
-    if doc.to_dict().get("status") not in ["delivered", "inExecution"]:
-        raise HTTPException(status_code=400, detail="Campaign must be delivered first")
+    campaign = doc.to_dict()
+    if campaign.get("status") not in ["delivered", "inExecution", "briefUnlocked"]:
+        raise HTTPException(status_code=400, detail="Campaign must be in execution or delivered state")
+    report_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
+    report_data = {
+        "reportId": report_id,
+        "campaignId": campaign_id,
+        "deliveredItems": [item.dict() for item in actuals.deliveredItems],
+        "notes": actuals.notes,
+        "generatedBy": user["uid"],
+        "generatedAt": now,
+    }
     ref.update({
-        "report": {"deliveredItems": actuals.deliveredItems, "notes": actuals.notes,
-                   "generatedBy": user["uid"], "generatedAt": now},
-        "status": "reported", "updatedAt": now
+        "report": report_data,
+        "status": "reported",
+        "updatedAt": now
     })
     await log_action(campaign_id, "REPORT_GENERATED", user["uid"], user.get("role", ""), "")
-    return {"message": "Report generated"}
+    return {**report_data, "message": "Report generated successfully."}
+
+@router.get("/{campaign_id}/download")
+async def download_report(campaign_id: str, user=Depends(get_current_user)):
+    doc = db.collection("campaigns").document(campaign_id).get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    campaign = doc.to_dict()
+    report = campaign.get("report")
+    if not report:
+        raise HTTPException(status_code=404, detail="No report generated yet")
+    dab_ref = campaign.get("dabRef", campaign_id)
+    pdf_bytes = generate_report_pdf(campaign, report)
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={dab_ref}-report.pdf"}
+    )
 
 @router.get("/pipeline")
 async def get_pipeline(user=Depends(require_roles(["admin", "adManager"]))):
@@ -34,7 +75,7 @@ async def get_pipeline(user=Depends(require_roles(["admin", "adManager"]))):
     pipeline = [{"id": c.id, **c.to_dict()} for c in campaigns]
     total_booked = sum(
         c.get("totals", {}).get("grandTotal", 0) for c in pipeline
-        if c.get("status") not in ["draft", "campaignConfigured", "discountPending", "discountRejected"]
+        if c.get("status") not in ["draft", "discountPending"]
     )
     total_discounts = sum(
         c.get("totals", {}).get("discountValue", 0) for c in pipeline
@@ -46,14 +87,9 @@ async def get_pipeline(user=Depends(require_roles(["admin", "adManager"]))):
         if c.get("status") in ["briefUnlocked", "inExecution"]
         and c.get("campaign", {}).get("endDate", "9999") < now[:10]
     ]
-    return {
-        "campaigns": pipeline,
-        "totalBooked": total_booked,
-        "totalDiscounts": total_discounts,
-        "overdueCount": len(overdue),
-        "overdue": overdue,
-        "count": len(pipeline)
-    }
+    return {"campaigns": pipeline, "totalBooked": total_booked,
+            "totalDiscounts": total_discounts, "overdueCount": len(overdue),
+            "overdue": overdue, "count": len(pipeline)}
 
 @router.get("/discounts")
 async def get_discount_report(user=Depends(require_roles(["admin", "adManager"]))):
@@ -80,7 +116,7 @@ async def revenue_by_rep(user=Depends(require_roles(["admin", "adManager"]))):
     rep_revenue = {}
     for c in campaigns:
         data = c.to_dict()
-        if data.get("status") not in ["draft", "campaignConfigured", "discountPending", "discountRejected"]:
+        if data.get("status") not in ["draft", "discountPending"]:
             rep = data.get("createdBy", "unknown")
             total = data.get("totals", {}).get("grandTotal", 0)
             rep_revenue[rep] = rep_revenue.get(rep, 0) + total

@@ -6,7 +6,7 @@ import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { campaignTotals, lineTotal, money, productCatalog, rateCard, type Role, type Campaign, type AuditEvent } from '../../data/mockData';
 import { OrderSheetContent } from '../../components/campaigns/OrderSheetContent';
 import { FileText, Download, Upload, Trash2 } from 'lucide-react';
-import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, downloadOrderSheetPdf, uploadSignedSheet, getCampaignAudit } from '../../services/api';
+import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, downloadOrderSheetPdf, uploadSignedSheet, getCampaignAudit, BASE_URL, getAuthHeaders, downloadReportPdf } from '../../services/api';
 import { downloadBlob, orderSheetFilename, printBlob, shareOrderSheet } from '../../utils/pdfActions';
 
 const tabs = ['Overview', 'Pricing', 'Order Sheet', 'Gate Checks', 'Reports', 'Audit Log'];
@@ -63,7 +63,7 @@ export function CampaignDetails() {
           alert('Campaign deleted successfully.');
           navigate('/campaigns');
         })
-        .catch((err) => {
+        .catch((err: any) => {
           alert(`Failed to delete campaign: ${err.message || err}`);
         });
     }
@@ -205,7 +205,7 @@ export function CampaignDetails() {
         setUpdateCount(prev => prev + 1);
         
         return downloadOrderSheetPdf(campaign.id)
-          .then((blob) => downloadBlob(blob, `${res.dabRef || campaign.dabRef}_Order_Sheet.pdf`))
+          .then((blob) => downloadBlob(blob, `${res.dabRef || campaign.dabRef || campaign.id}_Order_Sheet.pdf`))
           .catch((err) => {
             console.error("Failed to download PDF directly:", err);
             if (res.pdfUrl) window.open(res.pdfUrl, '_blank', 'noopener,noreferrer');
@@ -251,7 +251,7 @@ export function CampaignDetails() {
         setShowDiscountModal(false);
         setUpdateCount(prev => prev + 1);
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error(err);
         alert(`Failed to request discount: ${err.message || err}`);
       });
@@ -387,13 +387,25 @@ export function CampaignDetails() {
                       <Button 
                         variant="secondary" 
                         className="h-9 text-xs px-2.5" 
-                        onClick={() => {
-                          alert(`Downloading report: ${campaign.reportFile}`);
+                        onClick={async () => { // This is the corrected handler
+                          try {
+                            const blob = await downloadReportPdf(campaign.id);
+                            const url = window.URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = `${campaign.dabRef}-report.pdf`;
+                            document.body.appendChild(link);
+                            link.click();
+                            link.remove();
+                            window.URL.revokeObjectURL(url);
+                          } catch (err) {
+                            alert(`Error downloading report: ${(err as Error).message}`);
+                          }
                         }}
                       >
                         <Download size={14} /> Download
                       </Button>
-                      {(role === 'digitalOps' || role === 'admin' || role === 'sales') && (
+                      {(role === 'admin' || role === 'sales') && (
                         <Button 
                           variant="danger" 
                           className="h-9 text-xs px-2.5"
@@ -416,7 +428,7 @@ export function CampaignDetails() {
                 ) : (
                   <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center">
                     <p className="text-sm text-slate-500 italic">No custom report file uploaded.</p>
-                    {(role === 'digitalOps' || role === 'admin' || role === 'sales') && (
+                    {(role === 'admin' || role === 'sales') && (
                       <div className="mt-3 flex justify-center">
                         <input
                           type="file"
@@ -569,14 +581,30 @@ export function CampaignDetails() {
                     <Badge tone="teal">{campaign.airtimeOrderSerial || 'Not entered'}</Badge>
                   </div>
                   <div>
-                    <a 
-                      href={campaign.signedSheetUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`${BASE_URL}/order-sheet/${campaign.id}/download-signed`, {
+                            headers: await getAuthHeaders()
+                          });
+                          if (!res.ok) throw new Error('Failed to download');
+                          const blob = await res.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = `${campaign.dabRef || campaign.id}-signed.pdf`;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          window.URL.revokeObjectURL(url);
+                        } catch (err) {
+                          alert('Failed to download signed sheet');
+                        }
+                      }}
                       className="inline-flex items-center text-sm font-bold text-navy hover:underline"
                     >
-                      <FileText size={16} className="mr-1.5" /> View Signed Order Sheet PDF
-                    </a>
+                      <FileText size={16} className="mr-1.5" /> Download Signed Order Sheet PDF
+                    </button>
                   </div>
                 </CardBody>
               </Card>

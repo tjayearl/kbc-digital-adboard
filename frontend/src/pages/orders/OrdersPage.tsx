@@ -6,7 +6,7 @@ import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { campaignTotals, money, type Role, type Campaign } from '../../data/mockData';
 import { OrderSheetContent } from '../../components/campaigns/OrderSheetContent';
-import { getCampaigns, uploadSignedSheet, downloadOrderSheetPdf } from '../../services/api';
+import { getCampaigns, uploadSignedSheet, downloadOrderSheetPdf, BASE_URL, getAuthHeaders } from '../../services/api';
 import { downloadBlob, orderSheetFilename, printBlob, shareOrderSheet } from '../../utils/pdfActions';
 
 export function OrdersPage() {
@@ -25,7 +25,7 @@ export function OrdersPage() {
         setCampaignList(data);
         setLoading(false);
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error(err);
         setLoading(false);
       });
@@ -258,14 +258,30 @@ export function OrdersPage() {
               <Badge tone="teal">{campaign.airtimeOrderSerial || 'ATO-2026-01482'}</Badge>
             </div>
             <div>
-              <a 
-                href={campaign.signedSheetUrl} 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`${BASE_URL}/order-sheet/${campaign.id}/download-signed`, {
+                      headers: await getAuthHeaders()
+                    });
+                    if (!res.ok) throw new Error('Failed to download');
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `${campaign.dabRef || campaign.id}-signed.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                  } catch (err) {
+                    alert('Failed to download signed sheet');
+                  }
+                }}
                 className="inline-flex items-center text-sm font-bold text-navy hover:underline"
               >
-                <FileText size={16} className="mr-1.5" /> View Signed Order Sheet PDF
-              </a>
+                <FileText size={16} className="mr-1.5" /> Download Signed Order Sheet PDF
+              </button>
             </div>
           </CardBody>
         </Card>

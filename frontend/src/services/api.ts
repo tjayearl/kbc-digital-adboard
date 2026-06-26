@@ -7,7 +7,7 @@ import {
   type Approval
 } from '../data/mockData';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://kbc-digital-adboard.onrender.com/api/v1';
+export const BASE_URL = import.meta.env.VITE_API_URL || 'https://kbc-digital-adboard.onrender.com/api/v1';
 
 // Dynamic rate card cache
 let cachedRateCard: any[] = [];
@@ -64,7 +64,7 @@ const fallbackRateCard = [
 ];
 
 // ============================================================
-// 🆕 FRONTEND TO BACKEND STATUS MAPPING (FIX)
+// FRONTEND TO BACKEND STATUS MAPPING
 // ============================================================
 const FRONTEND_TO_BACKEND_STATUS: Record<string, string> = {
   'Draft': 'draft',
@@ -78,7 +78,7 @@ const FRONTEND_TO_BACKEND_STATUS: Record<string, string> = {
   'Payment Confirmed': 'paymentConfirmed',
   'Brief Unlocked': 'briefUnlocked',
   'Scheduled': 'scheduled',
-  'Live': 'inExecution',
+  'Live': 'live',
   'Delivered': 'delivered',
 };
 
@@ -96,12 +96,9 @@ const BACKEND_TO_FRONTEND_STATUS: Record<string, string> = {
   adManagerCountersigned: 'Countersigned',
   paymentConfirmed: 'Payment Confirmed',
   briefUnlocked: 'Brief Unlocked',
-  inExecution: 'Live',
-  live: 'Live',
   scheduled: 'Scheduled',
+  live: 'Live',
   delivered: 'Delivered',
-  reported: 'Delivered',
-  closed: 'Delivered',
 };
 
 export function matchFrontendProductToBackend(p: any, rateCardItems: any[]): any {
@@ -167,6 +164,18 @@ export async function getAuthHeaders(isMultipart = false) {
     }
   }
   return headers;
+}
+
+async function getApiErrorMessage(res: Response) {
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    const err = await res.json().catch(() => null);
+    return err?.detail || err?.message || `HTTP ${res.status}`;
+  }
+
+  const text = await res.text().catch(() => '');
+  const detail = text.replace(/\s+/g, ' ').trim().slice(0, 200);
+  return detail ? `HTTP ${res.status}: ${detail}` : `HTTP ${res.status}`;
 }
 
 // ----------------------------------------------------
@@ -280,7 +289,6 @@ export function mapFrontendCampaignToBackend(c: any) {
     reason: c.discountReason || (c as any).discount?.reason || ''
   };
 
-  // 🆕 FIX: Map frontend status to backend status
   const backendStatus = c.status ? FRONTEND_TO_BACKEND_STATUS[c.status] || c.status : undefined;
 
   const payload = {
@@ -316,7 +324,6 @@ export function mapFrontendCampaignToBackend(c: any) {
     campaignGoal: c.objective || '',
     objective: c.objective || '',
     
-    // Save all frontend wizard fields at root level (since backend has extra='allow' configured)
     kraPin: c.kraPin || '',
     billingAddress: c.billingAddress || '',
     contactJobTitle: c.contactJobTitle || '',
@@ -377,7 +384,7 @@ export function mapFrontendCampaignToBackend(c: any) {
     dec2: c.dec2 || false,
     dec3: c.dec3 || false,
     reportFile: c.reportFile,
-    status: backendStatus, // 🆕 FIX: Use mapped status
+    status: backendStatus,
     orderSheetPdfUrl: c.orderSheetPdfUrl || undefined
   };
 
@@ -385,7 +392,6 @@ export function mapFrontendCampaignToBackend(c: any) {
 }
 
 export function mapBackendCampaignToFrontend(bc: any): Campaign {
-  // 🆕 FIX: Use the mapping
   const status = bc.status ? BACKEND_TO_FRONTEND_STATUS[bc.status] || bc.status : 'Draft';
 
   const products = (bc.lineItems || []).map((item: any) => {
@@ -422,7 +428,6 @@ export function mapBackendCampaignToFrontend(bc: any): Campaign {
     reportFile: bc.reportFile || undefined,
     orderSheetPdfUrl: bc.orderSheetPdfUrl || '',
     
-    // Wizard configurations
     bookingType: bc.bookingType || '',
     kraPin: bc.kraPin || '',
     billingAddress: bc.billingAddress || '',
@@ -642,8 +647,7 @@ export async function generateOrderSheet(campaignId: string): Promise<{ message:
       headers: await getAuthHeaders()
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(err.detail || `HTTP ${res.status}`);
+      throw new Error(await getApiErrorMessage(res));
     }
     return await res.json();
   } catch (error) {
@@ -658,8 +662,7 @@ export async function downloadOrderSheetPdf(campaignId: string): Promise<Blob> {
       headers: await getAuthHeaders()
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(err.detail || `HTTP ${res.status}`);
+      throw new Error(await getApiErrorMessage(res));
     }
     return await res.blob();
   } catch (error) {
@@ -693,7 +696,6 @@ export async function uploadSignedSheet(campaignId: string, airtimeOrderSerial: 
   }
 }
 
-// 🆕 FIX: Countersign order sheet (backend should handle status update)
 export async function countersignOrderSheet(campaignId: string): Promise<any> {
   try {
     const res = await fetch(`${BASE_URL}/order-sheet/${campaignId}/countersign`, {
@@ -712,7 +714,6 @@ export async function countersignOrderSheet(campaignId: string): Promise<any> {
   }
 }
 
-// 🆕 FIX: Confirm payment (backend should handle status update)
 export async function confirmPayment(campaignId: string): Promise<any> {
   try {
     const res = await fetch(`${BASE_URL}/order-sheet/${campaignId}/confirm-payment`, {
@@ -730,6 +731,10 @@ export async function confirmPayment(campaignId: string): Promise<any> {
     throw error;
   }
 }
+
+// ============================================================
+// DIGITAL OPS - EXECUTION APIs
+// ============================================================
 
 export async function uploadPod(campaignId: string, file: File, note = ''): Promise<any> {
   try {
@@ -753,15 +758,64 @@ export async function uploadPod(campaignId: string, file: File, note = ''): Prom
     throw error;
   }
 }
+
+export async function scheduleCampaign(campaignId: string): Promise<any> {
+  try {
+    const res = await fetch(`${BASE_URL}/execution/${campaignId}/schedule`, {
+      method: 'POST',
+      headers: await getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error(`Failed to schedule campaign ${campaignId}:`, error);
+    throw error;
+  }
+}
+
+// ============================================================
+// 🆕 UPDATE CAMPAIGN STATUS - Uses the dedicated PATCH endpoint
+// ============================================================
+export async function updateCampaignStatus(campaignId: string, status: string, note?: string): Promise<any> {
+  try {
+    // ✅ CORRECT: PATCH /campaigns/{campaignId}/status
+    const res = await fetch(`${BASE_URL}/campaigns/${campaignId}/status`, {
+      method: 'PATCH',
+      headers: await getAuthHeaders(),
+      body: JSON.stringify({ 
+        status: status,
+        note: note || ''
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error(`Failed to update status for ${campaignId}:`, error);
+    throw error;
+  }
+}
+
 // ============================================================
 // DIGITAL OPS - GENERATE REPORT
 // ============================================================
-
-export async function generateReport(campaignId: string): Promise<{ reportId: string; message: string; reportUrl?: string }> {
+export async function generateReport(
+  campaignId: string, 
+  actuals?: { deliveredItems: Array<{ name: string; quantity: number; notes: string }>; notes: string }
+): Promise<{ reportId: string; message: string; reportUrl?: string }> {
   try {
-    const res = await fetch(`${BASE_URL}/execution/${campaignId}/report`, {
+    const res = await fetch(`${BASE_URL}/reports/${campaignId}/generate`, {
       method: 'POST',
-      headers: await getAuthHeaders()
+      headers: await getAuthHeaders(),
+      body: JSON.stringify({
+        deliveredItems: actuals?.deliveredItems || [],
+        notes: actuals?.notes || ''
+      })
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
@@ -773,6 +827,45 @@ export async function generateReport(campaignId: string): Promise<{ reportId: st
     throw error;
   }
 }
+
+// ============================================================
+// REPORTS APIs
+// ============================================================
+
+export async function getCampaignReports(campaignId: string): Promise<any[]> {
+  try {
+    const res = await fetch(`${BASE_URL}/campaigns/${campaignId}`, {
+      headers: await getAuthHeaders()
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const report = data.report;
+    if (!report) return [];
+    return [{ id: report.reportId || campaignId, ...report }];
+  } catch (error) {
+    console.error(`Failed to fetch reports for ${campaignId}:`, error);
+    return [];
+  }
+}
+export async function downloadReportPdf(campaignId: string): Promise<Blob> {
+  try {
+    const res = await fetch(`${BASE_URL}/reports/${campaignId}/download`, {
+      headers: await getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.blob();
+  } catch (error) {
+    console.error(`Failed to download report PDF for ${campaignId}:`, error);
+    throw error;
+  }
+}
+
+// ============================================================
+// CHANGE ORDER APIs
+// ============================================================
 
 export async function createChangeOrder(payload: {
   parentCampaignId: string;
@@ -797,6 +890,38 @@ export async function createChangeOrder(payload: {
   }
 }
 
+export async function createAirtimeSerial(data: any): Promise<any> {
+  const res = await fetch(`${BASE_URL}/airtime-orders/`, {
+    method: "POST",
+    headers: {
+      ...(await getAuthHeaders()),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to create airtime serial");
+  }
+
+  return await res.json();
+}
+
+export async function deleteAirtimeSerial(id: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/airtime-orders/${id}`, {
+    method: "DELETE",
+    headers: await getAuthHeaders(),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+    if (err.detail) {
+      throw new Error(err.detail);
+    }
+    throw new Error("Failed to delete airtime serial");
+  }
+}
+
 export async function getChangeOrders(campaignId: string): Promise<any[]> {
   try {
     const res = await fetch(`${BASE_URL}/change-orders/campaign/${campaignId}`, {
@@ -809,6 +934,10 @@ export async function getChangeOrders(campaignId: string): Promise<any[]> {
     return [];
   }
 }
+
+// ============================================================
+// USER MANAGEMENT APIs
+// ============================================================
 
 export async function getUsers(): Promise<any[]> {
   try {
@@ -882,6 +1011,10 @@ export async function deleteUser(uid: string): Promise<any> {
   }
 }
 
+// ============================================================
+// RATE CARD MANAGEMENT APIs
+// ============================================================
+
 export async function deleteRateCardItem(id: string): Promise<any> {
   try {
     const res = await fetch(`${BASE_URL}/rate-card/${id}`, {
@@ -899,51 +1032,27 @@ export async function deleteRateCardItem(id: string): Promise<any> {
   }
 }
 
+// ============================================================
+// AIRTIME ORDER APIs
+// ============================================================
+
 export async function getAirtimeSerials(): Promise<any[]> {
   try {
     const res = await fetch(`${BASE_URL}/airtime-orders/`, {
-      headers: await getAuthHeaders()
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (error) {
-    console.error('Failed to fetch airtime serials:', error);
-    throw error;
-  }
-}
-
-export async function createAirtimeSerial(serial: string): Promise<any> {
-  try {
-    const res = await fetch(`${BASE_URL}/airtime-orders/`, {
-      method: 'POST',
       headers: await getAuthHeaders(),
-      body: JSON.stringify({ serial })
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(err.detail || `HTTP ${res.status}`);
+
+        if (!res.ok) {
+      const err = await res.json().catch(() => ({
+        detail: "Unknown error",
+      }));
+
+       throw new Error(err.detail || `HTTP ${res.status}`);
     }
+
     return await res.json();
   } catch (error) {
-    console.error('Failed to create airtime serial:', error);
+    console.error("Failed to fetch airtime serials:", error);
     throw error;
   }
 }
-
-export async function deleteAirtimeSerial(id: string): Promise<any> {
-  try {
-    const res = await fetch(`${BASE_URL}/airtime-orders/${id}`, {
-      method: 'DELETE',
-      headers: await getAuthHeaders()
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new Error(err.detail || `HTTP ${res.status}`);
-    }
-    return await res.json();
-  } catch (error) {
-    console.error(`Failed to delete airtime serial ${id}:`, error);
-    throw error;
-  }
-}
-
