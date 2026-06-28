@@ -11,6 +11,10 @@ export type CampaignStatus =
   | 'Countersigned'
   | 'Payment Confirmed'
   | 'Brief Unlocked'
+  | 'Pending Materials'
+  | 'Materials Received'
+  | 'Material Check'
+  | 'Material Check Approved'
   | 'Ready for Execution'
   | 'Scheduled'
   | 'Live'
@@ -61,6 +65,11 @@ export type Campaign = {
   paidDeposit: boolean;
   reportFile?: string;
   orderSheetPdfUrl?: string;
+  // Digital Ops fields
+  selectedItems?: string[];
+  materialsReceived?: boolean;
+  materialsReceivedAt?: string;
+  materialRejectionReason?: string;
   // Wizard configuration state properties
   kraPin?: string;
   bookingType?: string;
