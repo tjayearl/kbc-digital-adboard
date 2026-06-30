@@ -122,40 +122,23 @@ async def countersign_order_sheet(campaign_id: str, user=Depends(require_roles([
         raise HTTPException(status_code=400, detail="Client must sign before countersigning")
     now = datetime.now(timezone.utc).isoformat()
     ref.update({
-        "status": "adManagerCountersigned", "signatures.adManagerSigned": True,
-        "signatures.adManagerSignedAt": now, "signatures.adManagerUid": user["uid"], "updatedAt": now
+        "status": "briefUnlocked", 
+        "signatures.adManagerSigned": True,
+        "signatures.adManagerSignedAt": now, 
+        "signatures.adManagerUid": user["uid"],
+        "payment.confirmed": True,
+        "payment.confirmedBy": user["uid"],
+        "payment.confirmedAt": now,
+        "updatedAt": now
     })
     await log_action(campaign_id, "AD_MANAGER_COUNTERSIGNED", user["uid"], user.get("role", ""), "")
-    return {"message": "Order Sheet countersigned"}
+    await log_action(campaign_id, "PAYMENT_CONFIRMED_BRIEF_UNLOCKED", user["uid"], user.get("role", ""), "Auto-confirmed payment on countersign. Brief unlocked.")
+    return {"message": "Order Sheet countersigned and brief unlocked"}
 
 @router.post("/{campaign_id}/confirm-payment")
 async def confirm_payment(campaign_id: str, user=Depends(require_roles(["finance", "admin"]))):
-    ref = db.collection("campaigns").document(campaign_id)
-    doc = ref.get()
-    if not doc.exists:
-        raise HTTPException(status_code=404, detail="Campaign not found")
-    if doc.to_dict().get("status") != "adManagerCountersigned":
-        raise HTTPException(status_code=400, detail="Ad Manager must countersign before payment can be confirmed")
-    now = datetime.now(timezone.utc).isoformat()
-    ref.update({
-        "status": "briefUnlocked", "payment.confirmed": True,
-        "payment.confirmedBy": user["uid"], "payment.confirmedAt": now, "updatedAt": now
-    })
-    await log_action(campaign_id, "PAYMENT_CONFIRMED_BRIEF_UNLOCKED", user["uid"], user.get("role", ""), "Brief unlocked for Digital Ops")
-    return {"message": "Payment confirmed. Brief unlocked for Digital Ops."}
+    raise HTTPException(status_code=400, detail="Finance payment confirmation is disabled. Payments are auto-confirmed on countersign.")
 
 @router.post("/{campaign_id}/dispute-payment")
 async def dispute_payment(campaign_id: str, user=Depends(require_roles(["finance", "admin"]))):
-    ref = db.collection("campaigns").document(campaign_id)
-    doc = ref.get()
-    if not doc.exists:
-        raise HTTPException(status_code=404, detail="Campaign not found")
-    if doc.to_dict().get("status") != "adManagerCountersigned":
-        raise HTTPException(status_code=400, detail="Nothing to dispute at this stage")
-    now = datetime.now(timezone.utc).isoformat()
-    ref.update({
-        "payment.confirmed": False, "payment.disputed": True,
-        "payment.disputedBy": user["uid"], "payment.disputedAt": now, "updatedAt": now
-    })
-    await log_action(campaign_id, "PAYMENT_DISPUTED", user["uid"], user.get("role", ""), "Payment disputed by Finance")
-    return {"message": "Payment disputed. Ad Manager has been notified."}
+    raise HTTPException(status_code=400, detail="Finance payment disputing is disabled.")

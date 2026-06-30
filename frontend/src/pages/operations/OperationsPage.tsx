@@ -10,7 +10,7 @@ import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { StatCard } from '../../components/ui/StatCard';
 import { materialSpecs, type Campaign, type ProductLine } from '../../data/mockData';
-import { getCampaigns, getCampaign, uploadPod, generateReport, updateCampaign } from '../../services/api';
+import { getCampaigns, getCampaign, uploadPod, generateReport, updateCampaignStatus as apiUpdateCampaignStatus } from '../../services/api';
 
 // ============================================================
 // HELPER FUNCTIONS
@@ -239,7 +239,7 @@ export function OperationsPage() {
 
   const updateCampaignStatus = async (campaignId: string, newStatus: string) => {
     try {
-      await updateCampaign(campaignId, { status: newStatus } as any);
+      await apiUpdateCampaignStatus(campaignId, newStatus);
       const allCampaigns = await getCampaigns();
       setCampaigns(allCampaigns);
       const updated = allCampaigns.find(c => c.id === campaignId);

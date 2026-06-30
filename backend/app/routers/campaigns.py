@@ -92,29 +92,63 @@ async def update_campaign(campaign_id: str, request: CreateCampaignRequest, user
         raise HTTPException(status_code=404, detail="Campaign not found")
     
     campaign = doc.to_dict()
-    if user.get("role") == "sales" and campaign.get("createdBy") != user["uid"]:
+    role = user.get("role")
+    
+    if role == "sales" and campaign.get("createdBy") != user["uid"]:
         raise HTTPException(status_code=403, detail="Access denied")
         
-    for item in request.lineItems:
-        rate_ref = db.collection("rateCard").document(item.productId).get()
-        if not rate_ref.exists:
-            raise HTTPException(status_code=400, detail=f"Product {item.productId} not found in rate card")
-        rate_price = rate_ref.to_dict().get("unitPrice", 0)
-        if abs(item.unitPrice - rate_price) > 0.01:
-            raise HTTPException(status_code=400, detail=f"Price mismatch for {item.productName}. Use rate card price.")
-            
-    subtotal = sum(item.totalPrice for item in request.lineItems)
-    vat = round(subtotal * 0.16, 2)
-    grand_total = round(subtotal + vat, 2)
     now = datetime.now(timezone.utc).isoformat()
+    incoming_data = request.dict()
     
-    campaign_data = {
-        **request.dict(),
-        "totals": {"subtotal": subtotal, "vatAmount": vat, "grandTotal": grand_total,
-                   "discountValue": request.totals.discountValue},
-        "status": request.status or campaign.get("status", "draft"),
-        "updatedAt": now,
-    }
+    if role in ["sales", "admin"]:
+        if role == "sales" and campaign.get("status") != "draft":
+            raise HTTPException(status_code=400, detail="Sales can only update campaigns in draft status")
+            
+        for item in request.lineItems:
+            rate_ref = db.collection("rateCard").document(item.productId).get()
+            if not rate_ref.exists:
+                raise HTTPException(status_code=400, detail=f"Product {item.productId} not found in rate card")
+            rate_price = rate_ref.to_dict().get("unitPrice", 0)
+            if abs(item.unitPrice - rate_price) > 0.01:
+                raise HTTPException(status_code=400, detail=f"Price mismatch for {item.productName}. Use rate card price.")
+                
+        subtotal = sum(item.totalPrice for item in request.lineItems)
+        vat = round(subtotal * 0.16, 2)
+        grand_total = round(subtotal + vat, 2)
+        
+        campaign_data = {
+            **incoming_data,
+            "totals": {"subtotal": subtotal, "vatAmount": vat, "grandTotal": grand_total,
+                       "discountValue": request.totals.discountValue},
+            "status": request.status or campaign.get("status", "draft"),
+            "updatedAt": now,
+        }
+    elif role == "adManager":
+        campaign_data = {
+            **campaign,
+            "status": request.status or campaign.get("status"),
+            "discount": incoming_data.get("discount") or campaign.get("discount"),
+            "updatedAt": now,
+        }
+    elif role == "finance":
+        campaign_data = {
+            **campaign,
+            "status": request.status or campaign.get("status"),
+            "payment": incoming_data.get("payment") or campaign.get("payment"),
+            "updatedAt": now,
+        }
+    elif role == "digitalOps":
+        campaign_data = {
+            **campaign,
+            "status": request.status or campaign.get("status"),
+            "podUrl": incoming_data.get("podUrl") or campaign.get("podUrl"),
+            "podUploadedAt": incoming_data.get("podUploadedAt") or campaign.get("podUploadedAt"),
+            "podUploadedBy": incoming_data.get("podUploadedBy") or campaign.get("podUploadedBy"),
+            "reportFile": incoming_data.get("reportFile") or campaign.get("reportFile"),
+            "updatedAt": now,
+        }
+    else:
+        raise HTTPException(status_code=403, detail="Access denied")
     
     ref.update(campaign_data)
     await log_action(campaign_id, "CAMPAIGN_UPDATED", user["uid"], user.get("role", ""), f"Campaign details updated. Status: {request.status or campaign.get('status')}")

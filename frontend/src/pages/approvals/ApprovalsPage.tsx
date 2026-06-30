@@ -7,22 +7,19 @@ import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { campaignTotals, money, type Role, type Campaign, type Approval } from '../../data/mockData';
 import { getCampaigns, reviewDiscount, countersignOrderSheet, confirmPayment, updateCampaign } from '../../services/api';
 
-const tabs = ['Pending Discounts', 'Awaiting Countersign', 'Payment Verification'];
+const tabs = ['Pending Discounts', 'Awaiting Countersign'];
 
 const tabToType: Record<string, string> = {
   'Pending Discounts': 'Discount',
   'Awaiting Countersign': 'Countersign',
-  'Payment Verification': 'Payment',
 };
 
 export function ApprovalsPage() {
   const { role, currentUser } = useOutletContext<{ role: Role; currentUser?: any }>();
 
-  const allowedTabs = role === 'finance'
-    ? ['Payment Verification']
-    : tabs;
+  const allowedTabs = tabs;
 
-  const [activeTab, setActiveTab] = useState(role === 'finance' ? 'Payment Verification' : 'Pending Discounts');
+  const [activeTab, setActiveTab] = useState('Pending Discounts');
   const [campaignList, setCampaignList] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [updateCount, setUpdateCount] = useState(0);
@@ -39,7 +36,7 @@ export function ApprovalsPage() {
       });
   }, [updateCount]);
 
-  if (role !== 'adManager' && role !== 'admin' && role !== 'finance') {
+  if (role !== 'adManager' && role !== 'admin') {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center text-center p-6 bg-white rounded-lg border border-slate-200 shadow-soft">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-danger/10 text-danger mb-4">
@@ -47,7 +44,7 @@ export function ApprovalsPage() {
         </div>
         <h3 className="text-xl font-bold text-ink">Access Denied</h3>
         <p className="mt-2 text-sm text-slate-500 max-w-sm leading-relaxed">
-          You do not have permission to access the Approval Center. This page is restricted to Advertising Managers, Finance, and Admins.
+          You do not have permission to access the Approval Center. This page is restricted to Advertising Managers and Admins.
         </p>
       </div>
     );
@@ -83,18 +80,6 @@ export function ApprovalsPage() {
         value: campaignTotals(c).grandTotal,
         status: 'Pending',
         note: 'Order Sheet signed by client. Ready for countersigning.'
-      });
-    } else if (c.status === 'Countersigned') {
-      // This maps to 'adManagerCountersigned' on the backend.
-      // This is the correct stage for payment verification.
-      approvalsList.push({
-        id: `ap-pay-${c.id}`,
-        campaignId: c.id,
-        type: 'Payment',
-        requestedBy: c.owner || 'Sales Rep',
-        value: Math.round(campaignTotals(c).grandTotal * 0.5),
-        status: 'Pending',
-        note: 'Order sheet is countersigned. Please verify client deposit payment.'
       });
     }
   });
