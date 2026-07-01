@@ -738,11 +738,19 @@ export async function confirmPayment(campaignId: string): Promise<any> {
 // DIGITAL OPS - EXECUTION APIs
 // ============================================================
 
-export async function uploadPod(campaignId: string, file: File, note = ''): Promise<any> {
+export async function uploadPod(
+  campaignId: string, 
+  file: File, 
+  note = '',
+  additionalData?: { podFileName?: string }
+): Promise<any> {
   try {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('note', note);
+    if (additionalData?.podFileName) {
+      formData.append('podFileName', additionalData.podFileName);
+    }
 
     const headers = await getAuthHeaders(true);
     const res = await fetch(`${BASE_URL}/execution/${campaignId}/pod`, {
@@ -799,6 +807,82 @@ export async function updateCampaignStatus(campaignId: string, status: string, n
     return await res.json();
   } catch (error) {
     console.error(`Failed to update status for ${campaignId}:`, error);
+    throw error;
+  }
+}
+
+// ============================================================
+// DIGITAL OPS - SAVE EXECUTION PLAN
+// ============================================================
+export async function saveExecutionPlan(
+  campaignId: string, 
+  executionPlan: Record<string, any>
+): Promise<any> {
+  try {
+    const res = await fetch(`${BASE_URL}/execution/${campaignId}/plan`, {
+      method: 'POST',
+      headers: await getAuthHeaders(),
+      body: JSON.stringify({ executionPlan })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error(`Failed to save execution plan for ${campaignId}:`, error);
+    throw error;
+  }
+}
+
+// ============================================================
+// DIGITAL OPS - LOG GO-LIVE
+// ============================================================
+export async function logGoLive(
+  campaignId: string, 
+  data: {
+    actualGoLiveDate: string;
+    goLiveLoggedBy: string;
+    goLiveNotes?: string;
+  }
+): Promise<any> {
+  try {
+    const res = await fetch(`${BASE_URL}/execution/${campaignId}/go-live`, {
+      method: 'POST',
+      headers: await getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error(`Failed to log go-live for ${campaignId}:`, error);
+    throw error;
+  }
+}
+
+// ============================================================
+// DIGITAL OPS - SAVE DELIVERED ITEMS
+// ============================================================
+export async function saveDeliveredItems(
+  campaignId: string, 
+  items: Array<{ name: string; quantity: number; notes: string }>
+): Promise<any> {
+  try {
+    const res = await fetch(`${BASE_URL}/execution/${campaignId}/delivered-items`, {
+      method: 'POST',
+      headers: await getAuthHeaders(),
+      body: JSON.stringify({ deliveredItems: items })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return await res.json();
+  } catch (error) {
+    console.error(`Failed to save delivered items for ${campaignId}:`, error);
     throw error;
   }
 }

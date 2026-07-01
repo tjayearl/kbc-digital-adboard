@@ -3,14 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { 
   AlertTriangle, CalendarDays, CheckSquare, Clock3, UploadCloud, 
   FileText, Plus, X, Calendar, Radio, Mail, Eye, ThumbsUp, 
-  ThumbsDown, AlertCircle, Save, Clock
+  ThumbsDown, AlertCircle, Save, Clock, CheckCircle, Loader2
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { StatCard } from '../../components/ui/StatCard';
 import { materialSpecs, type Campaign, type ProductLine } from '../../data/mockData';
-import { getCampaigns, getCampaign, uploadPod, generateReport, updateCampaignStatus as apiUpdateCampaignStatus } from '../../services/api';
+import { 
+  getCampaigns, 
+  getCampaign, 
+  uploadPod, 
+  generateReport, 
+  updateCampaignStatus as apiUpdateCampaignStatus,
+  saveExecutionPlan,
+  logGoLive,
+  saveDeliveredItems
+} from '../../services/api';
 
 // ============================================================
 // HELPER FUNCTIONS
@@ -71,6 +80,12 @@ const getDaysOverdue = (dueDate: string): number => {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 };
 
+// Get days remaining
+const getDaysRemaining = (dueDate: string): number => {
+  const diff = new Date(dueDate).getTime() - new Date().getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+};
+
 export function OperationsPage() {
   const navigate = useNavigate();
 
@@ -90,13 +105,6 @@ export function OperationsPage() {
   const canExecute = userRole === 'digitalOps';
   const isAdmin = userRole === 'admin';
 
-  // State for validation checkboxes (3 main categories)
-  const [validationChecked, setValidationChecked] = useState({
-    Artwork: false,
-    VideoAssets: false,
-    SocialAssets: false
-  });
-
   // Material Check state (dynamic checkboxes for detailed specs)
   const [materialValidations, setMaterialValidations] = useState<Record<string, boolean>>({});
   const [rejectionReason, setRejectionReason] = useState('');
@@ -105,6 +113,12 @@ export function OperationsPage() {
   // Execution Plan state
   const [showExecutionPlan, setShowExecutionPlan] = useState(false);
   const [executionPlan, setExecutionPlan] = useState<Record<string, any>>({});
+
+  // Go Live state
+  const [showGoLiveModal, setShowGoLiveModal] = useState(false);
+  const [goLiveDate, setGoLiveDate] = useState('');
+  const [goLiveTime, setGoLiveTime] = useState('');
+  const [goLiveNotes, setGoLiveNotes] = useState('');
 
   // POD state
   const [podUploaded, setPodUploaded] = useState(false);
@@ -142,13 +156,21 @@ export function OperationsPage() {
       })));
       setCampaigns(allCampaigns);
 
-      const opsCampaigns = allCampaigns.filter((campaign) =>
-        ['Brief Unlocked', 'Pending Materials', 'Materials Received', 'Material Check', 
-         'Material Check Approved', 'Ready for Execution', 'Scheduled', 'Live', 'Delivered'].includes(campaign.status)
-      );
-      if (opsCampaigns.length > 0) {
-        setSelectedCampaign(opsCampaigns[0]);
+      // Auto-select first Brief Unlocked campaign if available
+      const unlockedCampaigns = allCampaigns.filter(c => c.status === 'Brief Unlocked');
+      if (unlockedCampaigns.length > 0) {
+        setSelectedCampaign(unlockedCampaigns[0]);
         resetOpsState();
+      } else {
+        // If no Brief Unlocked, try to select any ops campaign
+        const opsCampaigns = allCampaigns.filter((campaign) =>
+          ['Pending Materials', 'Materials Received', 'Material Check', 
+           'Material Check Approved', 'Ready for Execution', 'Scheduled', 'Live', 'Delivered'].includes(campaign.status)
+        );
+        if (opsCampaigns.length > 0) {
+          setSelectedCampaign(opsCampaigns[0]);
+          resetOpsState();
+        }
       }
     } catch (err) {
       console.error('Failed to fetch campaigns:', err);
@@ -183,13 +205,12 @@ export function OperationsPage() {
     setNewItemName('');
     setNewItemQuantity(1);
     setNewItemNotes('');
-    setValidationChecked({
-      Artwork: false,
-      VideoAssets: false,
-      SocialAssets: false
-    });
     setShowExecutionPlan(false);
     setExecutionPlan({});
+    setShowGoLiveModal(false);
+    setGoLiveDate('');
+    setGoLiveTime('');
+    setGoLiveNotes('');
   };
 
   const hasProducts = (campaign: Campaign): boolean => {
@@ -208,6 +229,20 @@ export function OperationsPage() {
     return total > 0 && completed === total;
   };
 
+  // Get submission window dates
+  const getSubmissionWindow = (campaign: Campaign): { windowStart: string; windowEnd: string } | null => {
+    if (!campaign.startDate) return null;
+    const categories = getUniqueCategories(campaign);
+    if (categories.length === 0) return null;
+    const dueDate = calculateDueDate(campaign.startDate, categories[0]);
+    const windowStart = new Date(dueDate);
+    windowStart.setDate(windowStart.getDate() - 4); // 5 business days window
+    return {
+      windowStart: windowStart.toISOString().split('T')[0],
+      windowEnd: dueDate
+    };
+  };
+
   // ============================================================
   // STATS
   // ============================================================
@@ -220,21 +255,7 @@ export function OperationsPage() {
   };
 
   // ============================================================
-  // VALIDATION HANDLERS
-  // ============================================================
-
-  const handleValidationToggle = (item: keyof typeof validationChecked) => {
-    if (!canExecute) return;
-    setValidationChecked(prev => ({
-      ...prev,
-      [item]: !prev[item]
-    }));
-  };
-
-  const allValidationsChecked = Object.values(validationChecked).every(v => v === true);
-
-  // ============================================================
-  // STATUS UPDATE
+  // STATUS UPDATE (simplified - only status)
   // ============================================================
 
   const updateCampaignStatus = async (campaignId: string, newStatus: string) => {
@@ -354,6 +375,7 @@ export function OperationsPage() {
     categories.forEach((category: string) => {
       plan[category] = {
         postsPerDay: 1,
+        frequency: 'Daily',
         times: ['9:00 AM'],
         placement: 'Standard',
         notes: ''
@@ -366,12 +388,17 @@ export function OperationsPage() {
   const handleSaveExecutionPlan = async () => {
     if (!selectedCampaign || !canExecute) return;
     try {
-      // Here you would save the execution plan to the backend
+      // 1. Save the execution plan to its own endpoint
+      await saveExecutionPlan(selectedCampaign.id, executionPlan);
+      
+      // 2. Update status separately
       await updateCampaignStatus(selectedCampaign.id, 'Scheduled');
+      
       setShowExecutionPlan(false);
       alert(`✅ Campaign "${selectedCampaign.name}" has been scheduled with execution plan!`);
     } catch (err) {
       alert('Failed to schedule. Please try again.');
+      console.error(err);
     }
   };
 
@@ -389,13 +416,37 @@ export function OperationsPage() {
   // ACTIONS - Go Live
   // ============================================================
 
-  const handleLogGoLive = async () => {
+  const handleOpenGoLive = () => {
     if (!selectedCampaign || !canExecute) return;
+    const now = new Date();
+    setGoLiveDate(now.toISOString().split('T')[0]);
+    setGoLiveTime(now.toTimeString().slice(0, 5));
+    setGoLiveNotes('');
+    setShowGoLiveModal(true);
+  };
+
+  const handleConfirmGoLive = async () => {
+    if (!selectedCampaign || !canExecute) return;
+    if (!goLiveDate || !goLiveTime) {
+      alert('Please enter the actual go-live date and time');
+      return;
+    }
     try {
+      // 1. Save go-live details to its own endpoint
+      await logGoLive(selectedCampaign.id, {
+        actualGoLiveDate: `${goLiveDate}T${goLiveTime}`,
+        goLiveLoggedBy: 'Digital Ops', // Should come from auth context
+        goLiveNotes: goLiveNotes
+      });
+      
+      // 2. Update status
       await updateCampaignStatus(selectedCampaign.id, 'Live');
+      
+      setShowGoLiveModal(false);
       alert(`🚀 Campaign "${selectedCampaign.name}" is now LIVE!`);
     } catch (err) {
       alert('Failed to log go-live. Please try again.');
+      console.error(err);
     }
   };
 
@@ -420,7 +471,11 @@ export function OperationsPage() {
 
     setUploading(true);
     try {
-      const result = await uploadPod(selectedCampaign.id, file);
+      // 1. Upload POD with filename
+      const result = await uploadPod(selectedCampaign.id, file, '', { 
+        podFileName: file.name 
+      });
+      
       setPodFileName(result.fileName || file.name);
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
@@ -428,7 +483,10 @@ export function OperationsPage() {
         reader.readAsDataURL(file);
       }
       setPodUploaded(true);
+      
+      // 2. Update status to delivered
       await updateCampaignStatus(selectedCampaign.id, 'Delivered');
+      
       alert('✅ POD uploaded and campaign marked as Delivered!');
     } catch (err) {
       console.error('Failed to upload POD:', err);
@@ -466,10 +524,15 @@ export function OperationsPage() {
     }
     setGeneratingReport(true);
     try {
+      // 1. Save delivered items to its own endpoint
+      await saveDeliveredItems(selectedCampaign.id, deliveredItems);
+      
+      // 2. Generate the report
       const result = await generateReport(selectedCampaign.id, {
         deliveredItems,
         notes: reportNotes
       });
+      
       navigate(`/reports?reportId=${result.reportId}&campaign=${encodeURIComponent(selectedCampaign.name)}`);
       setDeliveredItems([]);
       setReportNotes('');
@@ -534,6 +597,9 @@ export function OperationsPage() {
     );
   }
 
+  // Get unlocked campaigns (Brief Unlocked status)
+  const unlockedCampaigns = campaigns.filter(c => c.status === 'Brief Unlocked');
+  
   // Filter campaigns by status for sections
   const pendingMaterials = campaigns.filter(c => c.status === 'Pending Materials');
   const materialCheck = campaigns.filter(c => c.status === 'Materials Received' || c.status === 'Material Check');
@@ -544,6 +610,9 @@ export function OperationsPage() {
   // Get selected campaign's product categories
   const selectedCategories = selectedCampaign ? getUniqueCategories(selectedCampaign) : [];
   const hasSelectedProducts = selectedCampaign && hasProducts(selectedCampaign);
+  
+  // Get submission window for selected campaign
+  const submissionWindow = selectedCampaign ? getSubmissionWindow(selectedCampaign) : null;
 
   return (
     <div className="space-y-6">
@@ -570,14 +639,51 @@ export function OperationsPage() {
       </section>
 
       {/* ============================================================
-          SECTION 1: WAITING FOR CLIENT MATERIALS
+          SECTION: UNLOCKED CAMPAIGNS (NEW BRIEFS READY)
+          ============================================================ */}
+      {unlockedCampaigns.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-ink">📋 New Briefs Ready</h3>
+                <p className="mt-1 text-sm text-slate-500">Click a campaign to view full details</p>
+              </div>
+              <Badge tone="gold">{unlockedCampaigns.length}</Badge>
+            </div>
+          </CardHeader>
+          <CardBody>
+            <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+              {unlockedCampaigns.map((campaign) => (
+                <div
+                  key={campaign.id}
+                  className={`rounded-lg border p-4 cursor-pointer transition ${
+                    selectedCampaign?.id === campaign.id
+                      ? 'border-gold bg-gold/5 ring-2 ring-gold/30'
+                      : 'border-slate-200 hover:border-gold/50 hover:bg-slate-50'
+                  }`}
+                  onClick={() => handleCampaignSelect(campaign)}
+                >
+                  <p className="font-bold text-ink text-lg">{campaign.name}</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <Badge tone="gold">Brief Unlocked</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* ============================================================
+          SECTION: WAITING FOR CLIENT MATERIALS
           ============================================================ */}
       {pendingMaterials.length > 0 && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-ink">📋 Waiting for Client Materials</h3>
+                <h3 className="text-lg font-bold text-ink">⏳ Waiting for Client Materials</h3>
                 <p className="mt-1 text-sm text-slate-500">Campaigns waiting for client to submit assets</p>
               </div>
               <Badge tone="gold">{pendingMaterials.length}</Badge>
@@ -645,7 +751,7 @@ export function OperationsPage() {
       )}
 
       {/* ============================================================
-          SECTION 2: MATERIAL CHECK
+          SECTION: MATERIAL CHECK
           ============================================================ */}
       {materialCheck.length > 0 && (
         <Card>
@@ -722,7 +828,7 @@ export function OperationsPage() {
       )}
 
       {/* ============================================================
-          SECTION 3: READY TO SCHEDULE
+          SECTION: READY TO SCHEDULE
           ============================================================ */}
       {readyToSchedule.length > 0 && (
         <Card>
@@ -787,7 +893,7 @@ export function OperationsPage() {
       )}
 
       {/* ============================================================
-          SECTION 4: SCHEDULED
+          SECTION: SCHEDULED
           ============================================================ */}
       {scheduled.length > 0 && (
         <Card>
@@ -834,12 +940,12 @@ export function OperationsPage() {
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedCampaign(campaign);
-                        handleLogGoLive();
+                        handleOpenGoLive();
                       }}
                       disabled={!canExecute}
                     >
                       <Radio size={14} className="mr-1" />
-                      Go Live
+                      Log Go-Live
                     </Button>
                   </div>
                 );
@@ -850,7 +956,7 @@ export function OperationsPage() {
       )}
 
       {/* ============================================================
-          SECTION 5: LIVE
+          SECTION: LIVE
           ============================================================ */}
       {live.length > 0 && (
         <Card>
@@ -916,7 +1022,7 @@ export function OperationsPage() {
               <Badge tone="navy">{selectedCampaign.status}</Badge>
             </div>
           </CardHeader>
-          <CardBody className="space-y-4">
+          <CardBody className="space-y-6">
             {/* Campaign Details */}
             <div className="grid gap-3 md:grid-cols-2">
               <div>
@@ -924,21 +1030,85 @@ export function OperationsPage() {
                 <p className="font-semibold">{selectedCampaign.clientName}</p>
               </div>
               <div>
-                <p className="text-sm text-slate-500">Dates</p>
+                <p className="text-sm text-slate-500">Campaign Period</p>
                 <p className="font-semibold">{selectedCampaign.startDate} to {selectedCampaign.endDate}</p>
               </div>
             </div>
 
-            {/* Products/Ordered Items */}
+            {/* ============================================================
+                ORDERED PRODUCTS (Grouped by Spec Category)
+                ============================================================ */}
             {hasSelectedProducts && (
               <div>
-                <p className="text-sm text-slate-500">Ordered Items</p>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {selectedCampaign.products.map((product: ProductLine) => (
-                    <Badge key={product.id} tone="navy">
-                      {product.category} - {product.name} ({product.quantity} {product.unit})
-                    </Badge>
-                  ))}
+                <p className="text-sm font-semibold text-slate-700 mb-3">Ordered Products</p>
+                <div className="space-y-3">
+                  {selectedCategories.map((category: string) => {
+                    const productsInCategory = selectedCampaign.products.filter(p => p.category === category);
+                    if (productsInCategory.length === 0) return null;
+                    return (
+                      <div key={category} className="rounded-lg border border-slate-200 p-3">
+                        <p className="font-semibold text-ink">{category}</p>
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          {productsInCategory.map((product: ProductLine) => (
+                            <Badge key={product.id} tone="neutral" className="text-xs">
+                              {product.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ============================================================
+                MATERIALS STATUS
+                ============================================================ */}
+            <div className="pt-4 border-t border-slate-200">
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-ink">Materials Status</h4>
+                <Badge tone={selectedCampaign.status === 'Pending Materials' ? 'gold' : 'teal'}>
+                  {selectedCampaign.status === 'Pending Materials' ? '⏳ Pending' : '✅ Received'}
+                </Badge>
+              </div>
+              {selectedCampaign.status === 'Pending Materials' && (
+                <p className="text-sm text-slate-500 mt-1">Client has not submitted materials yet.</p>
+              )}
+              {selectedCampaign.status !== 'Pending Materials' && selectedCampaign.status !== 'Brief Unlocked' && (
+                <p className="text-sm text-slate-500 mt-1">
+                  Submitted on: {new Date().toLocaleDateString()}
+                </p>
+              )}
+              {selectedCampaign.status === 'Brief Unlocked' && (
+                <p className="text-sm text-slate-500 mt-1">Brief is unlocked. Awaiting materials from client.</p>
+              )}
+            </div>
+
+            {/* ============================================================
+                SUBMISSION DEADLINE CALCULATION
+                ============================================================ */}
+            {submissionWindow && selectedCampaign.status === 'Brief Unlocked' && (
+              <div className="pt-4 border-t border-slate-200">
+                <h4 className="font-bold text-ink">Material Submission Deadline</h4>
+                <div className="mt-2 rounded-lg bg-slate-50 p-4 space-y-2">
+                  <p className="text-sm">
+                    <span className="font-semibold">Deadline:</span>{' '}
+                    {new Date(submissionWindow.windowEnd).toLocaleDateString()}
+                  </p>
+                  <p className="text-sm">
+                    <span className="font-semibold">Submission Window:</span>{' '}
+                    {new Date(submissionWindow.windowStart).toLocaleDateString()} - {new Date(submissionWindow.windowEnd).toLocaleDateString()}
+                  </p>
+                  {isOverdue(submissionWindow.windowEnd) ? (
+                    <p className="text-sm text-danger font-semibold">
+                      ⚠️ OVERDUE - Materials were due {getDaysOverdue(submissionWindow.windowEnd)} days ago
+                    </p>
+                  ) : (
+                    <p className="text-sm text-teal font-semibold">
+                      {getDaysRemaining(submissionWindow.windowEnd)} days remaining
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -1052,19 +1222,19 @@ export function OperationsPage() {
                 ============================================================ */}
             <div className="flex flex-wrap gap-3 pt-2 border-t border-slate-200">
               {selectedCampaign.status === 'Brief Unlocked' && (
-                 <Button 
-    onClick={handleScheduleWithPlan}   // ✅ Use this instead
-    disabled={!allValidationsChecked || !canExecute}
-    className="bg-teal text-white hover:bg-teal/80 disabled:opacity-50 disabled:cursor-not-allowed"
-  >
-    <Calendar size={18} className="mr-2" />
-    Create Schedule   // ✅ Updated text
-  </Button>
+                <Button 
+                  onClick={handleScheduleWithPlan}
+                  disabled={!canExecute}
+                  className="bg-teal text-white hover:bg-teal/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Calendar size={18} className="mr-2" />
+                  Create Schedule
+                </Button>
               )}
               
               {selectedCampaign.status === 'Scheduled' && (
                 <Button 
-                  onClick={handleLogGoLive}
+                  onClick={handleOpenGoLive}
                   disabled={!canExecute}
                   className="bg-gold text-navy hover:bg-[#d5a43a] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -1076,7 +1246,7 @@ export function OperationsPage() {
               {selectedCampaign.status === 'Ready for Execution' && (
                 <Button 
                   onClick={handleScheduleWithPlan}
-                  disabled={!allValidationsChecked || !canExecute}
+                  disabled={!canExecute}
                   className="bg-teal text-white hover:bg-teal/80 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Calendar size={18} className="mr-2" />
@@ -1084,10 +1254,15 @@ export function OperationsPage() {
                 </Button>
               )}
 
-              {selectedCampaign.status === 'Brief Unlocked' && !allValidationsChecked && (
-                <p className="text-sm text-slate-500 self-center">
-                  Complete all validations to schedule
-                </p>
+              {selectedCampaign.status === 'Material Check Approved' && (
+                <Button 
+                  onClick={handleMarkReady}
+                  disabled={!canExecute}
+                  className="bg-teal text-white hover:bg-teal/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CheckCircle size={18} className="mr-2" />
+                  Mark Ready for Execution
+                </Button>
               )}
             </div>
           </CardBody>
@@ -1117,13 +1292,13 @@ export function OperationsPage() {
               </div>
 
               {selectedCategories.map((category: string) => {
-                const plan = executionPlan[category] || { postsPerDay: 1, times: ['9:00 AM'], placement: 'Standard', notes: '' };
+                const plan = executionPlan[category] || { postsPerDay: 1, frequency: 'Daily', times: ['9:00 AM'], placement: 'Standard', notes: '' };
                 return (
                   <div key={category} className="rounded-lg border border-slate-200 p-4">
                     <p className="font-semibold text-ink mb-3">{category}</p>
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div>
-                        <label className="text-sm font-semibold text-slate-700">Posts per day</label>
+                        <label className="text-sm font-semibold text-slate-700">Number of posts</label>
                         <input
                           type="number"
                           min="1"
@@ -1134,26 +1309,38 @@ export function OperationsPage() {
                         />
                       </div>
                       <div>
-                        <label className="text-sm font-semibold text-slate-700">Times</label>
+                        <label className="text-sm font-semibold text-slate-700">Frequency</label>
+                        <select
+                          value={plan.frequency}
+                          onChange={(e) => handleExecutionPlanChange(category, 'frequency', e.target.value)}
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        >
+                          <option value="Daily">Daily</option>
+                          <option value="Weekly">Weekly</option>
+                          <option value="Once">Once</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-semibold text-slate-700">Posting times</label>
                         <input
                           type="text"
                           value={plan.times.join(', ')}
                           onChange={(e) => handleExecutionPlanChange(category, 'times', e.target.value.split(',').map(t => t.trim()))}
-                          placeholder="e.g., 7am, 10am, 1pm, 4pm"
+                          placeholder="e.g., 8:00 AM, 11:00 AM, 2:00 PM"
                           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                         />
                       </div>
                       <div>
-                        <label className="text-sm font-semibold text-slate-700">Placement/Position</label>
+                        <label className="text-sm font-semibold text-slate-700">Placement</label>
                         <input
                           type="text"
                           value={plan.placement}
                           onChange={(e) => handleExecutionPlanChange(category, 'placement', e.target.value)}
-                          placeholder="e.g., Above the fold, Homepage"
+                          placeholder="e.g., Banner, Sidebar"
                           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                         />
                       </div>
-                      <div>
+                      <div className="sm:col-span-2">
                         <label className="text-sm font-semibold text-slate-700">Notes</label>
                         <input
                           type="text"
@@ -1189,56 +1376,125 @@ export function OperationsPage() {
       )}
 
       {/* ============================================================
-          MATERIAL VALIDATION CHECKLIST (3 Main Categories)
+          GO LIVE MODAL
           ============================================================ */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-ink">Material validation checklist</h3>
-              <p className="mt-1 text-sm text-slate-500">Digital Ops validates specs only after the brief unlocks.</p>
+      {showGoLiveModal && selectedCampaign && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-ink mb-2">🚀 Log Go-Live</h3>
+            <p className="text-sm text-slate-500 mb-4">
+              Confirm that this campaign has actually started running.
+            </p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold text-slate-700">Campaign</label>
+                <p className="text-sm text-ink font-medium">{selectedCampaign.name}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-semibold text-slate-700">Scheduled Start</label>
+                <p className="text-sm text-slate-600">{selectedCampaign.startDate}</p>
+              </div>
+              
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-sm font-semibold text-slate-700">Actual Go-Live Date</label>
+                  <input
+                    type="date"
+                    value={goLiveDate}
+                    onChange={(e) => setGoLiveDate(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-slate-700">Actual Go-Live Time</label>
+                  <input
+                    type="time"
+                    value={goLiveTime}
+                    onChange={(e) => setGoLiveTime(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-semibold text-slate-700">Logged By</label>
+                <p className="text-sm text-slate-600">Digital Ops</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-semibold text-slate-700">Notes (optional)</label>
+                <textarea
+                  value={goLiveNotes}
+                  onChange={(e) => setGoLiveNotes(e.target.value)}
+                  placeholder="Add any notes about the go-live..."
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm min-h-[60px]"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-3 justify-end pt-4 border-t mt-4">
+              <Button 
+                variant="secondary" 
+                onClick={() => setShowGoLiveModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleConfirmGoLive}
+                className="bg-gold text-navy hover:bg-[#d5a43a]"
+              >
+                <Radio size={16} className="mr-2" />
+                Confirm Go-Live
+              </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardBody className="grid gap-3 md:grid-cols-3">
-          {['Artwork', 'Video Assets', 'Social Assets'].map((item) => {
-            const itemKey = item.replace(' ', '') as keyof typeof validationChecked;
-            const isDisabled = !canExecute || (selectedCampaign?.status !== 'Brief Unlocked' && selectedCampaign?.status !== 'Ready for Execution');
-            return (
-              <label key={item} className={`flex min-h-14 items-center gap-3 rounded-lg border px-4 transition ${
-                validationChecked[itemKey] 
-                  ? 'border-teal bg-teal/5' 
-                  : 'border-slate-200 hover:border-gold/50 hover:bg-slate-50'
-              } ${isDisabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
-                <input
-                  type="checkbox"
-                  className="h-5 w-5 rounded border-slate-300 text-teal focus:ring-gold"
-                  checked={validationChecked[itemKey]}
-                  onChange={() => handleValidationToggle(itemKey)}
-                  disabled={isDisabled}
-                />
-                <span className="font-semibold text-slate-700">{item}</span>
-              </label>
-            );
-          })}
-        </CardBody>
-      </Card>
+        </div>
+      )}
 
       {/* ============================================================
-          MATERIAL SPECIFICATIONS AND DEADLINES
+          MATERIAL SPECIFICATIONS AND DEADLINES (ALL SPECS BY DEFAULT)
           ============================================================ */}
       <Card>
         <CardHeader>
-          <h3 className="text-lg font-bold text-ink">Material specifications and deadlines</h3>
+          <h3 className="text-lg font-bold text-ink">Material Specifications and Deadlines</h3>
           <p className="mt-1 text-sm text-slate-500">
             {selectedCampaign 
               ? `Showing specs for: ${selectedCategories.join(', ')}` 
-              : 'Select a campaign to see relevant specs'}
+              : 'All material specifications'}
           </p>
         </CardHeader>
         <CardBody>
           {!selectedCampaign ? (
-            <p className="text-center text-slate-500 py-8">Select a campaign to view material specifications</p>
+            <div className="grid gap-4 xl:grid-cols-2">
+              {materialSpecs.map((spec) => (
+                <article key={spec.id} className="rounded-lg border border-slate-200 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <Badge tone="navy">{spec.category}</Badge>
+                      <h4 className="mt-3 font-bold text-ink">{spec.title}</h4>
+                      <p className="mt-1 text-sm font-semibold text-[#73510f]">Due: {spec.deadline}</p>
+                    </div>
+                    <Badge tone="gold">Pending</Badge>
+                  </div>
+                  <ul className="mt-4 space-y-2">
+                    {spec.requirements.map((item) => (
+                      <li key={item} className="flex gap-2 text-sm text-slate-600">
+                        <CheckSquare className="mt-0.5 shrink-0 text-teal" size={16} />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {spec.warning && (
+                    <div className="mt-4 flex gap-2 rounded-lg border border-danger/20 bg-danger/10 p-3 text-sm font-semibold text-danger">
+                      <AlertTriangle className="mt-0.5 shrink-0" size={16} />
+                      <span>{spec.warning}</span>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
           ) : selectedCategories.length === 0 ? (
             <p className="text-center text-slate-500 py-8">No products found for this campaign</p>
           ) : (
@@ -1305,11 +1561,11 @@ export function OperationsPage() {
               className="hidden"
               accept="image/jpeg,image/png,image/jpg,application/pdf"
               onChange={handlePODUpload}
-              disabled={!allValidationsChecked || uploading || !selectedCampaign || selectedCampaign.status === 'Brief Unlocked' || selectedCampaign.status === 'Pending Materials' || !canExecute}
+              disabled={!selectedCampaign || selectedCampaign.status === 'Brief Unlocked' || selectedCampaign.status === 'Pending Materials' || selectedCampaign.status === 'Material Check' || selectedCampaign.status === 'Material Check Approved' || !canExecute}
             />
             <Button 
               variant="secondary" 
-              disabled={!allValidationsChecked || uploading || !selectedCampaign || selectedCampaign.status === 'Brief Unlocked' || selectedCampaign.status === 'Pending Materials' || !canExecute}
+              disabled={!selectedCampaign || selectedCampaign.status === 'Brief Unlocked' || selectedCampaign.status === 'Pending Materials' || selectedCampaign.status === 'Material Check' || selectedCampaign.status === 'Material Check Approved' || !canExecute}
               onClick={handleUploadClick}
             >
               <UploadCloud size={18} className="mr-2" />
@@ -1318,11 +1574,8 @@ export function OperationsPage() {
             {!selectedCampaign && (
               <p className="text-sm text-slate-500">Select a campaign first</p>
             )}
-            {(selectedCampaign?.status === 'Brief Unlocked' || selectedCampaign?.status === 'Pending Materials') && (
-              <p className="text-sm text-slate-500">Materials must be approved before uploading POD</p>
-            )}
-            {!allValidationsChecked && selectedCampaign && selectedCampaign.status !== 'Brief Unlocked' && selectedCampaign.status !== 'Pending Materials' && (
-              <p className="text-sm text-slate-500">Complete material validation first</p>
+            {(selectedCampaign?.status === 'Brief Unlocked' || selectedCampaign?.status === 'Pending Materials' || selectedCampaign?.status === 'Material Check' || selectedCampaign?.status === 'Material Check Approved') && (
+              <p className="text-sm text-slate-500">Campaign must be Scheduled or Live to upload POD</p>
             )}
           </div>
           
@@ -1454,7 +1707,7 @@ export function OperationsPage() {
               <p className="text-sm text-slate-500">Select a campaign first</p>
             )}
             {(selectedCampaign?.status === 'Brief Unlocked' || selectedCampaign?.status === 'Pending Materials') && (
-              <p className="text-sm text-slate-500">Campaign must be approved before generating report</p>
+              <p className="text-sm text-slate-500">Campaign must be Live or Delivered before generating report</p>
             )}
             {!podUploaded && selectedCampaign && selectedCampaign.status !== 'Brief Unlocked' && selectedCampaign.status !== 'Pending Materials' && (
               <p className="text-sm text-slate-500">Upload POD to enable report generation</p>
