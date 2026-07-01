@@ -97,9 +97,6 @@ async def upload_signed_sheet(
         raise HTTPException(status_code=404, detail="Campaign not found")
     if doc.to_dict().get("status") != "orderSheetGenerated":
         raise HTTPException(status_code=400, detail="Order Sheet must be generated first")
-    airtime_docs = list(db.collection("airtimeOrders").where("serial", "==", airtimeOrderSerial).limit(1).stream())
-    if not airtime_docs:
-        raise HTTPException(status_code=400, detail="Air-Time Order serial not found. Contact Finance to register it.")
     file_bytes = await file.read()
     dab_ref = doc.to_dict().get("dabRef", campaign_id)
     file_url = await upload_signed_pdf(file_bytes, f"{dab_ref}-signed")
