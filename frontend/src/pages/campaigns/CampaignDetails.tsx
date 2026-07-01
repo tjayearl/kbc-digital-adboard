@@ -6,7 +6,7 @@ import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { campaignTotals, lineTotal, money, productCatalog, rateCard, type Role, type Campaign, type AuditEvent } from '../../data/mockData';
 import { OrderSheetContent } from '../../components/campaigns/OrderSheetContent';
 import { FileText, Download, Upload, Trash2 } from 'lucide-react';
-import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, downloadOrderSheetPdf, uploadSignedSheet, getCampaignAudit, BASE_URL, getAuthHeaders, downloadReportPdf } from '../../services/api';
+import { getCampaign, deleteCampaign, updateCampaign, createChangeOrder, requestDiscount, generateOrderSheet, downloadOrderSheetPdf, uploadSignedSheet, uploadPaymentReceipt, getCampaignAudit, BASE_URL, getAuthHeaders, downloadReportPdf } from '../../services/api';
 import { downloadBlob, orderSheetFilename, printBlob, shareOrderSheet } from '../../utils/pdfActions';
 
 const tabs = ['Overview', 'Pricing', 'Order Sheet', 'Gate Checks', 'Reports', 'Audit Log'];
@@ -33,6 +33,8 @@ export function CampaignDetails() {
   const [airtimeSerial, setAirtimeSerial] = useState('');
   const [signedFile, setSignedFile] = useState<File | null>(null);
   const [uploadingSigned, setUploadingSigned] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [auditEvents, setAuditEvents] = useState<any[]>([]);
 
   const navigate = useNavigate();
@@ -240,6 +242,25 @@ export function CampaignDetails() {
       })
       .finally(() => {
         setUploadingSigned(false);
+      });
+  };
+
+  const handleUploadReceipt = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!campaign || !receiptFile) return;
+    setUploadingReceipt(true);
+    uploadPaymentReceipt(campaign.id, receiptFile)
+      .then((res: any) => {
+        alert("Payment confirmation receipt uploaded successfully!");
+        setUpdateCount(prev => prev + 1);
+        setReceiptFile(null);
+      })
+      .catch((err: any) => {
+        console.error(err);
+        alert(`Failed to upload receipt: ${err.message || err}`);
+      })
+      .finally(() => {
+        setUploadingReceipt(false);
       });
   };
 
@@ -606,6 +627,85 @@ export function CampaignDetails() {
                       <FileText size={16} className="mr-1.5" /> Download Signed Order Sheet PDF
                     </button>
                   </div>
+                </CardBody>
+              </Card>
+            )}
+
+            {isGenerated && (role === 'sales' || role === 'admin') && (
+              <Card>
+                <CardHeader>
+                  <h3 className="text-lg font-bold text-ink">Payment Confirmation Receipt</h3>
+                  <p className="mt-1 text-sm text-slate-500">Upload the bank slip, LPO, or mobile money transaction receipt as confirmation of payment.</p>
+                </CardHeader>
+                <CardBody className="space-y-4">
+                  {campaign.paymentReceiptUrl ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Badge tone="teal">Receipt Uploaded</Badge>
+                      </div>
+                      <div>
+                        <a
+                          href={campaign.paymentReceiptUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-sm font-bold text-navy hover:underline"
+                        >
+                          <FileText size={16} className="mr-1.5" /> View Payment Receipt
+                        </a>
+                      </div>
+                      <div className="border-t border-slate-100 pt-3">
+                        <p className="text-xs font-semibold text-slate-500">Upload a different receipt:</p>
+                        <form onSubmit={handleUploadReceipt} className="mt-2 flex flex-col sm:flex-row gap-3 items-center">
+                          <input
+                            type="file"
+                            accept=".pdf,image/*"
+                            onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                            className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-navy/10 file:text-navy hover:file:bg-navy/20 cursor-pointer w-full"
+                            required
+                          />
+                          <Button type="submit" disabled={uploadingReceipt || !receiptFile} className="w-full sm:w-auto shrink-0">
+                            {uploadingReceipt ? 'Uploading...' : 'Re-upload'}
+                          </Button>
+                        </form>
+                      </div>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleUploadReceipt} className="space-y-4">
+                      <div className="flex flex-col gap-2">
+                        <label htmlFor="receipt-file" className="text-sm font-semibold text-slate-700">Payment Receipt File (PDF/Image) *</label>
+                        <input
+                          id="receipt-file"
+                          type="file"
+                          accept=".pdf,image/*"
+                          onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                          className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-navy/10 file:text-navy hover:file:bg-navy/20 cursor-pointer"
+                          required
+                        />
+                      </div>
+                      <Button type="submit" disabled={uploadingReceipt || !receiptFile} className="w-full sm:w-auto">
+                        {uploadingReceipt ? 'Uploading...' : 'Upload Receipt'}
+                      </Button>
+                    </form>
+                  )}
+                </CardBody>
+              </Card>
+            )}
+
+            {campaign.paymentReceiptUrl && role !== 'sales' && role !== 'admin' && (
+              <Card>
+                <CardHeader>
+                  <h3 className="text-lg font-bold text-ink">Payment Confirmation Receipt</h3>
+                  <p className="mt-1 text-sm text-slate-500">The uploaded confirmation of payment receipt.</p>
+                </CardHeader>
+                <CardBody>
+                  <a
+                    href={campaign.paymentReceiptUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-sm font-bold text-navy hover:underline"
+                  >
+                    <FileText size={16} className="mr-1.5" /> View Payment Receipt
+                  </a>
                 </CardBody>
               </Card>
             )}

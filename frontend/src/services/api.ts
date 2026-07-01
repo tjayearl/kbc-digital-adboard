@@ -385,7 +385,8 @@ export function mapFrontendCampaignToBackend(c: any) {
     dec3: c.dec3 || false,
     reportFile: c.reportFile,
     status: backendStatus,
-    orderSheetPdfUrl: c.orderSheetPdfUrl || undefined
+    orderSheetPdfUrl: c.orderSheetPdfUrl || undefined,
+    paymentReceiptUrl: c.paymentReceiptUrl || undefined
   };
 
   return payload;
@@ -489,7 +490,8 @@ export function mapBackendCampaignToFrontend(bc: any): Campaign {
     dec2: bc.dec2 || false,
     dec3: bc.dec3 || false,
     signedSheetUrl: bc.signedSheetUrl || '',
-    airtimeOrderSerial: bc.airtimeOrderSerial || ''
+    airtimeOrderSerial: bc.airtimeOrderSerial || '',
+    paymentReceiptUrl: bc.paymentReceiptUrl || ''
   };
 }
 
@@ -1053,6 +1055,29 @@ export async function getAirtimeSerials(): Promise<any[]> {
     return await res.json();
   } catch (error) {
     console.error("Failed to fetch airtime serials:", error);
+    throw error;
+  }
+}
+
+export async function uploadPaymentReceipt(campaignId: string, file: File): Promise<any> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers = await getAuthHeaders(true);
+    const res = await fetch(`${BASE_URL}/order-sheet/${campaignId}/upload-receipt`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    const result = await res.json();
+    return result;
+  } catch (error) {
+    console.error(`Failed to upload payment receipt for ${campaignId}:`, error);
     throw error;
   }
 }

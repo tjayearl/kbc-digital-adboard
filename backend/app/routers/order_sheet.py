@@ -139,3 +139,30 @@ async def confirm_payment(campaign_id: str, user=Depends(require_roles(["finance
 @router.post("/{campaign_id}/dispute-payment")
 async def dispute_payment(campaign_id: str, user=Depends(require_roles(["finance", "admin"]))):
     raise HTTPException(status_code=400, detail="Finance payment disputing is disabled.")
+
+@router.post("/{campaign_id}/upload-receipt")
+async def upload_payment_receipt(
+    campaign_id: str,
+    file: UploadFile = File(...),
+    user=Depends(require_roles(["sales", "admin"]))
+):
+    ref = db.collection("campaigns").document(campaign_id)
+    doc = ref.get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    campaign = doc.to_dict()
+    if not campaign.get("dabRef"):
+        raise HTTPException(status_code=400, detail="Order Sheet must be generated first")
+    
+    from app.services.cloudinary_service import upload_file
+    file_bytes = await file.read()
+    dab_ref = campaign.get("dabRef")
+    file_url = await upload_file(file_bytes, f"{dab_ref}-receipt", "receipts")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    ref.update({
+        "paymentReceiptUrl": file_url,
+        "updatedAt": now
+    })
+    await log_action(campaign_id, "PAYMENT_RECEIPT_UPLOADED", user["uid"], user.get("role", ""), f"URL: {file_url}")
+    return {"message": "Payment receipt uploaded", "fileUrl": file_url}

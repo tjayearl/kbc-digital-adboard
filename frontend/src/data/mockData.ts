@@ -133,6 +133,7 @@ export type Campaign = {
   dec3?: boolean;
   signedSheetUrl?: string;
   airtimeOrderSerial?: string;
+  paymentReceiptUrl?: string;
 };
 
 export type Approval = {
