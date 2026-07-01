@@ -45,6 +45,47 @@ export type ProductLine = {
   platform?: string;
 };
 
+// Digital Ops - Asset Verification
+export type AssetVerification = {
+  type: 'Artwork' | 'VideoAssets' | 'SocialAssets';
+  status: 'pending' | 'received';
+  verifiedBy?: string;
+  verifiedAt?: string;
+  notes?: string;
+};
+
+// Digital Ops - Scheduling
+export type PostSchedule = {
+  id: string;
+  platform: string;
+  date: string;
+  time: string;
+  content: string;
+  status: 'pending' | 'scheduled' | 'posted';
+};
+
+export type CampaignSchedule = {
+  platforms: string[];
+  postingFrequency: string;
+  startDate: string;
+  endDate: string;
+  posts: PostSchedule[];
+  platformOrder: string[];
+  notes: string;
+};
+
+// Digital Ops - Go-Live
+export type GoLiveDetails = {
+  date: string;
+  time: string;
+  loggedBy: string;
+  notes: string;
+  executionStatus: 'pending' | 'in-progress' | 'completed';
+  postsPublished: number;
+  totalPosts: number;
+  errors?: string[];
+};
+
 export type Campaign = {
   id: string;
   dabRef: string;
@@ -65,11 +106,19 @@ export type Campaign = {
   paidDeposit: boolean;
   reportFile?: string;
   orderSheetPdfUrl?: string;
-  // Digital Ops fields
+  
+  // Digital Ops fields (existing)
   selectedItems?: string[];
   materialsReceived?: boolean;
   materialsReceivedAt?: string;
   materialRejectionReason?: string;
+  
+  // Digital Ops fields (NEW)
+  assetVerifications?: AssetVerification[];
+  schedule?: CampaignSchedule;
+  goLiveDetails?: GoLiveDetails;
+  
+  
   // Wizard configuration state properties
   kraPin?: string;
   bookingType?: string;
