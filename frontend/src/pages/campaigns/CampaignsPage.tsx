@@ -73,7 +73,7 @@ export function CampaignsPage() {
             className="w-full sm:w-auto" 
             disabled={role !== 'sales'}
           >
-            New Campaign
+            New Order
           </Button>
         </Link>
       </div>

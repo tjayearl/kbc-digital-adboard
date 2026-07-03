@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { 
   AlertTriangle, CalendarDays, CheckSquare, Clock3, UploadCloud, 
   FileText, Plus, X, Calendar, Radio, Lock, CheckCircle, 
@@ -70,10 +70,9 @@ export function OperationsPage() {
   // ============================================
   // GET CURRENT USER FROM AUTH CONTEXT
   // ============================================
-  // Replace this with your actual auth context/hook
-  // Example: const { user } = useAuth();
-  const currentUser = {
-    name: 'Jane Smith', // This should come from your auth system
+  const { currentUser: contextUser } = useOutletContext<{ currentUser?: { name: string; email: string; role: string } }>() || {};
+  const currentUser = contextUser || {
+    name: 'Jane Smith', // Fallback if context is not available
     email: 'jane.smith@kbc.com',
     role: 'digitalOps'
   };

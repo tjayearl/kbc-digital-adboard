@@ -61,7 +61,7 @@ export function Dashboard({ role }: DashboardProps) {
                 disabled={role !== 'sales'}
               >
                 <PlusCircle size={18} />
-                New Campaign
+                New Order
               </Button>
             </Link>
             <Link to={role === 'sales' ? "/orders" : "#"}>
