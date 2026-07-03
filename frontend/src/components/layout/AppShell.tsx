@@ -123,7 +123,10 @@ export function AppShell({ role, currentUserId, users, setUsers }: AppShellProps
             >
               Sign out
             </button>
-            <UserCircle className="text-slate-500" size={30} aria-hidden="true" />
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <span className="hidden text-sm font-semibold text-slate-700 sm:inline">{currentUser.name}</span>
+              <UserCircle className="text-slate-500" size={24} aria-hidden="true" />
+            </div>
           </div>
         </header>
         <main className="px-4 py-6 sm:px-6 lg:px-8">

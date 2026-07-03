@@ -785,9 +785,15 @@ export function OperationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-ink">Digital operations</h2>
-        <p className="mt-1 text-sm text-slate-500">Unlocked briefs ready for execution.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-ink">Digital operations</h2>
+          <p className="mt-1 text-sm text-slate-500">Unlocked briefs ready for execution.</p>
+        </div>
+        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 shadow-sm self-start sm:self-auto">
+          <User size={16} className="text-slate-400" />
+          <span>Operator: <span className="font-semibold text-ink">{currentUser.name}</span></span>
+        </div>
       </div>
       
       {/* ============================================================
